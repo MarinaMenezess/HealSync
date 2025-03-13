@@ -74,3 +74,14 @@ main{
 .content{
     
 }
+
+#menu{
+    height: 7vh;
+}
+
+.btn-secondary{
+    --bs-btn-bg: none;
+    --bs-btn-border-color: none;
+    --bs-btn-hover-bg: none;
+    --bs-btn-hover-border-color: none;
+}

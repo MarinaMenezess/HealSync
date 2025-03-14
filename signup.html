@@ -1,11 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Cadastro - Heal Sync</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    
+    <header>
+        <a href="index.html"><img src="./assets/logo.png" alt="" id="logo"></a>
+    </header>
+    <main class="login-main">
+        <div class="container">
+            <h2>Cadastro</h2>
+            <button class="google-btn">
+                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo"> 
+                Entrar com o Google
+            </button>
+            <div class="divider">
+                <hr>
+                <p>ou</p>
+                <hr>
+            </div>
+            <form>
+                <div class="info">
+                    <label for="name">Nome</label>
+                    <input type="text" required>
+                </div>
+
+                <div class="info">
+                    <label for="email">Email</label>
+                    <input type="email" required>
+                </div>
+
+                <div class="info">
+                    <label for="password">Senha</label>
+                    <input type="password" required>
+                </div>
+
+                <div class="info">
+                    <label for="">Confirme a Senha</label>
+                    <input type="password" required>
+                </div>
+
+                <button type="submit" id="cadastro">Cadastrar</button>
+            </form>
+        </div>
+    </main>
+    <script src="script.js"></script>
 </body>
 </html>

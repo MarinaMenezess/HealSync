@@ -1,11 +1,13 @@
 *{
     margin: 0;
     padding: 0;
+    font-family: "Montserrat", sans-serif;
+    color: black;
 }
 
 a{
-    text-decoration: none;
-    color: black;
+    text-decoration: none !important;
+    color: black !important;
 }
 
 header{
@@ -20,7 +22,7 @@ header{
 }
 
 body{
-    background-color: #D9D9D9;
+    background-color: #D9D9D9 !important;
     display: flex;
     flex-direction: column;
     gap: 50px;
@@ -45,7 +47,7 @@ main{
     justify-content: flex-start;
     background-color: white;
     border-radius: 30px;
-    gap: 10px;
+    gap: 15px;
 }
 
 .post-perfil{
@@ -72,16 +74,139 @@ main{
 }
 
 .content{
-    
+    display: flex;
+    flex-direction: column;
+    gap: 0;
 }
 
 #menu{
     height: 7vh;
 }
 
-.btn-secondary{
-    --bs-btn-bg: none;
-    --bs-btn-border-color: none;
-    --bs-btn-hover-bg: none;
-    --bs-btn-hover-border-color: none;
+.dropdown-toggle{
+    --bs-btn-bg: none !important;
+    --bs-btn-border-color: none !important;
+    --bs-btn-hover-bg: none !important;
+    --bs-btn-hover-border-color: none !important;
+    --bs-btn-active-bg: none !important;
+    --colorbs-btn-active-border-:none !important;
+}
+
+.dropdown-toggle::after{
+    display: none !important;
+}
+
+#acessos{
+    display: flex;
+    align-items: center;
+}
+
+#acessos img{
+    width: 60px;
+}
+
+.login-main{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.container {
+    background: white;
+    width: 55vw;
+    padding: 20px;
+    border-top-left-radius: 50px;
+    border-top-right-radius: 50px;
+    gap: 30px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.info{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+h2 {
+    color: #4a90e2;
+    font-size: 12vh;
+    padding: 20px;
+}
+
+.google-btn {
+    background: white;
+    border: 3px solid #ccc;
+    border-radius: 16px;
+    padding: 10px;
+    width: 41vw;
+    height: 11vh;
+    font-size: 4vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.google-btn img {
+    width: 40px;
+    height: 40px;
+}
+
+.divider {
+    margin: 20px 0;
+    text-transform: uppercase;
+    color: #888;
+    display: flex;
+    align-items: center;
+    gap: 2vw;
+}
+
+.divider p{
+    font-size: 4vh;
+}
+
+.divider hr{
+    width: 17vw;
+}
+
+form{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 40vw;
+    gap: 3vh;
+}
+
+form input {
+    width: 41vw;
+    height:4vh;
+    padding: 10px;
+    margin: 10px 0;
+    border: none;
+    background-color: #D9D9D9;
+    border-radius: 5px;
+    font-size: 3vh;
+}
+
+form label{
+    font-size: 3vh;
+}
+
+form button {
+    width: 25vw;
+    height:9vh;
+    padding: 10px;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 3vh;
 }

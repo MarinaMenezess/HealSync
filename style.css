@@ -44,7 +44,8 @@ main{
     justify-content: center;
     background-color: white;
     border-radius: 30px;
-    gap: 15px;
+    gap: 25px;
+    margin: 20px auto;
 }
 
 .post h3{
@@ -125,6 +126,7 @@ main{
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    margin: 30px auto 0;
 }
 
 .info{
@@ -244,6 +246,7 @@ form button {
 .first-line{
     display: flex;
     justify-content: space-between;
+    align-items: center;
 }
 
 .edit-btn {
@@ -325,7 +328,7 @@ p{
     cursor: pointer;
     height: 6vh;
     width: 16vw;
-    font-size: 25px;
+    font-size: 19px;
 }
 
 .add-btn{
@@ -347,7 +350,7 @@ p{
     display: flex;
     justify-content: space-between;
     align-items: center;
-    width: 30%;
+    width: 26%;
 }
 
 .acoes{
@@ -381,7 +384,7 @@ p{
     flex-direction: column;
     align-items: flex-start;
     justify-content: center;
-    gap: 25px;
+    gap: 22px;
     width: 80%;
     margin: 20px auto;
 }
@@ -394,6 +397,7 @@ p{
     width: 100%;
     font-size:35px;
     margin: 0;
+    padding: 0;
 }
 
 .registro-container textarea{
@@ -403,4 +407,27 @@ p{
     border-radius: 20px;
     padding: 20px;
     font-size: 19px;
+}
+
+#salvar{
+    align-self: center;
+    font-size: 19px;
+}
+
+.index-container{
+    display: flex;
+    flex-direction: column;
+    margin: 30px auto;
+    width: 70%;
+    gap: 30px;
+}
+
+
+.entr{
+    margin: auto 10px;
+    color: #003366 !important;
+}
+
+.entr:hover{
+    color: #FFF !important;
 }

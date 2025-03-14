@@ -16,6 +16,17 @@ document.addEventListener("DOMContentLoaded", function () {
     // Adiciona um evento de clique ao botão
     botao.addEventListener("click", function () {
         // Redireciona para a página desejada
+        window.location.href = "./registers.html";
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    // Seleciona o botão pelo ID
+    var botao = document.getElementById("registrar");
+    
+    // Adiciona um evento de clique ao botão
+    botao.addEventListener("click", function () {
+        // Redireciona para a página desejada
         window.location.href = "./register.html";
     });
 });

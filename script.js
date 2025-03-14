@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // Adiciona um evento de clique ao botão
     botao.addEventListener("click", function () {
         // Redireciona para a página desejada
-        window.location.href = "./index.html";
+        window.location.href = "./timeline.html";
     });
 });
 
@@ -82,6 +82,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // Adiciona um evento de clique ao botão
     botao.addEventListener("click", function () {
         // Redireciona para a página desejada
-        window.location.href = "./index.html";
+        window.location.href = "./timeline.html";
     });
 });

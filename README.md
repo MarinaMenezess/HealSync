@@ -61,3 +61,33 @@ O HealSync conta com diversas funcionalidades que auxiliam os usuários no acomp
 - Opções de controle de privacidade para os usuários.
 - Monitoramento de conteúdo para garantir um ambiente seguro e respeitoso.
 
+## Acessibilidade
+A acessibilidade é um fator essencial no desenvolvimento do HealSync. Com base no checklist de acessibilidade, avaliamos os seguintes critérios:
+
+### **Elementos Não Textuais**
+✔ Todas as imagens possuem um atributo `alt` adequado.
+✔ Não são utilizadas imagens contendo blocos de texto.
+✔ Elementos visuais críticos possuem versões alternativas em texto.
+
+### **Formulários**
+✔ Todos os campos de formulário possuem rótulos (`label`).
+❌ **Uso de `fieldset` e `legend` para agrupar campos relacionados não está implementado.**
+✔ O envio de formulários é feito via `input/button`, sem depender exclusivamente de JavaScript.
+❌ **Erros nos formulários não são indicados próximos aos campos afetados.**
+
+### **Uso de Cor e Elementos Visuais**
+✔ Informações importantes não são transmitidas apenas por cores.
+✔ Não há elementos que piscam ou mudam de cor rapidamente para evitar gatilhos visuais.
+
+### **Navegação**
+✔ Existe um mecanismo para pular links repetitivos.
+✔ O `<title>` de cada página é claro e descritivo.
+❌ **A plataforma não é totalmente navegável apenas pelo teclado.**
+
+### **Semântica e Legibilidade**
+✔ O conteúdo está estruturado corretamente com `h1, h2, h3, p` e listas.
+✔ O idioma da página é especificado no HTML (`lang="pt-BR"`).
+✔ As tabelas utilizam `th` para indicar cabeçalhos.
+✔ O site continua funcional com imagens desativadas.
+✔ O site é navegável mesmo com CSS desativado.
+✔ Aumentar o tamanho do texto em até 2x não prejudica a usabilidade.

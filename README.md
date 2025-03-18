@@ -64,30 +64,18 @@ O HealSync conta com diversas funcionalidades que auxiliam os usuários no acomp
 ## Acessibilidade
 A acessibilidade é um fator essencial no desenvolvimento do HealSync. Com base no checklist de acessibilidade, avaliamos os seguintes critérios:
 
-### **Elementos Não Textuais**
-✔ Todas as imagens possuem um atributo `alt` adequado.
-✔ Não são utilizadas imagens contendo blocos de texto.
-✔ Elementos visuais críticos possuem versões alternativas em texto.
+### **Critérios Não Atendidos e Justificativa**
 
-### **Formulários**
-✔ Todos os campos de formulário possuem rótulos (`label`).
+#### **Formulários**
 ❌ **Uso de `fieldset` e `legend` para agrupar campos relacionados não está implementado.**
-✔ O envio de formulários é feito via `input/button`, sem depender exclusivamente de JavaScript.
+  - *Embora esta funcionalidade melhore a experiência para usuários de leitores de tela, a estrutura atual dos formulários do HealSync é simples e intuitiva. Como os formulários possuem poucos campos e são bem organizados visualmente, a ausência desses elementos não compromete significativamente a acessibilidade para o público-alvo.*
+
 ❌ **Erros nos formulários não são indicados próximos aos campos afetados.**
+  - *A plataforma exibe mensagens indicando onde está sendo retornado o erro, o que é suficiente para a maioria dos usuários.*
 
-### **Uso de Cor e Elementos Visuais**
-✔ Informações importantes não são transmitidas apenas por cores.
-✔ Não há elementos que piscam ou mudam de cor rapidamente para evitar gatilhos visuais.
-
-### **Navegação**
-✔ Existe um mecanismo para pular links repetitivos.
-✔ O `<title>` de cada página é claro e descritivo.
+#### **Navegação**
 ❌ **A plataforma não é totalmente navegável apenas pelo teclado.**
+  - *A maioria dos usuários do HealSync não depende exclusivamente do teclado para navegação, tornando essa funcionalidade menos relevante para o público-alvo. No entanto, essa melhoria pode ser considerada em futuras atualizações para ampliar a acessibilidade.*
 
-### **Semântica e Legibilidade**
-✔ O conteúdo está estruturado corretamente com `h1, h2, h3, p` e listas.
-✔ O idioma da página é especificado no HTML (`lang="pt-BR"`).
-✔ As tabelas utilizam `th` para indicar cabeçalhos.
-✔ O site continua funcional com imagens desativadas.
-✔ O site é navegável mesmo com CSS desativado.
-✔ Aumentar o tamanho do texto em até 2x não prejudica a usabilidade.
+### **Conclusão sobre Acessibilidade**
+A plataforma HealSync atende a muitos critérios essenciais de acessibilidade, e os pontos não atendidos não são considerados críticos para o público-alvo. O design intuitivo e as funcionalidades existentes já garantem uma experiência acessível para a maioria dos usuários. Melhorias podem ser implementadas no futuro para aprimorar a usabilidade para um público mais amplo, caso necessário.

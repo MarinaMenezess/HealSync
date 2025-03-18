@@ -435,7 +435,13 @@ p{
 #chat-main{
     display: flex;
     flex-direction: row;
-    gap: 30px;
+    gap: 20px;
+}
+
+#chat-main section{
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
 }
 
 #conversas{
@@ -445,7 +451,13 @@ p{
     height: 84vh;
     background-color: #FFF;
     margin: 20px auto 0;
-    padding: 20px;
+    padding: 20px 25px;
+    border-top-right-radius: 20px;
+}
+
+.conversa{
+    display: flex;
+    justify-content: space-between;
 }
 
 .list-user-info{
@@ -468,6 +480,15 @@ p{
     align-items: flex-start;
 }
 
+#chat form{
+    background-color: #FFF;
+    display: flex;
+    flex-direction: row;
+    margin: 18px auto;
+    width: 100%;
+    border-radius: 40px;
+}
+
 #chat-user-info{
     display: flex;
     padding: 15px;
@@ -476,6 +497,7 @@ p{
     width: 100%;
     align-items: center;
     gap: 20px;
+    border-bottom-left-radius: 20px;
 }
 
 #chat-user-info img{
@@ -491,7 +513,6 @@ p{
     color: #fff;
     text-align: right;
     align-self: flex-end;
-    margin-right: 20px;
 }
 
 #msg-user{

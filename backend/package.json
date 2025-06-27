@@ -1,5 +1,22 @@
 {
   "dependencies": {
-    "bootstrap": "^5.3.3"
-  }
+    "bcrypt": "^6.0.0",
+    "bootstrap": "^5.3.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.0",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.14.1"
+  },
+  "name": "backend",
+  "version": "1.0.0",
+  "main": "db_config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
 }

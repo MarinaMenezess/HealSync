@@ -8,8 +8,11 @@ const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(bodyParser.json());
-app.use(cors());
-app.use(express.json());
+
+// Configuração CORS explícita para permitir a origem do seu frontend
+app.use(cors({
+  origin: 'http://127.0.0.1:5500'
+}));
 
 // Middleware de autenticação JWT (exemplo simples)
 const authMiddleware = async (req, res, next) => {

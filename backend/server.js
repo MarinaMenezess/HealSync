@@ -1,15 +1,17 @@
 // server.js
 const express = require('express');
-const connection = require('./db_config');
-const bodyParser = require("body-parser");
-const cors = require("cors");
+const db_connection = require('./db_config'); // Renomeie para 'db_connection' para evitar conflito
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const app = express();
-app.use(bodyParser.json());
-app.use(cors());
+const app = express(); // Use 'app' para sua aplicação Express
 app.use(express.json());
+
+// Middleware para anexar a conexão do banco de dados à requisição
+app.use((req, res, next) => {
+    req.db = db_connection;
+    next();
+});
 
 // Middleware de autenticação JWT (exemplo simples)
 const authMiddleware = async (req, res, next) => {
@@ -17,7 +19,7 @@ const authMiddleware = async (req, res, next) => {
   if (!authHeader) return res.status(401).json({ error: 'Token não fornecido' });
   const token = authHeader.split(' ')[1];
   try {
-    const payload = jwt.verify(token, 'segredo_super_secreto'); // troque pela sua chave secreta
+    const payload = jwt.verify(token, 'segredo_super_secreto');
     req.userId = payload.id;
     next();
   } catch {

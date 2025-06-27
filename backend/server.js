@@ -1,11 +1,15 @@
 // server.js
 const express = require('express');
-const connection = require('./db_config')
+const connection = require('./db_config');
+const bodyParser = require("body-parser");
+const cors = require("cors");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const connection = express();
-connection.use(express.json());
+const app = express();
+app.use(bodyParser.json());
+app.use(cors());
+app.use(express.json());
 
 // Middleware de autenticação JWT (exemplo simples)
 const authMiddleware = async (req, res, next) => {
@@ -26,13 +30,13 @@ const authMiddleware = async (req, res, next) => {
 ///////////////////////
 
 // Cadastro usuário
-connection.post('/usuarios', async (req, res) => {
+app.post('/usuarios', async (req, res) => {
   const { nome, email, senha, data_nascim, genero, configuracoes_privacidade } = req.body;
   if (!nome || !email || !senha) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
 
   const hashedPwd = await bcrypt.hash(senha, 10);
   try {
-    const [rows] = await req.db.execute(
+    const [rows] = await connection.execute(
       'INSERT INTO usuario (Nome, Email, Senha, Data_Nascim, Genero, Configuracoes_Privacidade) VALUES (?, ?, ?, ?, ?, ?)',
       [nome, email, hashedPwd, data_nascim, genero, configuracoes_privacidade]
     );
@@ -43,11 +47,11 @@ connection.post('/usuarios', async (req, res) => {
 });
 
 // Login usuário
-connection.post('/login', async (req, res) => {
+app.post('/login', async (req, res) => {
   const { email, senha } = req.body;
   if (!email || !senha) return res.status(400).json({ error: 'Email e senha são obrigatórios' });
   try {
-    const [rows] = await req.db.execute('SELECT * FROM usuario WHERE Email = ?', [email]);
+    const [rows] = await connection.execute('SELECT * FROM usuario WHERE Email = ?', [email]);
     if (rows.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
 
     const user = rows[0];
@@ -62,12 +66,12 @@ connection.post('/login', async (req, res) => {
 });
 
 // Obter perfil do usuário (com autenticação)
-connection.get('/usuarios/:id', authMiddleware, async (req, res) => {
+app.get('/usuarios/:id', authMiddleware, async (req, res) => {
   const id = req.params.id;
   if (parseInt(id) !== req.userId) return res.status(403).json({ error: 'Acesso negado' });
 
   try {
-    const [rows] = await req.db.execute('SELECT ID_Usuario, Nome, Email, Data_Nascim, Genero, Data_Cadastro, Configuracoes_Privacidade FROM usuario WHERE ID_Usuario = ?', [id]);
+    const [rows] = await connection.execute('SELECT ID_Usuario, Nome, Email, Data_Nascim, Genero, Data_Cadastro, Configuracoes_Privacidade FROM usuario WHERE ID_Usuario = ?', [id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Usuário não encontrado' });
     res.json(rows[0]);
   } catch (err) {
@@ -76,7 +80,7 @@ connection.get('/usuarios/:id', authMiddleware, async (req, res) => {
 });
 
 // Atualizar perfil do usuário
-connection.put('/usuarios/:id', authMiddleware, async (req, res) => {
+app.put('/usuarios/:id', authMiddleware, async (req, res) => {
   const id = req.params.id;
   if (parseInt(id) !== req.userId) return res.status(403).json({ error: 'Acesso negado' });
 
@@ -99,7 +103,7 @@ connection.put('/usuarios/:id', authMiddleware, async (req, res) => {
     query = query.slice(0, -2) + ' WHERE ID_Usuario = ?';
     params.push(id);
 
-    await req.db.execute(query, params);
+    await connection.execute(query, params);
     res.json({ message: 'Usuário atualizado com sucesso' });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao atualizar usuário', detalhes: err.message });
@@ -107,12 +111,12 @@ connection.put('/usuarios/:id', authMiddleware, async (req, res) => {
 });
 
 // Excluir usuário
-connection.delete('/usuarios/:id', authMiddleware, async (req, res) => {
+app.delete('/usuarios/:id', authMiddleware, async (req, res) => {
   const id = req.params.id;
   if (parseInt(id) !== req.userId) return res.status(403).json({ error: 'Acesso negado' });
 
   try {
-    await req.db.execute('DELETE FROM usuario WHERE ID_Usuario = ?', [id]);
+    await connection.execute('DELETE FROM usuario WHERE ID_Usuario = ?', [id]);
     res.json({ message: 'Usuário excluído' });
   } catch (err) {
     res.status(500).json({ error: 'Erro ao excluir usuário', detalhes: err.message });
@@ -123,19 +127,19 @@ connection.delete('/usuarios/:id', authMiddleware, async (req, res) => {
 // ROTAS PSICÓLOGO
 ///////////////////////
 
-connection.get('/psicologos', async (req, res) => {
+app.get('/psicologos', async (req, res) => {
   try {
-    const [rows] = await req.db.execute('SELECT * FROM psicologo');
+    const [rows] = await connection.execute('SELECT * FROM psicologo');
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-connection.get('/psicologos/:id', async (req, res) => {
+app.get('/psicologos/:id', async (req, res) => {
   const id = req.params.id;
   try {
-    const [rows] = await req.db.execute('SELECT * FROM psicologo WHERE ID_Psicologo = ?', [id]);
+    const [rows] = await connection.execute('SELECT * FROM psicologo WHERE ID_Psicologo = ?', [id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Psicólogo não encontrado' });
     res.json(rows[0]);
   } catch (err) {
@@ -143,10 +147,10 @@ connection.get('/psicologos/:id', async (req, res) => {
   }
 });
 
-connection.post('/psicologos', async (req, res) => {
+app.post('/psicologos', async (req, res) => {
   const { nome, especialidade, contato, avaliacao } = req.body;
   try {
-    const [result] = await req.db.execute(
+    const [result] = await connection.execute(
       'INSERT INTO psicologo (Nome, Especialidade, Contato, Avaliacao) VALUES (?, ?, ?, ?)',
       [nome, especialidade, contato, avaliacao]
     );
@@ -156,7 +160,7 @@ connection.post('/psicologos', async (req, res) => {
   }
 });
 
-connection.put('/psicologos/:id', async (req, res) => {
+app.put('/psicologos/:id', async (req, res) => {
   const id = req.params.id;
   const { nome, especialidade, contato, avaliacao } = req.body;
 
@@ -172,17 +176,17 @@ connection.put('/psicologos/:id', async (req, res) => {
     query = query.slice(0, -2) + ' WHERE ID_Psicologo = ?';
     params.push(id);
 
-    await req.db.execute(query, params);
+    await connection.execute(query, params);
     res.json({ message: 'Psicólogo atualizado' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-connection.delete('/psicologos/:id', async (req, res) => {
+app.delete('/psicologos/:id', async (req, res) => {
   const id = req.params.id;
   try {
-    await req.db.execute('DELETE FROM psicologo WHERE ID_Psicologo = ?', [id]);
+    await connection.execute('DELETE FROM psicologo WHERE ID_Psicologo = ?', [id]);
     res.json({ message: 'Psicólogo excluído' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -193,19 +197,19 @@ connection.delete('/psicologos/:id', async (req, res) => {
 // ROTAS CONSULTAS
 ///////////////////////
 
-connection.get('/consultas', async (req, res) => {
+app.get('/consultas', async (req, res) => {
   try {
-    const [rows] = await req.db.execute('SELECT * FROM consulta');
+    const [rows] = await connection.execute('SELECT * FROM consulta');
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-connection.get('/consultas/:id', async (req, res) => {
+app.get('/consultas/:id', async (req, res) => {
   const id = req.params.id;
   try {
-    const [rows] = await req.db.execute('SELECT * FROM consulta WHERE ID_Consulta = ?', [id]);
+    const [rows] = await connection.execute('SELECT * FROM consulta WHERE ID_Consulta = ?', [id]);
     if (rows.length === 0) return res.status(404).json({ error: 'Consulta não encontrada' });
     res.json(rows[0]);
   } catch (err) {
@@ -213,10 +217,10 @@ connection.get('/consultas/:id', async (req, res) => {
   }
 });
 
-connection.post('/consultas', async (req, res) => {
+app.post('/consultas', async (req, res) => {
   const { id_usuario, id_psicologo, data_hora, status } = req.body;
   try {
-    const [result] = await req.db.execute(
+    const [result] = await connection.execute(
       'INSERT INTO consulta (ID_Usuario, ID_Psicologo, Data_Hora, Status) VALUES (?, ?, ?, ?)',
       [id_usuario, id_psicologo, data_hora, status]
     );
@@ -226,7 +230,7 @@ connection.post('/consultas', async (req, res) => {
   }
 });
 
-connection.put('/consultas/:id', async (req, res) => {
+app.put('/consultas/:id', async (req, res) => {
   const id = req.params.id;
   const { data_hora, status } = req.body;
 
@@ -240,17 +244,17 @@ connection.put('/consultas/:id', async (req, res) => {
     query = query.slice(0, -2) + ' WHERE ID_Consulta = ?';
     params.push(id);
 
-    await req.db.execute(query, params);
+    await connection.execute(query, params);
     res.json({ message: 'Consulta atualizada' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-connection.delete('/consultas/:id', async (req, res) => {
+app.delete('/consultas/:id', async (req, res) => {
   const id = req.params.id;
   try {
-    await req.db.execute('DELETE FROM consulta WHERE ID_Consulta = ?', [id]);
+    await connection.execute('DELETE FROM consulta WHERE ID_Consulta = ?', [id]);
     res.json({ message: 'Consulta excluída' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -258,10 +262,10 @@ connection.delete('/consultas/:id', async (req, res) => {
 });
 
 // Consultas de um usuário
-connection.get('/usuarios/:id/consultas', async (req, res) => {
+app.get('/usuarios/:id/consultas', async (req, res) => {
   const id = req.params.id;
   try {
-    const [rows] = await req.db.execute('SELECT * FROM consulta WHERE ID_Usuario = ?', [id]);
+    const [rows] = await connection.execute('SELECT * FROM consulta WHERE ID_Usuario = ?', [id]);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -272,21 +276,21 @@ connection.get('/usuarios/:id/consultas', async (req, res) => {
 // ROTAS REGISTRO DE PROGRESSO
 ///////////////////////
 
-connection.get('/usuarios/:id/registros', async (req, res) => {
+app.get('/usuarios/:id/registros', async (req, res) => {
   const id = req.params.id;
   try {
-    const [rows] = await req.db.execute('SELECT * FROM registro_progresso WHERE ID_Usuario = ?', [id]);
+    const [rows] = await connection.execute('SELECT * FROM registro_progresso WHERE ID_Usuario = ?', [id]);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-connection.post('/usuarios/:id/registros', async (req, res) => {
+app.post('/usuarios/:id/registros', async (req, res) => {
   const id = req.params.id;
   const { data, emocao, descricao } = req.body;
   try {
-    const [result] = await req.db.execute(
+    const [result] = await connection.execute(
       'INSERT INTO registro_progresso (ID_Usuario, Data, Emocao, Descricao) VALUES (?, ?, ?, ?)',
       [id, data, emocao, descricao]
     );
@@ -296,7 +300,7 @@ connection.post('/usuarios/:id/registros', async (req, res) => {
   }
 });
 
-connection.put('/registros/:id', async (req, res) => {
+app.put('/registros/:id', async (req, res) => {
   const id = req.params.id;
   const { data, emocao, descricao } = req.body;
 
@@ -311,17 +315,17 @@ connection.put('/registros/:id', async (req, res) => {
     query = query.slice(0, -2) + ' WHERE ID_Registro = ?';
     params.push(id);
 
-    await req.db.execute(query, params);
+    await connection.execute(query, params);
     res.json({ message: 'Registro atualizado' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-connection.delete('/registros/:id', async (req, res) => {
+app.delete('/registros/:id', async (req, res) => {
   const id = req.params.id;
   try {
-    await req.db.execute('DELETE FROM registro_progresso WHERE ID_Registro = ?', [id]);
+    await connection.execute('DELETE FROM registro_progresso WHERE ID_Registro = ?', [id]);
     res.json({ message: 'Registro excluído' });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -332,10 +336,10 @@ connection.delete('/registros/:id', async (req, res) => {
 // ROTAS MENSAGENS
 ///////////////////////
 
-connection.get('/usuarios/:id/mensagens', async (req, res) => {
+app.get('/usuarios/:id/mensagens', async (req, res) => {
   const id = req.params.id;
   try {
-    const [rows] = await req.db.execute(
+    const [rows] = await connection.execute(
       'SELECT * FROM mensagem WHERE ID_Usuario = ? OR ID_Psicologo = ? ORDER BY Data_Hora DESC',
       [id, id]
     );
@@ -345,10 +349,10 @@ connection.get('/usuarios/:id/mensagens', async (req, res) => {
   }
 });
 
-connection.post('/mensagens', async (req, res) => {
+app.post('/mensagens', async (req, res) => {
   const { id_usuario, id_psicologo, conteudo, data_hora } = req.body;
   try {
-    const [result] = await req.db.execute(
+    const [result] = await connection.execute(
       'INSERT INTO mensagem (ID_Usuario, ID_Psicologo, Conteudo, Data_Hora) VALUES (?, ?, ?, ?)',
       [id_usuario, id_psicologo, conteudo, data_hora]
     );
@@ -362,20 +366,20 @@ connection.post('/mensagens', async (req, res) => {
 // ROTAS INTERAÇÕES
 ///////////////////////
 
-connection.get('/usuarios/:id/interacoes', async (req, res) => {
+app.get('/usuarios/:id/interacoes', async (req, res) => {
   const id = req.params.id;
   try {
-    const [rows] = await req.db.execute('SELECT * FROM interacao WHERE ID_Usuario = ?', [id]);
+    const [rows] = await connection.execute('SELECT * FROM interacao WHERE ID_Usuario = ?', [id]);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-connection.post('/interacoes', async (req, res) => {
+app.post('/interacoes', async (req, res) => {
   const { id_usuario, tipo_interacao, data_hora } = req.body;
   try {
-    const [result] = await req.db.execute(
+    const [result] = await connection.execute(
       'INSERT INTO interacao (ID_Usuario, Tipo_Interacao, Data_Hora) VALUES (?, ?, ?)',
       [id_usuario, tipo_interacao, data_hora]
     );
@@ -388,10 +392,10 @@ connection.post('/interacoes', async (req, res) => {
 ///////////////////////
 // ROTA SAÚDE - rota base
 ///////////////////////
-connection.get('/', (req, res) => {
+app.get('/', (req, res) => {
   res.send('API HealSync rodando...');
 });
 
 // Start server
 const PORT = 3000;
-connection.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
+app.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

@@ -9,8 +9,7 @@ CREATE TABLE usuario (
     Senha VARCHAR(100),
     Data_Nascim DATE,
     Genero ENUM('Masculino', 'Feminino', 'Outro'),
-    Data_Cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    Configuracoes_Privacidade VARCHAR(255)
+    Data_Cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Tabela: psicologo

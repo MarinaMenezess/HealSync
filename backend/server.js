@@ -34,14 +34,14 @@ const authMiddleware = async (req, res, next) => {
 
 // Cadastro usuário
 app.post('/usuarios', async (req, res) => {
-  const { nome, email, senha, data_nascim, genero, configuracoes_privacidade } = req.body;
+  const { nome, email, senha, data_nascim, genero } = req.body;
   if (!nome || !email || !senha) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
 
   const hashedPwd = await bcrypt.hash(senha, 10);
   try {
     const [rows] = await connection.execute(
-      'INSERT INTO usuario (Nome, Email, Senha, Data_Nascim, Genero, Configuracoes_Privacidade) VALUES (?, ?, ?, ?, ?, ?)',
-      [nome, email, hashedPwd, data_nascim, genero, configuracoes_privacidade]
+      'INSERT INTO usuario (Nome, Email, Senha, Data_Nascim, Genero) VALUES (?, ?, ?, ?, ?)',
+      [nome, email, hashedPwd, data_nascim, genero]
     );
     res.status(201).json({ message: 'Usuário criado', id: rows.insertId });
   } catch (err) {

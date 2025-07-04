@@ -1,7 +1,10 @@
+// signup.js
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.querySelector('form');
     const nameInput = document.querySelector('input[type="text"]');
     const emailInput = document.querySelector('input[type="email"]');
+    const birthdateInput = document.querySelector('input[type="date"]'); // Adicionei a variável
+    const genderSelect = document.querySelector('select[name="gender"]'); // Adicionei a variável
     const passwordInput = document.querySelectorAll('input[type="password"]')[0];
     const confirmPasswordInput = document.querySelectorAll('input[type="password"]')[1];
   
@@ -12,6 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const email = emailInput.value.trim();
       const senha = passwordInput.value.trim();
       const confirmarSenha = confirmPasswordInput.value.trim();
+      const data_nascim = birthdateInput.value; // Pega o valor do campo de data
+      const genero = genderSelect.value;       // Pega o valor selecionado
   
       if (senha !== confirmarSenha) {
         alert('As senhas não coincidem!');
@@ -22,9 +27,9 @@ document.addEventListener('DOMContentLoaded', () => {
         nome,
         email,
         senha,
-        data_nascim: '2000-01-01', // exemplo fixo, você pode adicionar esse campo no form
-        genero: 'Outro',           // idem
-        configuracoes_privacidade: 'Padrão'
+        data_nascim,
+        genero
+        // Removi a propriedade 'configuracoes_privacidade'
       };
   
       try {
@@ -48,4 +53,3 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   });
-  

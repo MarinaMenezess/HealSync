@@ -20,7 +20,7 @@ const authMiddleware = async (req, res, next) => {
   if (!authHeader) return res.status(401).json({ error: 'Token não fornecido' });
   const token = authHeader.split(' ')[1];
   try {
-    const payload = jwt.verify(token, 'segredo_super_secreto'); // troque pela sua chave secreta
+    const payload = jwt.verify(token, 'chave'); // trocar pela chave 
     req.userId = payload.id;
     next();
   } catch {
@@ -34,20 +34,28 @@ const authMiddleware = async (req, res, next) => {
 
 // Cadastro usuário
 app.post('/usuarios', async (req, res) => {
-  const { nome, email, senha, data_nascim, genero } = req.body;
-  if (!nome || !email || !senha) return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
-
-  const hashedPwd = await bcrypt.hash(senha, 10);
   try {
-    const [rows] = await connection.execute(
-      'INSERT INTO usuario (Nome, Email, Senha, Data_Nascim, Genero) VALUES (?, ?, ?, ?, ?)',
-      [nome, email, hashedPwd, data_nascim, genero]
-    );
-    res.status(201).json({ message: 'Usuário criado', id: rows.insertId });
+    const { nome, email, senha, data_nascim, genero } = req.body;
+    console.log(req.body);
+
+    if (!nome || !email || !senha) {
+      return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
+    }
+
+    const hashedPwd = await bcrypt.hash(senha, 10);
+
+    const sql = 'INSERT INTO usuario (Nome, Email, Senha, Data_Nascim, Genero) VALUES (?, ?, ?, ?, ?)';
+    const values = [nome, email, hashedPwd, data_nascim ?? null, genero ?? null];
+
+    const results = connection.execute(sql, values);
+
+    return res.status(201).json({ message: 'Usuário criado', id: results.insertId });
   } catch (err) {
-    res.status(500).json({ error: 'Erro ao criar usuário', detalhes: err.message });
+    console.error('Erro ao criar usuário:', err);
+    return res.status(500).json({ error: 'Erro ao criar usuário', detalhes: err.message });
   }
 });
+
 
 // Login usuário
 app.post('/login', async (req, res) => {

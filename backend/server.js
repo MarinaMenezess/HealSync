@@ -28,155 +28,134 @@ const authMiddleware = async (req, res, next) => {
   }
 };
 
-///////////////////////
-// ROTAS USUÁRIO
-///////////////////////
-
-// Cadastro usuário
-app.post('/usuarios', async (req, res) => {
+// 1. Criar usuário
+app.post('/usuario', async (req, res) => {
+  const { Nome, Email, Senha, Data_Nascim, Genero, Eh_Psicologo } = req.body;
   try {
-    const { nome, email, senha, data_nascim, genero } = req.body;
-    console.log(req.body);
-
-    if (!nome || !email || !senha) {
-      return res.status(400).json({ error: 'Campos obrigatórios ausentes' });
-    }
-
-    const hashedPwd = await bcrypt.hash(senha, 10);
-
-    const sql = 'INSERT INTO usuario (Nome, Email, Senha, Data_Nascim, Genero) VALUES (?, ?, ?, ?, ?)';
-    const values = [nome, email, hashedPwd, data_nascim ?? null, genero ?? null];
-
-    const results = connection.execute(sql, values);
-
-    return res.status(201).json({ message: 'Usuário criado', id: results.insertId });
+    const [result] = await connection.execute(
+      'INSERT INTO usuario (Nome, Email, Senha, Data_Nascim, Genero, Eh_Psicologo) VALUES (?, ?, ?, ?, ?, ?)',
+      [Nome, Email, Senha, Data_Nascim, Genero, Eh_Psicologo]
+    );
+    res.status(201).json({ message: 'Usuário criado', ID_Usuario: result.insertId });
   } catch (err) {
-    console.error('Erro ao criar usuário:', err);
-    return res.status(500).json({ error: 'Erro ao criar usuário', detalhes: err.message });
+    res.status(500).json({ error: 'Erro ao criar usuário', details: err });
   }
 });
 
-
-// Login usuário
-app.post('/login', async (req, res) => {
-  
+// 2. Editar usuário
+app.put('/usuario/:id', async (req, res) => {
+  const { id } = req.params;
+  const { Nome, Email, Senha, Data_Nascim, Genero, Eh_Psicologo } = req.body;
+  try {
+    await connection.execute(
+      'UPDATE usuario SET Nome=?, Email=?, Senha=?, Data_Nascim=?, Genero=?, Eh_Psicologo=? WHERE ID_Usuario=?',
+      [Nome, Email, Senha, Data_Nascim, Genero, Eh_Psicologo, id]
+    );
+    res.json({ message: 'Usuário atualizado' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao atualizar', details: err });
+  }
 });
 
-// Obter perfil do usuário (com autenticação)
-app.get('/usuarios/:id', authMiddleware, async (req, res) => {
-  
+// 3. Excluir usuário
+app.delete('/usuario/:id', async (req, res) => {
+  try {
+    await connection.execute('DELETE FROM usuario WHERE ID_Usuario = ?', [req.params.id]);
+    res.json({ message: 'Usuário excluído' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao excluir', details: err });
+  }
 });
 
-// Atualizar perfil do usuário
-app.put('/usuarios/:id', authMiddleware, async (req, res) => {
-  
+// 4. Definir dados de psicólogo
+app.post('/psicologo', async (req, res) => {
+  const { ID_Usuario, Especialidade, Contato } = req.body;
+  try {
+    await connection.execute(
+      'INSERT INTO dados_psicologo (ID_Psicologo, Especialidade, Contato) VALUES (?, ?, ?)',
+      [ID_Usuario, Especialidade, Contato]
+    );
+    res.status(201).json({ message: 'Psicólogo registrado' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao registrar psicólogo', details: err });
+  }
 });
 
-// Excluir usuário
-app.delete('/usuarios/:id', authMiddleware, async (req, res) => {
-  
+// 5. Agendar consulta
+app.post('/consulta', async (req, res) => {
+  const { ID_Usuario, ID_Psicologo, Data_Hora } = req.body;
+  try {
+    const [result] = await connection.execute(
+      'INSERT INTO consulta (ID_Usuario, ID_Psicologo, Data_Hora, Status) VALUES (?, ?, ?, "Agendada")',
+      [ID_Usuario, ID_Psicologo, Data_Hora]
+    );
+    res.status(201).json({ message: 'Consulta agendada', ID_Consulta: result.insertId });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao agendar', details: err });
+  }
 });
 
-///////////////////////
-// ROTAS PSICÓLOGO
-///////////////////////
-
-app.get('/psicologos', async (req, res) => {
-  
+// 6. Atualizar status da consulta (aceitar/recusar)
+app.put('/consulta/:id/atualizar', async (req, res) => {
+  const { id } = req.params;
+  const { Status, Motivo_Recusa } = req.body;
+  try {
+    await connection.execute(
+      'UPDATE consulta SET Status = ?, Motivo_Recusa = ? WHERE ID_Consulta = ?',
+      [Status, Motivo_Recusa || null, id]
+    );
+    res.json({ message: 'Consulta atualizada' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao atualizar consulta', details: err });
+  }
 });
 
-app.get('/psicologos/:id', async (req, res) => {
- 
+// 7. Listar pacientes de um psicólogo
+app.get('/psicologo/:id/pacientes', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await connection.execute(
+      `SELECT DISTINCT u.ID_Usuario, u.Nome, u.Email
+       FROM consulta c
+       JOIN usuario u ON u.ID_Usuario = c.ID_Usuario
+       WHERE c.ID_Psicologo = ? AND c.Status = 'Concluída'`,
+      [id]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar pacientes', details: err });
+  }
 });
 
-app.post('/psicologos', async (req, res) => {
-  
+// 8. Adicionar anotação de psicólogo para paciente
+app.post('/psicologo/:id/anotacao', async (req, res) => {
+  const { ID_Usuario, Conteudo } = req.body;
+  const { id } = req.params;
+  try {
+    await connection.execute(
+      'INSERT INTO anotacao_paciente (ID_Psicologo, ID_Usuario, Conteudo) VALUES (?, ?, ?)',
+      [id, ID_Usuario, Conteudo]
+    );
+    res.status(201).json({ message: 'Anotação registrada' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao adicionar anotação', details: err });
+  }
 });
 
-app.put('/psicologos/:id', async (req, res) => {
-  
+// 9. Criar registro de progresso
+app.post('/registro_progresso', async (req, res) => {
+  const { ID_Usuario, Data, Emocao, Descricao } = req.body;
+  try {
+    await connection.execute(
+      'INSERT INTO registro_progresso (ID_Usuario, Data, Emocao, Descricao) VALUES (?, ?, ?, ?)',
+      [ID_Usuario, Data, Emocao, Descricao]
+    );
+    res.status(201).json({ message: 'Registro criado' });
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao criar registro', details: err });
+  }
 });
 
-app.delete('/psicologos/:id', async (req, res) => {
-  
-});
-
-///////////////////////
-// ROTAS CONSULTAS
-///////////////////////
-
-app.get('/consultas', async (req, res) => {
-  
-});
-
-app.get('/consultas/:id', async (req, res) => {
-  
-});
-
-app.post('/consultas', async (req, res) => {
-  
-});
-
-app.put('/consultas/:id', async (req, res) => {
- 
-});
-
-app.delete('/consultas/:id', async (req, res) => {
-  
-});
-
-// Consultas de um usuário
-app.get('/usuarios/:id/consultas', async (req, res) => {
-  
-});
-
-///////////////////////
-// ROTAS REGISTRO DE PROGRESSO
-///////////////////////
-
-app.get('/usuarios/:id/registros', async (req, res) => {
-  
-});
-
-app.post('/usuarios/:id/registros', async (req, res) => {
-  
-});
-
-app.put('/registros/:id', async (req, res) => {
-  
-});
-
-app.delete('/registros/:id', async (req, res) => {
-  
-});
-
-///////////////////////
-// ROTAS MENSAGENS
-///////////////////////
-
-app.get('/usuarios/:id/mensagens', async (req, res) => {
-  
-});
-
-app.post('/mensagens', async (req, res) => {
-  
-});
-
-///////////////////////
-// ROTAS INTERAÇÕES
-///////////////////////
-
-app.get('/usuarios/:id/interacoes', async (req, res) => {
-  
-});
-
-app.post('/interacoes', async (req, res) => {
-  
-});
-
-///////////////////////
-// ROTA SAÚDE - rota base
-///////////////////////
 app.get('/', (req, res) => {
   res.send('API HealSync rodando...');
 });

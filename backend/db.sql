@@ -1,66 +1,88 @@
-CREATE DATABASE healsync; 
-USE healsync;
+CREATE DATABASE IF NOT EXISTS HealSyncDB;
+USE HealSyncDB;
 
--- Tabela: usuario (agora pode ser paciente ou psicólogo)
+-- Tabela: usuario
 CREATE TABLE usuario (
-    ID_Usuario INT PRIMARY KEY AUTO_INCREMENT,
-    Nome VARCHAR(100),
-    Email VARCHAR(100) UNIQUE,
-    Senha VARCHAR(100),
-    Data_Nascim DATE,
-    Genero ENUM('Masculino', 'Feminino', 'Outro'),
-    Eh_Psicologo BOOLEAN DEFAULT FALSE,
-    Data_Cadastro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(45) NOT NULL,
+    email VARCHAR(45) NOT NULL UNIQUE,
+    senha VARCHAR(45) NOT NULL,
+    data_nascimento DATE,
+    genero VARCHAR(45),
+    is_psicologo TINYINT(1),
+    especialidade VARCHAR(45),
+    contato VARCHAR(255),
+    avaliacao DECIMAL(2,1)
 );
 
--- Tabela: dados_psicologo (apenas para usuários que são psicólogos)
-CREATE TABLE dados_psicologo (
-    ID_Psicologo INT PRIMARY KEY, -- mesmo ID do usuario
-    Especialidade VARCHAR(100),
-    Contato VARCHAR(255),
-    Avaliacao DECIMAL(2,1) DEFAULT 0.0,
-    FOREIGN KEY (ID_Psicologo) REFERENCES usuario(ID_Usuario)
+-- Tabela: ia_conversa
+CREATE TABLE ia_conversa (
+    id_conversa INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    data_inicio DATETIME,
+    titulo_opcional VARCHAR(45),
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
+);
+
+-- Tabela: ia_mensagem
+CREATE TABLE ia_mensagem (
+    id_mensagem INT AUTO_INCREMENT PRIMARY KEY,
+    id_conversa INT NOT NULL,
+    remetente ENUM('usuario', 'ia') NOT NULL,
+    conteudo TEXT NOT NULL,
+    data_hora DATETIME,
+    FOREIGN KEY (id_conversa) REFERENCES ia_conversa(id_conversa) ON DELETE CASCADE
 );
 
 -- Tabela: consulta
 CREATE TABLE consulta (
-    ID_Consulta INT PRIMARY KEY AUTO_INCREMENT,
-    ID_Usuario INT,
-    ID_Psicologo INT,
-    Data_Hora DATETIME,
-    Status ENUM('Agendada', 'Concluída', 'Recusada', 'Cancelada') DEFAULT 'Agendada',
-    Motivo_Recusa TEXT,
-    FOREIGN KEY (ID_Usuario) REFERENCES usuario(ID_Usuario),
-    FOREIGN KEY (ID_Psicologo) REFERENCES usuario(ID_Usuario)
+    id_consulta INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    id_psicologo INT NOT NULL,
+    data_hora DATETIME NOT NULL,
+    status VARCHAR(45),
+    motivo_recusa TEXT,
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_psicologo) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
 -- Tabela: registro_progresso
 CREATE TABLE registro_progresso (
-    ID_Registro INT PRIMARY KEY AUTO_INCREMENT,
-    ID_Usuario INT,
-    Data DATE,
-    Emocao VARCHAR(100),
-    Descricao TEXT,
-    FOREIGN KEY (ID_Usuario) REFERENCES usuario(ID_Usuario)
+    id_registro INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario INT NOT NULL,
+    data DATE,
+    emocao VARCHAR(45),
+    descricao TEXT,
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
--- Tabela: anotacao_paciente (somente psicólogos podem adicionar)
+-- Tabela: comentario
+CREATE TABLE comentario (
+    id_comentario INT AUTO_INCREMENT PRIMARY KEY,
+    id_registro INT NOT NULL,
+    id_usuario INT NOT NULL,
+    conteudo TEXT,
+    data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_registro) REFERENCES registro_progresso(id_registro) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
+);
+
+-- Tabela: curtida
+CREATE TABLE curtida (
+    id_curtida INT AUTO_INCREMENT PRIMARY KEY,
+    id_registro INT NOT NULL,
+    id_usuario INT NOT NULL,
+    FOREIGN KEY (id_registro) REFERENCES registro_progresso(id_registro) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
+);
+
+-- Tabela: anotacao_paciente
 CREATE TABLE anotacao_paciente (
-    ID_Anotacao INT PRIMARY KEY AUTO_INCREMENT,
-    ID_Psicologo INT,
-    ID_Usuario INT,
-    Data_Anotacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    Conteudo TEXT,
-    FOREIGN KEY (ID_Psicologo) REFERENCES usuario(ID_Usuario),
-    FOREIGN KEY (ID_Usuario) REFERENCES usuario(ID_Usuario)
-);
-
--- Tabela: interacao (mantida, pode ser usada para curtir conteúdos etc.)
-CREATE TABLE interacao (
-    ID_Interacao INT PRIMARY KEY AUTO_INCREMENT,
-    ID_Usuario INT,
-    Tipo ENUM('Curtida', 'Comentário', 'Compartilhamento'),
-    Conteudo TEXT,
-    Data TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (ID_Usuario) REFERENCES usuario(ID_Usuario)
+    id_anotacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_psicologo INT NOT NULL,
+    id_usuario INT NOT NULL,
+    data_anotacao DATE,
+    conteudo TEXT,
+    FOREIGN KEY (id_psicologo) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );

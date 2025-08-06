@@ -1,42 +1,37 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro - Heal Sync</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealSync - Cadastro</title>
+  <link rel="shortcut icon" type="imagex/png" href="../assets/logo.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <a href="timeline.html"><img src="./assets/logo.png" alt="" id="logo"></a>
-    </header>
-    <main class="login-main">
-        <div class="login-container">
-            <h2>Login</h2>
-            <button class="google-btn">
-                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo"> 
-                Entrar com o Google
-            </button>
-            <div class="divider">
-                <hr>
-                <p>ou</p>
-                <hr>
-            </div>
-            <form>
-                <div class="info">
-                    <label for="email">Email</label>
-                    <input type="email" required>
-                </div>
+  <div class="container">
+    <div class="form-box">
+        <img src="../assets/logo.svg" alt="" id="logo">
+      <h1 class="logo">HealSync</h1>
+      <p class="subtitle">Auxílio no Tratamento de Traumas de Infância</p>
 
-                <div class="info">
-                    <label for="password">Senha</label>
-                    <input type="password" required>
-                </div>
+      <form>
+        <input type="email" placeholder="Email" required>
+        <input type="text" placeholder="Senha" required>
+        <button type="submit" class="btn">Entrar</button>
+      </form>
 
-                <button type="submit" id="login">Entrar</button>
-            </form>
-        </div>
-    </main>
-    <script src="login.js"></script>
+      <div class="social-buttons">
+        <button><img src="../assets/Google.svg" alt="Google"></button>
+        <button><img src="../assets/facebook.svg" alt="Facebook"></button>
+        <button><img src="../assets/apple.svg" alt="Apple"></button>
+      </div>
+    </div>
+
+    <div class="login-box">
+      <p>Ainda não possui uma conta?</p>
+      <b><a href="login.html" class="login-link"><h2>Cadastre</h2></a></b>
+    </div>
+  </div>
 </body>
 </html>

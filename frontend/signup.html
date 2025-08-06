@@ -1,66 +1,50 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cadastro - Heal Sync</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealSync - Cadastro</title>
+  <link rel="shortcut icon" type="imagex/png" href="../assets/logo.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <a href="timeline.html"><img src="./assets/logo.png" alt="" id="logo"></a>
-    </header>
-    <main class="login-main">
-        <div class="login-container">
-            <h2>Cadastro</h2>
-            <button class="google-btn">
-                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google Logo"> 
-                Entrar com o Google
-            </button>
-            <div class="divider">
-                <hr>
-                <p>ou</p>
-                <hr>
-            </div>
-            <form>
-                <div class="info">
-                    <label for="name">Nome</label>
-                    <input type="text" required>
-                </div>
+  <div class="container">
+    <div class="form-box">
+        <img src="../assets/logo.svg" alt="" id="logo">
+      <h1 class="logo">HealSync</h1>
+      <p class="subtitle">Auxílio no Tratamento de Traumas de Infância</p>
 
-                <div class="info">
-                    <label for="email">Email</label>
-                    <input type="email" required>
-                </div>
-
-                <div class="info">
-                    <label for="birthdate">Data de Nascimento</label>
-                    <input type="date">
-                </div>
-
-                <div class="info">
-                    <label for="gender">Gênero</label>
-                    <select name="gender">
-                        <option value="Feminino">Mulher</option>
-                        <option value="Masculino">Homem</option>
-                        <option value="Outro">Prefiro não dizer</option>
-                    </select>
-                </div>
-
-                <div class="info">
-                    <label for="password">Senha</label>
-                    <input type="password" required>
-                </div>
-
-                <div class="info">
-                    <label for="">Confirme a Senha</label>
-                    <input type="password" required>
-                </div>
-
-                <button type="submit" id="cadastro">Cadastrar</button>
-            </form>
+      <form>
+        <input type="text" placeholder="Nome" required id="name">
+        <input type="email" placeholder="Email" required id="email">
+        
+        <div class="row">
+          <select required id="genre">
+            <option value="" disabled selected>Gênero</option>
+            <option value="Feminino">Feminino</option>
+            <option value="Masculino">Masculino</option>
+            <option value="Prefiro não informar">Prefiro não informar</option>
+          </select>
+          <input placeholder="Nascimento" type="text" onfocus="(this.type='date')" onblur="(this.type='text')" required id="birthdate">
         </div>
-    </main>
-    <script src="signup.js"></script>
+
+        <input type="password" placeholder="Senha" required id="password">
+        <button type="submit" class="btn">Cadastrar</button>
+      </form>
+
+      <div class="social-buttons">
+        <button><img src="../assets/Google.svg" alt="Google"></button>
+        <button><img src="../assets/facebook.svg" alt="Facebook"></button>
+        <button><img src="../assets/apple.svg" alt="Apple"></button>
+      </div>
+    </div>
+
+    <div class="login-box">
+      <p>Já possui uma conta?</p>
+      <b><a href="login.html" class="login-link"><h2>Entre</h2></a></b>
+    </div>
+  </div>
+  <script src="signup.js"></script>
 </body>
 </html>

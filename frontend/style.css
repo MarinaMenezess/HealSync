@@ -12,15 +12,115 @@ body, html {
   width: 100%;
 }
 
-body {
-  background-image: url('../assets/bg.png'); /* substitua pelo caminho da imagem */
+#body {
+  background: #7bb7f2; /* Cor base semelhante à da imagem */
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: hidden;
 }
+
+#body::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle at 70% 30%, #ff6ec4, #7873f5, #00d4ff);
+  animation: moveGradient 20s ease-in-out infinite;
+  filter: blur(100px);
+  transform: rotate(45deg);
+  z-index: 0;
+  opacity: 0.8;
+}
+
+#body > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes moveGradient {
+  0% {
+    transform: translate(-20%, -20%) rotate(0deg);
+  }
+  50% {
+    transform: translate(10%, 10%) rotate(180deg);
+  }
+  100% {
+    transform: translate(-20%, -20%) rotate(360deg);
+  }
+}
+
+#main-body{
+    background: #f1eee4;
+    background: linear-gradient(114deg, rgba(123, 166, 221, 0.75) 22%, rgba(130, 96, 209, 0.75) 58%, rgba(177, 95, 215, 0.75) 86%);    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+header{
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    background-color: #7ba6dd;
+    width: 100%;
+    height: 12vh;
+    padding: 0 3%;
+}
+
+header div{
+    display: flex;
+    align-items: center;
+    width: 33.33%;
+}
+
+#logo{
+    gap: 4%;
+}
+
+#logo img{
+    height: 50%;
+}
+
+#logo h3{
+    font-size: 135%;
+    color: #f1eee4;
+    font-weight:780;
+}
+
+#nav{
+    gap: 10%;
+    justify-content: center;
+}
+
+#nav a{
+    font-size: 115%;
+    text-decoration: none;
+    color: #f1eee4;
+    font-weight: 400;
+}
+
+#info{
+    justify-content: flex-end;
+}
+
+#info img{
+    width: 40px;
+    border-radius: 50%;
+    background: #ddd;
+    margin-right: 12px;
+    object-fit: cover;
+}
+
+/* ------------------- FORMULÁRIO DE CADASTRO ------------------- */
 
 .container {
   width: 100%;
@@ -38,18 +138,18 @@ body {
   padding: 30px;
 }
 
-#logo{
-    width: 15%;
+#logo-img {
+  width: 15%;
 }
 
 .logo {
   font-size: 50px;
-  color: white;
+  color: #f1eee4;
   margin-bottom: 5px;
 }
 
 .subtitle {
-  color: white;
+  color: #f1eee4;
   font-size: 14px;
   margin-bottom: 20px;
 }
@@ -62,16 +162,18 @@ form select, input {
   background: rgba(255, 255, 255, 0.116);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.781);
-  color: #fff;
+  color: #f1eee4;
 }
 
-form select::placeholder, input::placeholder{
-    color: #fff;
+form select::placeholder,
+input::placeholder {
+  color: #f1eee4;
 }
 
-form select:focus, input:focus{
-    box-shadow: 0 0 0 0;
-    outline-color: #9c4dcc;
+form select:focus,
+input:focus {
+  box-shadow: 0 0 0 0;
+  outline-color: #9c4dcc;
 }
 
 .row {
@@ -85,7 +187,7 @@ form select:focus, input:focus{
   border: none;
   border-radius: 20px;
   background-color: #9c4dcc;
-  color: white;
+  color: #f1eee4;
   font-weight: bold;
   cursor: pointer;
   transition: 0.3s;
@@ -100,14 +202,11 @@ form select:focus, input:focus{
   justify-content: center;
   gap: 35px;
   margin-top: 15px;
-  
 }
 
 .social-buttons button {
   border-radius: 100%;
-  padding: 10px;
-  padding-left: 13px;
-  padding-right: 13px;
+  padding: 10px 13px;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.116);
   backdrop-filter: blur(20px);
@@ -119,15 +218,15 @@ form select:focus, input:focus{
   width: 19px;
 }
 
-.social-buttons button:hover{
-    transform: scale(1.09);
+.social-buttons button:hover {
+  transform: scale(1.09);
 }
 
 .login-box {
   position: absolute;
   top: 70%;
   right: 40px;
-  color: white;
+  color: #f1eee4;
   text-align: left;
   background: rgba(255, 255, 255, 0.116);
   border-radius: 20px;
@@ -137,11 +236,101 @@ form select:focus, input:focus{
   transition: transform 2s ease;
 }
 
-.login-link{
-    color: #ffff;
-    text-decoration: none;
+.login-link {
+  color:#f1eee4;
+  text-decoration: none;
 }
 
 .login-box:hover {
-    transform: scale(1.1);
+  transform: scale(1.1);
+}
+
+/* ------------------- TIMELINE / POSTS ------------------- */
+
+.timeline-container {
+  max-width: 700px;
+  margin: 60px auto 0;
+  width: 100%;
+}
+
+.title {
+  text-align: center;
+  margin-bottom: 30px;
+  font-weight: 700;
+  color: #f1eee4;
+  text-shadow: 1px 1px 2px #00000050;
+}
+
+.post-card {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: 0.3s ease;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.post-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #ddd;
+  margin-right: 12px;
+  object-fit: cover;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.username {
+  font-weight: 600;
+  color: #f1eee4;
+}
+
+.time {
+  font-size: 0.85rem;
+  color: #e0e0e0;
+}
+
+.post-content {
+  font-size: 1rem;
+  color: #f1eee4;
+  margin: 10px 0 16px;
+}
+
+.post-actions {
+  display: flex;
+  gap: 20px;
+}
+
+.post-actions button {
+  background: none;
+  border: none;
+  color: #ffffffcc;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.post-actions button:hover {
+  color: #f1eee4;
+  transform: scale(1.08);
 }

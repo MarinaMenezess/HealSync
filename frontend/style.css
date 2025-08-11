@@ -13,7 +13,7 @@ body, html {
 }
 
 #body {
-  background: #7bb7f2; /* Cor base semelhante à da imagem */
+  background: #7bb7f2;
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
@@ -57,7 +57,8 @@ body, html {
 
 #main-body{
     background: #f1eee4;
-    background: linear-gradient(114deg, rgba(123, 166, 221, 0.75) 22%, rgba(130, 96, 209, 0.75) 58%, rgba(177, 95, 215, 0.75) 86%);    background-size: cover;
+    background: linear-gradient(114deg, rgba(123, 166, 221, 0.75) 22%, rgba(130, 96, 209, 0.75) 58%, rgba(177, 95, 215, 0.75) 86%);
+    background-size: cover;
     background-position: center;
     background-attachment: fixed;
     display: flex;
@@ -67,6 +68,8 @@ body, html {
 }
 
 header{
+  position: fixed;
+  z-index: 1000;
     display: flex;
     flex-direction: row;
     justify-content: space-between;
@@ -74,6 +77,12 @@ header{
     width: 100%;
     height: 12vh;
     padding: 0 3%;
+}
+
+hr{
+  border: 0px;
+  height: 3px;
+  background: linear-gradient(114deg,rgba(123, 166, 221, 1) 0%, rgba(130, 96, 209, 1) 30%, rgba(177, 95, 215, 1) 70%);
 }
 
 header div{
@@ -121,6 +130,21 @@ header div{
     object-fit: cover;
 }
 
+body::-webkit-scrollbar {
+  width: 13px;
+  border-radius: 20px;
+}
+
+body::-webkit-scrollbar-track {
+ background-color: #d4d4d4;
+ border-radius: 20px;
+}
+
+body::-webkit-scrollbar-thumb {
+  background-color: rgb(177, 177, 177);
+  border-radius: 20px;
+}
+
 /* ------------------- FORMULÁRIO DE CADASTRO ------------------- */
 
 .container {
@@ -137,6 +161,9 @@ header div{
 .form-box {
   max-width: 400px;
   padding: 30px;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
 }
 
 #logo-img {
@@ -173,8 +200,10 @@ input::placeholder {
 
 form select:focus,
 input:focus {
-  box-shadow: 0 0 0 0;
-  outline-color: #9c4dcc;
+  border: 1px solid;
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2);
+  outline-color: rgba(255, 255, 255, 0);
+  text-shadow: 1px 1px 2px #b5babd;
 }
 
 .row {
@@ -250,7 +279,7 @@ input:focus {
 
 .timeline-container {
   max-width: 700px;
-  margin: 60px auto 0;
+  margin: 15% auto 0;
   width: 100%;
 }
 
@@ -312,6 +341,7 @@ input:focus {
   font-size: 1rem;
   color: #f1eee4;
   margin: 10px 0 16px;
+  text-align: left;
 }
 
 .post-actions {
@@ -334,4 +364,453 @@ input:focus {
 .post-actions button:hover {
   color: #f1eee4;
   transform: scale(1.08);
+}
+
+/* --------------- ESTILIZAÇÃO PARA A PÁGINA REGISTERS.HTML --------------- */
+
+/* Container principal para os registros */
+.registers-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5%; /* Espaço entre os cartões */
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0 5%;
+}
+
+/* Estilo para o título "Seus Registros" e o botão "Criar" */
+.header-registers {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin: 8% auto 3%;
+  padding: 0 5%;
+}
+
+.registers-title {
+  font-weight: 700;
+  color:#7873f5;
+  font-size: 2.5rem;
+}
+
+.create-btn {
+  text-decoration: none;
+  font-size: 18px;
+  background-color:#8260d1; /* Cor do botão "Criar" */
+  color: #fff;
+  padding: 10px 40px;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.create-btn:hover {
+  background-color: #9c4dcc;
+}
+
+/* Estilo para os cartões de registro */
+.register-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 150px; /* Altura fixa para o cartão */
+  width: 30%;
+  transition: transform 0.3s ease;
+  margin-bottom: 2%;
+}
+
+.register-card:hover {
+  transform: translateY(-5px);
+}
+
+.register-card h4 {
+  font-weight: 600;
+  color: #3b3b3b;
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+}
+
+.register-card .edit-icon {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.register-card .date {
+  font-size: 0.9rem;
+  color: #777;
+  margin-top: 5px;
+}
+
+.register-card .publish-btn {
+  background-color: #7873f5;
+  color: #fff;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 15px;
+  cursor: pointer;
+  align-self: flex-end; /* Alinha o botão à direita */
+  transition: background-color 0.3s;
+}
+
+.register-card .publish-btn:hover {
+  background-color: #8260d1;
+}
+
+/* ------------------- CSS do Gooey Menu (Adaptado) ------------------- */
+body{
+  background:#8260d1;
+  color:#f1eee4;
+  text-align:center;
+}
+a{
+  color:inherit;
+}
+h1, h2, h3, h4{
+  margin:0;
+  margin-bottom:10px;
+  margin-top:10px;
+}
+h1{
+  font-size:3em;
+}
+
+.menu {
+  filter: url('#shadowed-goo');
+  position: fixed; /* Mudei para fixed para manter a posição */
+  bottom: 6%; /* Ajuste a posição no canto inferior direito */
+  right: 5%; /* Ajuste a posição no canto inferior direito */
+  width: 100px;
+  height: 100px;
+  padding-top: 20px;
+  padding-left: 80px;
+  box-sizing: border-box;
+  font-size: 20px;
+  text-align: left;
+}
+
+.menu-item, .menu-open-button {
+  background: #8260d1;
+  border-radius: 100%;
+  width: 80px;
+  height: 80px;
+  margin-left:-40px;
+  position:absolute;
+  top:20px;
+  color: #f1eee4;
+  text-align:center;
+  line-height:98px;
+  transform:translate3d(0,0,0);
+  transition:transform ease-out 200ms;
+
+}
+
+.menu-open{
+  display:none;
+}
+
+.menu-item:hover{
+  background: #9c4dcc;
+}
+.menu-item:nth-child(3){
+  transition-duration:180ms;
+}
+.menu-item:nth-child(4){
+  transition-duration:280ms;
+}
+.menu-item:nth-child(5){
+  transition-duration:380ms;
+}
+.menu-item:nth-child(6){
+  transition-duration:480ms;
+}
+
+.menu-open-button{
+  z-index:2;
+  transition-timing-function:cubic-bezier(0.175, 0.885, 0.320, 1.275);
+  transition-duration:400ms;
+  transform:scale(1.1,1.1) translate3d(0,0,0);
+  cursor:pointer;
+  background-color: #7873f5;
+}
+
+.menu-open-button:hover{
+  transform:scale(1.2,1.2) translate3d(0,0,0);
+  background-color: #8260d1;
+}
+
+.menu-open:checked+.menu-open-button{
+  transition-timing-function:linear;
+  transition-duration:200ms;
+  transform:scale(0.8,0.8) translate3d(0,0,0);
+  background-color: #8260d1;
+}
+
+.hamburger{
+  width:25px;
+  height:3px;
+  background:#f1eee4;
+  display:block;
+  position:absolute;
+  top:50%;
+  left:50%;
+  margin-left:-12.5px;
+  margin-top:-1.5px;
+  transition:transform 200ms;
+}
+
+.hamburger-1{
+  transform:translate3d(0,-8px,0);
+}
+
+.hamburger-2{
+  transform:translate3d(0,0,0);
+}
+
+.hamburger-3{
+  transform:translate3d(0,8px,0);
+}
+
+.menu-open:checked+.menu-open-button .hamburger-1{
+  transform:translate3d(0,0,0) rotate(45deg);
+}
+
+.menu-open:checked+.menu-open-button .hamburger-2{
+  transform:translate3d(0,0,0) scale(0.1,1);
+}
+
+.menu-open:checked+.menu-open-button .hamburger-3{
+  transform:translate3d(0,0,0) rotate(-45deg);
+}
+
+.menu-open:checked ~ .menu-item {
+  transition-timing-function: cubic-bezier(0.165, 0.84, 0.44, 1);
+  /* Novo estilo para o tamanho */
+  transform: scale(0.8, 0.8);
+}
+
+.menu-open:checked ~ .menu-item:nth-child(3) {
+  transition-duration: 190ms;
+  transform: translate3d(0, -100px, 0) scale(0.8);
+}
+.menu-open:checked ~ .menu-item:nth-child(4) {
+  transition-duration: 290ms;
+  transform: translate3d(0, -200px, 0) scale(0.8);
+}
+.menu-open:checked ~ .menu-item:nth-child(5) {
+  transition-duration: 390ms;
+  transform: translate3d(0, -300px, 0) scale(0.8);
+}
+.menu-open:checked ~ .menu-item:nth-child(6) {
+  transition-duration: 490ms;
+  transform: translate3d(0, -400px, 0) scale(0.8);
+}
+
+.menu-item img{
+  width: 60%;
+}
+
+/* --------------- ESTILIZAÇÃO PARA A PÁGINA CHAT.HTML --------------- */
+
+.chat-main {
+  display: flex;
+  height: calc(100vh - 12vh);
+  width: 100%;
+  margin-top: 12vh;
+  position: relative;
+}
+
+.sidebar {
+  width: 25%;
+  min-width: 250px;
+  background: rgba(255, 255, 255, 0.192);
+  backdrop-filter: blur(20px);
+  border-right: 1px solid rgba(255, 255, 255, 0.781);
+  color: #f1eee4;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10%;
+  text-align: left;
+}
+
+/* Estilo específico do botão 5 */
+.new-chat-button {
+  gap: 3%;
+  color: #fff;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 45px;
+  border-radius: 23px;  
+  position: relative;
+  text-decoration: none;
+  width: 100%;
+  transition-property: all;
+  transition-duration: .6s;
+  transition-timing-function: ease;
+  border: 1px solid;
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0);
+  outline: 1px solid;
+  outline-color: rgba(255, 255, 255, .5);
+  outline-offset: 0px;
+  text-shadow: none;
+  transition: all 1250ms cubic-bezier(0.19, 1, 0.22, 1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+.new-chat-button:hover {
+  box-shadow: 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2), inset 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2);
+  outline-color: rgba(255, 255, 255, 0);
+  text-shadow: 1px 1px 2px #b5babd;
+}
+
+.sidebar-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #333333;
+  margin-bottom: 10px;
+}
+
+.conversation-list {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+}
+
+.conversation-item a {
+  display: block;
+  padding: 10px 15px;
+  text-decoration: none;
+  color: #2d2d2d;
+  border-radius: 20px;
+  background-color: transparent;
+  transition: all 0.3s ease;
+}
+
+.conversation-item a:hover {
+  background-color: #f1eee4;
+}
+
+.conversation-item.active a {
+  background-color: #8260d1;
+  color: #f1eee4;
+  font-weight: 600;
+}
+
+.chat-container {
+  width: 75%;
+  max-width: 75%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.chat-messages {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  overflow-y: auto;
+  padding-right: 10px;
+}
+
+.message {
+  max-width: 60%;
+  padding: 15px;
+  border-radius: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.message.received {
+  background: rgba(255, 255, 255, 0.7);
+  color: #3b3b3b;
+  align-self: flex-start;
+  border-bottom-left-radius: 5px;
+  text-align: left;
+}
+
+.message.sent {
+  background-color: #8260d1;
+  color: #f1eee4;
+  align-self: flex-end;
+  border-bottom-right-radius: 5px;
+  text-align: right;
+}
+
+.message p {
+  margin: 0;
+  word-wrap: break-word;
+}
+
+.message-time {
+  font-size: 0.7rem;
+  color: #a0a0a0;
+  position: absolute;
+  bottom: 5px;
+  right: 10px;
+}
+
+.message.sent .message-time {
+  color: #f1eee4;
+}
+
+.chat-input-area {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 20px;
+}
+
+.chat-input-area input {
+  flex-grow: 1;
+  padding: 15px 20px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.2);
+  color: #3b3b3b;
+  font-size: 1rem;
+}
+
+.chat-input-area input::placeholder {
+  color: #777;
+}
+
+.send-button {
+  background-color: #8260d1;
+  border: none;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.send-button:hover {
+  background-color: #9c4dcc;
 }

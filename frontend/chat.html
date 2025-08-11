@@ -1,68 +1,113 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HealSync - Chat</title>
+  <link rel="shortcut icon" type="imagex/png" href="../assets/logo.svg">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body id="main-body">
     <header>
-        <a href="timeline.html"><img src="./assets/logo.png" alt="" id="logo"></a>
-        <div id="acessos">
-            <a href="profile.html"><img src="./assets/perfil.svg" alt=""></a>
-            <div class="dropdown">
-                <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                  <img src="./assets/menu.svg" alt="" id="menu">
-                </button>
-                <ul class="dropdown-menu">
-                  <li><button class="dropdown-item" type="button" id="registro">Registros</button></li>
-                  <li><button class="dropdown-item" type="button" id="mensagem">Chat</button></li>
-                  <li><button class="dropdown-item" type="button" id="notificacao">Notificações</button></li>
-                  <li><button class="dropdown-item" type="button" id="configuracao">Configurações</button></li>
-                  <li><button class="dropdown-item" type="button" id="logout">Sair da conta</button></li>
-                </ul>
-            </div>        
+        <div id="logo">
+            <img src="../assets/logo.svg" alt="HealSync Logo">
+            <h3>HealSync</h3>
         </div>
-    </header>
-    <main id="chat-main">
-        <div id="conversas">
-            <div class="top">
-                <h2>Mensagens</h2>
-                <button id="close"><</button>
-            </div>
-            <div class="conversa">
-                <div class="list-user-info">
-                    <img src="./assets/perfil.svg" alt="">
-                    <p>Usuario X</p>
-                </div>
-                <p>00:00</p>
-            </div>
-        </div>
-        <div id="chat">
-            <div id="chat-user-info">
-                <img src="./assets/perfil.svg" alt="">
-                <h2>Usuario 1</h2>
-            </div>
+        <div id="nav">
+            <a href="./index.html">Início</a>
+            <a href="./registers.html">Diário</a>
             <section>
-                <div id="msg-user" class="msg">
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Doloribus necessitatibus error quod veniam ipsa amet ipsum, eligendi eaque magni fugiat officia alias natus facilis odit eos quam maiores? Molestias, voluptatum?
-                </div>
-
-                <div id="msg-eu" class="msg">
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit. Doloribus necessitatibus error quod veniam ipsa amet ipsum, eligendi eaque magni fugiat officia alias natus facilis odit eos quam maiores? Molestias, voluptatum?
-                </div>
-                
-                <form action="">
-                    <input type="text">
-                    <button type="submit">--></button>
-                </form>
+                <a href="./chat.html">Chat</a>
+                <hr>
             </section>
         </div>
+        <div id="info">
+            <a href="./notifications.html"><svg xmlns="http://www.w3.org/2000/svg" width="100%" height="28" fill="#f1eee4" class="bi bi-bell" viewBox="0 0 16 16">
+                <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
+            </svg></a>
+            <a href="./profile.html"><img src="../assets/user-default.svg" alt="User Avatar"></a>
+        </div>
+    </header>
+
+    <main class="chat-main">
+      <aside class="sidebar">
+        <a href="#" class="new-chat-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#f1eee4" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+            </svg>
+            Iniciar Conversa
+        </a>
+        <div class="recentes">
+            <h3 class="sidebar-heading">Recentes</h3>
+            <ul class="conversation-list">
+            <li class="conversation-item active">
+                <a href="#">Discussão sobre ansiedade</a>
+            </li>
+            <li class="conversation-item">
+                <a href="#">Rotina de meditação</a>
+            </li>
+            <li class="conversation-item">
+                <a href="#">Dicas de bem-estar</a>
+            </li>
+            <li class="conversation-item">
+                <a href="#">Sessão de Terapia</a>
+            </li>
+            <li class="conversation-item">
+                <a href="#">Sonhos e significado</a>
+            </li>
+            </ul>
+        </div>
+      </aside>
+      <section class="chat-container">
+        <div class="chat-messages">
+          <div class="message received">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+          <div class="message sent">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+          <div class="message sent">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+          <div class="message sent">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+          <div class="message sent">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+          <div class="message sent">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+          <div class="message sent">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+          <div class="message sent">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+          <div class="message sent">
+            <p>Lorem ipsum dolor siamet</p>
+            <span class="message-time">00:00</span>
+          </div>
+        </div>
+        <div class="chat-input-area">
+          <input type="text" placeholder="Escreva algo para IA">
+          <button class="send-button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="25" height="25" fill="#f1eee4" class="bi bi-send-fill" viewBox="0 0 16 16">
+  <path d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.002.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z"/>
+</svg>
+          </button>
+        </div>
+      </section>
     </main>
 </body>
 </html>

@@ -145,6 +145,10 @@ body::-webkit-scrollbar-thumb {
   border-radius: 20px;
 }
 
+main{
+  margin: 8% 0 0;
+}
+
 /* ------------------- FORMULÁRIO DE CADASTRO ------------------- */
 
 .container {
@@ -182,7 +186,7 @@ body::-webkit-scrollbar-thumb {
   margin-bottom: 20px;
 }
 
-form select, input {
+form select, input, textarea {
   width: 100%;
   margin-bottom: 15px;
   padding: 8px;
@@ -194,12 +198,14 @@ form select, input {
 }
 
 form select::placeholder,
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: #f1eee4;
 }
 
 form select:focus,
-input:focus {
+input:focus,
+textarea:focus {
   border: 1px solid;
   box-shadow: inset 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2);
   outline-color: rgba(255, 255, 255, 0);
@@ -279,7 +285,7 @@ input:focus {
 
 .timeline-container {
   max-width: 700px;
-  margin: 15% auto 0;
+  margin: 0 auto 0;
   width: 100%;
 }
 
@@ -384,7 +390,7 @@ input:focus {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  margin: 8% auto 3%;
+  margin: 0 auto 3%;
   padding: 0 5%;
 }
 
@@ -449,6 +455,7 @@ input:focus {
   font-size: 0.9rem;
   color: #777;
   margin-top: 5px;
+  align-self: flex-start;
 }
 
 .register-card .publish-btn {
@@ -594,7 +601,6 @@ h1{
 
 .menu-open:checked ~ .menu-item {
   transition-timing-function: cubic-bezier(0.165, 0.84, 0.44, 1);
-  /* Novo estilo para o tamanho */
   transform: scale(0.8, 0.8);
 }
 
@@ -813,4 +819,373 @@ h1{
 
 .send-button:hover {
   background-color: #9c4dcc;
+}
+
+/* ------------------- Estilos da página de Agenda (ajustado) ------------------- */
+
+.agenda-container {
+  max-width: 92%; /* antes 90%, dá um pouco mais de espaço */
+  margin: 14vh auto 0;
+  width: 100%;
+  height: calc(100vh - 14vh - 20px);
+}
+
+#calendar {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 100%;
+  height: 100% !important;
+}
+
+/* Aumenta um pouco as células das datas sem deformar o layout */
+.fc-daygrid-day {
+  min-width: 110px; /* ajuste moderado */
+}
+
+/* Mantém alinhamento simétrico */
+.fc-scrollgrid {
+  table-layout: fixed;
+}
+
+/* Estilos para o cabeçalho do FullCalendar */
+.fc-header-toolbar {
+  background-color: #637cc7;
+  border-radius: 15px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  color: #f1eee4;
+}
+
+.fc-toolbar-title {
+  color: #f1eee4;
+}
+
+.fc-button-primary {
+  background: rgba(255, 255, 255, 0.116) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.781) !important;
+  color: #f1eee4 !important;
+  border-radius: 10px;
+}
+
+.fc-button-primary:hover {
+  box-shadow: 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2), inset 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2) !important;
+  outline-color: rgba(255, 255, 255, 0) !important;
+  text-shadow: 1px 1px 2px #b5babd !important;
+}
+
+/* Estilos para os dias da semana e datas */
+.fc-col-header-cell-cushion,
+.fc-daygrid-day-number {
+  color: #f1eee4;
+}
+
+.fc-day-other .fc-daygrid-day-number {
+  color: #b5babd;
+}
+
+.fc-daygrid-day-top {
+  text-align: center;
+}
+
+/* Estilos para os eventos */
+.fc-event-main {
+  font-size: 0.9rem;
+}
+
+.fc-event {
+  background-color: #8260d1 !important;
+  border-color: #8260d1 !important;
+  color: #f1eee4 !important;
+  border-radius: 5px;
+  padding: 2px 5px;
+}
+
+/* Modal de agendamento */
+#modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1001;
+}
+
+#modal-container.active {
+  display: flex;
+}
+
+#modal {
+  background: rgba(255, 255, 255, 0.377);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.781);
+  padding: 0;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 10px rgba(250, 250, 250, 0.308);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding: 15px 20px;
+  background-color: #7873f5;
+}
+
+.modal-title {
+  color: #f1eee4;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+#close-modal-btn {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #f1eee4;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #f1eee4;
+  font-weight: 500;
+}
+
+#event-title,
+#event-date,
+#event-time {
+  width: 100%;
+  padding: 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.116);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.781);
+  color: #f1eee4;
+}
+
+#event-title::placeholder {
+  color: #f1eee4;
+}
+
+#event-title:focus,
+#event-date:focus,
+#event-time:focus {
+  border: 1px solid;
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2);
+  outline-color: rgba(255, 255, 255, 0);
+  text-shadow: 1px 1px 2px #b5babd;
+}
+
+.modal-body textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #ddd;
+  padding: 15px 20px;
+}
+
+.modal-footer button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+#close-btn-modal {
+  background-color: #777;
+  color: #f1eee4;
+}
+
+#close-btn-modal:hover {
+  background-color: #555;
+}
+
+#create-btn-modal {
+  background-color: #7873f5;
+  color: #f1eee4;
+}
+
+#create-btn-modal:hover {
+  background-color: #615ec7;
+}
+
+/* ------------------- PSICOLOGOS ------------------- */
+
+.psicologos-main {
+  padding-top: 15vh;
+  padding-bottom: 20px;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 90%;
+}
+
+.search-bar-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+}
+
+.search-bar-container input {
+  flex-grow: 1;
+  padding: 10px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.116);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.781);
+  color: #f1eee4;
+  font-size: 1rem;
+}
+
+.search-bar-container input::placeholder {
+  color: #f1eee4;
+}
+
+.search-bar-container button {
+  padding: 10px 20px;
+  border-radius: 20px;
+  border: none;
+  background-color: #8260d1;
+  color: #f1eee4;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.search-bar-container button:hover {
+  background-color: #6a49b4;
+}
+
+.psychologist-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.psychologist-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  transition: transform 0.3s ease;
+  max-height: 100%;
+}
+
+.psychologist-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.psychologist-avatar {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: #ddd;
+  object-fit: cover;
+  margin-bottom: 15px;
+}
+
+.psychologist-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1; /* Permite que o container de info ocupe o espaço restante */
+}
+
+.psychologist-info h3 {
+  color: #f1eee4;
+  margin-bottom: 5px;
+}
+
+.psychologist-info .specialty {
+  color: #e0e0e0;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.psychologist-info .bio {
+  color: #b5babd;
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+  
+  /* Estilo para truncar o texto com reticências */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Número de linhas para exibir */
+  -webkit-box-orient: vertical;
+}
+
+.card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: auto; /* Empurra os botões para o final do card */
+}
+
+.card-actions button {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.view-profile-btn {
+  background-color: #7873f5;
+  color: #f1eee4;
+}
+
+.view-profile-btn:hover {
+  background-color: #615ec7;
+}
+
+.schedule-btn {
+  background-color: #f1eee4;
+  color: #8260d1;
+}
+
+.schedule-btn:hover {
+  background-color: #d4d4d4;
 }

@@ -52,3 +52,36 @@ function openModal() {
       }
     });
   }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    let dropdownToggle = document.getElementById('dropdownToggle');
+    let dropdownMenu = document.getElementById('dropdownMenu');
+
+    function toggleDropdown() {
+        dropdownMenu.classList.toggle('active');
+    }
+
+    function hideDropdown() {
+        dropdownMenu.classList.remove('active');
+    }
+
+    dropdownToggle.addEventListener('click', (event) => {
+        event.preventDefault(); // Impede a navegação
+        event.stopPropagation(); // Impede o clique de ser propagado para o documento
+        toggleDropdown();
+    });
+
+    // Ocultar o dropdown quando um item é clicado (opcional)
+    dropdownMenu.querySelectorAll('.notification-item, .view-all-btn').forEach((item) => {
+        item.addEventListener('click', () => {
+            hideDropdown();
+        });
+    });
+
+    // Ocultar o dropdown quando clicar fora dele
+    document.addEventListener('click', (event) => {
+        if (!dropdownMenu.contains(event.target) && !dropdownToggle.contains(event.target)) {
+            hideDropdown();
+        }
+    });
+});

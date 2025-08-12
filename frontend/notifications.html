@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealSync - Notificações</title>
+    <link rel="shortcut icon" type="imagex/png" href="../assets/logo.svg">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body id="main-body">
+    <header>
+        <div id="logo">
+            <img src="../assets/logo.svg" alt="HealSync Logo">
+            <h3>HealSync</h3>
+        </div>
+        <div id="nav">
+            <a href="./index.html">Home</a>
+            <a href="./registers.html">Diário</a>
+            <a href="./chat.html">Chat</a>
+        </div>
+        <div id="info">
+            <a href="./notifications.html" class="notification-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="28" fill="#f1eee4" class="bi bi-bell" viewBox="0 0 16 16">
+                    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
+                </svg>
+            </a>
+            <a href="./profile.html">
+                <img src="../assets/user-default.svg" alt="User Avatar">
+            </a>
+        </div>
+    </header>
+
+    <main class="notifications-main">
+        <h1 class="page-title">Suas Notificações</h1>
+        <div class="notifications-container">
+            <div class="notification-card">
+                <p><b>Dr. João</b> enviou uma nova mensagem.</p>
+                <span>Há 5 minutos</span>
+            </div>
+            <div class="notification-card unread">
+                <p>Seu registro de diário foi analisado.</p>
+                <span>Há 1 hora</span>
+            </div>
+            <div class="notification-card">
+                <p>Seu psicólogo confirmou sua consulta.</p>
+                <span>Ontem</span>
+            </div>
+            <div class="notification-card">
+                <p>Lembrete: sua consulta com o <b>Dr. João</b> será amanhã às 10h.</p>
+                <span>2 dias atrás</span>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

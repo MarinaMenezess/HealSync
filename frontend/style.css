@@ -843,7 +843,7 @@ h1{
 
 /* Aumenta um pouco as células das datas sem deformar o layout */
 .fc-daygrid-day {
-  min-width: 110px; /* ajuste moderado */
+  min-width: 100px; /* ajuste moderado */
 }
 
 /* Mantém alinhamento simétrico */
@@ -891,6 +891,8 @@ h1{
 .fc-daygrid-day-top {
   text-align: center;
 }
+
+.fc-scroller {    overflow-y: none !important; }
 
 /* Estilos para os eventos */
 .fc-event-main {
@@ -1188,4 +1190,323 @@ h1{
 
 .schedule-btn:hover {
   background-color: #d4d4d4;
+}
+
+/* --------------- ESTILIZAÇÃO PARA A PÁGINA PROFILE.HTML --------------- */
+
+.profile-main {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    width: 100%;
+    height: calc(100vh - 12vh);
+}
+
+.profile-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    padding: 20px 30px 20px; 
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 600px;
+    text-align: center;
+}
+
+.profile-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid #7873f5;
+    margin-bottom: 20px;
+}
+
+.profile-name {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #3b3b3b;
+    margin: 0;
+}
+
+.profile-email {
+    font-size: 1rem;
+    color: #777;
+    margin-bottom: 30px;
+}
+
+.profile-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    text-align: left;
+    margin-bottom: 30px;
+}
+
+.info-item span {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #7873f5;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.info-item p {
+    font-size: 1rem;
+    color: #3b3b3b;
+    margin: 0;
+}
+
+.profile-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.profile-actions button {
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.edit-btn {
+    background-color: #8260d1;
+    color: #fff;
+}
+
+.edit-btn:hover {
+    background-color: #9c4dcc;
+}
+
+.logout-btn {
+    background-color: #e0e0e0;
+    color: #3b3b3b;
+}
+
+.logout-btn:hover {
+    background-color: #c4c4c4;
+}
+
+/* --------------- ESTILIZAÇÃO PARA A PÁGINA DE PERFIL DE OUTRO USUÁRIO --------------- */
+
+/* Ajuste a classe .profile-main para criar o layout com o card fixo */
+.profile2-main {
+    display: flex;
+    justify-content: center; /* Centraliza horizontalmente o container */
+    align-items: flex-start;
+    width: 100%;
+    height: auto;
+    margin-top: 12vh;
+    padding-top: 5%;
+}
+
+/* Modifique a classe .profile-card para torná-lo fixo */
+.profile-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 350px;
+    position: fixed; /* Fixa o card na tela */
+    top: 15vh; /* Posiciona abaixo do header */
+    left: 3%; /* Define a margem da esquerda */
+    text-align: center;
+}
+
+/* Ajuste a classe .user-posts-section para não ser sobreposta */
+.user-posts-section {
+    width: 100%;
+    max-width: 600px;
+    margin-top: 0; /* Ajusta a margem superior */
+    margin-left: 400px; /* Adiciona uma margem para compensar o card fixo */
+}
+
+.user-posts-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #f1eee4;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.user-posts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Estilos para os botões da página de outro usuário */
+.add-friend-btn {
+    background-color: #7873f5;
+    color: #fff;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.add-friend-btn:hover {
+    background-color: #615ec7;
+}
+
+.send-message-btn {
+    background-color: #e0e0e0;
+    color: #3b3b3b;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.send-message-btn:hover {
+    background-color: #c4c4c4;
+}
+
+/* Estilização para o Dropdown de Notificações */
+.notification-icon {
+  position: relative;
+  display: flex; /* Adicionado para permitir o alinhamento de itens */
+  align-items: center;
+  cursor: pointer;
+}
+
+.notification-dropdown {
+  display: none; /* Esconde por padrão */
+  position: absolute;
+  right: 0;
+  top: 100%;
+  width: 300px;
+  background-color: #f1eee4;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  padding: 10px 0;
+  border: 1px solid #ddd;
+}
+
+.notification-dropdown.active {
+  display: block; /* Classe para mostrar o dropdown com JavaScript */
+}
+
+.dropdown-header {
+  padding: 10px 15px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.dropdown-header h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #3b3b3b;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-item {
+  display: block;
+  padding: 15px;
+  text-decoration: none;
+  color: #3b3b3b;
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.3s;
+  text-align: left;
+}
+
+.notification-item:hover {
+  background-color: #f0f0f0;
+}
+
+.notification-item p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.notification-item span {
+  display: block;
+  font-size: 0.8rem;
+  color: #a0a0a0;
+  margin-top: 5px;
+}
+
+.notification-item.unread {
+  background-color: #e6f7ff; /* Cor para notificação não lida */
+}
+
+.view-all-btn {
+  display: block;
+  text-align: center;
+  padding: 10px;
+  text-decoration: none;
+  color: #7873f5;
+  font-weight: 600;
+  border-top: 1px solid #e0e0e0;
+}
+
+/* --------------- ESTILIZAÇÃO PARA A PÁGINA NOTIFICATIONS.HTML --------------- */
+.notifications-main {
+    padding-top: 15vh;
+    width: 100%;
+    max-width: 700px;
+}
+
+.page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #f1eee4;
+    margin-bottom: 30px;
+    text-align: center;
+    text-shadow: 1px 1px 2px #00000050;
+}
+
+.notifications-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.notification-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    color: #3b3b3b;
+    transition: transform 0.3s ease;
+    text-align: left;
+}
+
+.notification-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.notification-card.unread {
+    background: #e6f7ff;
+    border-color: #a0c9e8;
+}
+
+.notification-card p {
+    margin: 0;
+    font-size: 1rem;
+    margin-bottom: 5px;
+}
+
+.notification-card span {
+    font-size: 0.8rem;
+    color: #a0a0a0;
 }

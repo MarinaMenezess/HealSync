@@ -331,6 +331,11 @@ textarea:focus {
 .user-info {
   display: flex;
   flex-direction: column;
+  text-align: left;
+}
+
+.user-info a{
+  text-decoration: none;
 }
 
 .username {
@@ -1199,7 +1204,6 @@ h1{
     justify-content: center;
     align-items: flex-start;
     width: 100%;
-    height: calc(100vh - 12vh);
 }
 
 .profile-card {
@@ -1210,16 +1214,20 @@ h1{
     padding: 20px 30px 20px; 
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     width: 100%;
-    max-width: 600px;
+    max-width: 45%;
+    max-height: 100%;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
 }
 
 .profile-avatar {
-    width: 120px;
-    height: 120px;
+    width: 110px;
+    height: 110px;
     border-radius: 50%;
     border: 3px solid #7873f5;
-    margin-bottom: 20px;
 }
 
 .profile-name {
@@ -1232,7 +1240,6 @@ h1{
 .profile-email {
     font-size: 1rem;
     color: #777;
-    margin-bottom: 30px;
 }
 
 .profile-info-grid {
@@ -1240,7 +1247,6 @@ h1{
     grid-template-columns: 1fr 1fr;
     gap: 20px;
     text-align: left;
-    margin-bottom: 30px;
 }
 
 .info-item span {
@@ -1300,23 +1306,14 @@ h1{
     align-items: flex-start;
     width: 100%;
     height: auto;
-    margin-top: 12vh;
-    padding-top: 5%;
 }
 
 /* Modifique a classe .profile-card para torná-lo fixo */
-.profile-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 25px;
-    padding: 20px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    width: 350px;
-    position: fixed; /* Fixa o card na tela */
-    top: 15vh; /* Posiciona abaixo do header */
-    left: 3%; /* Define a margem da esquerda */
-    text-align: center;
+.profile2-card {
+  width: 500px;
+  position: fixed; /* Fixa o card na tela */
+  top: 20vh; /* Posiciona abaixo do header */
+  left: 4%; /* Define a margem da esquerda */
 }
 
 /* Ajuste a classe .user-posts-section para não ser sobreposta */
@@ -1324,7 +1321,7 @@ h1{
     width: 100%;
     max-width: 600px;
     margin-top: 0; /* Ajusta a margem superior */
-    margin-left: 400px; /* Adiciona uma margem para compensar o card fixo */
+    margin-left: 550px; /* Adiciona uma margem para compensar o card fixo */
 }
 
 .user-posts-title {
@@ -1358,22 +1355,6 @@ h1{
     background-color: #615ec7;
 }
 
-.send-message-btn {
-    background-color: #e0e0e0;
-    color: #3b3b3b;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 25px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.3s;
-}
-
-.send-message-btn:hover {
-    background-color: #c4c4c4;
-}
-
 /* Estilização para o Dropdown de Notificações */
 .notification-icon {
   position: relative;
@@ -1385,7 +1366,7 @@ h1{
 .notification-dropdown {
   display: none; /* Esconde por padrão */
   position: absolute;
-  right: 0;
+  right: 100px;
   top: 100%;
   width: 300px;
   background-color: #f1eee4;
@@ -1414,6 +1395,7 @@ h1{
 .notification-list {
   display: flex;
   flex-direction: column;
+  width: auto;
 }
 
 .notification-item {

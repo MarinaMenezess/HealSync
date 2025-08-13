@@ -319,6 +319,13 @@ textarea:focus {
   margin-bottom: 12px;
 }
 
+.profile-link {
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+}
+
 .avatar {
   width: 42px;
   height: 42px;
@@ -332,10 +339,6 @@ textarea:focus {
   display: flex;
   flex-direction: column;
   text-align: left;
-}
-
-.user-info a{
-  text-decoration: none;
 }
 
 .username {
@@ -353,6 +356,10 @@ textarea:focus {
   color: #f1eee4;
   margin: 10px 0 16px;
   text-align: left;
+}
+
+.post-content-link {
+    text-decoration: none;
 }
 
 .post-actions {
@@ -1306,14 +1313,23 @@ h1{
     align-items: flex-start;
     width: 100%;
     height: auto;
+    margin-top: 12vh;
+    padding-top: 5%;
 }
 
 /* Modifique a classe .profile-card para torná-lo fixo */
-.profile2-card {
-  width: 500px;
-  position: fixed; /* Fixa o card na tela */
-  top: 20vh; /* Posiciona abaixo do header */
-  left: 4%; /* Define a margem da esquerda */
+.profile-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 25px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 350px;
+    position: fixed; /* Fixa o card na tela */
+    top: 15vh; /* Posiciona abaixo do header */
+    left: 3%; /* Define a margem da esquerda */
+    text-align: center;
 }
 
 /* Ajuste a classe .user-posts-section para não ser sobreposta */
@@ -1321,7 +1337,7 @@ h1{
     width: 100%;
     max-width: 600px;
     margin-top: 0; /* Ajusta a margem superior */
-    margin-left: 550px; /* Adiciona uma margem para compensar o card fixo */
+    margin-left: 400px; /* Adiciona uma margem para compensar o card fixo */
 }
 
 .user-posts-title {
@@ -1355,6 +1371,22 @@ h1{
     background-color: #615ec7;
 }
 
+.send-message-btn {
+    background-color: #e0e0e0;
+    color: #3b3b3b;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.send-message-btn:hover {
+    background-color: #c4c4c4;
+}
+
 /* Estilização para o Dropdown de Notificações */
 .notification-icon {
   position: relative;
@@ -1366,7 +1398,7 @@ h1{
 .notification-dropdown {
   display: none; /* Esconde por padrão */
   position: absolute;
-  right: 100px;
+  right: 0;
   top: 100%;
   width: 300px;
   background-color: #f1eee4;
@@ -1491,4 +1523,145 @@ h1{
 .notification-card span {
     font-size: 0.8rem;
     color: #a0a0a0;
+}
+
+/* --------------- ESTILIZAÇÃO PARA A PÁGINA VIEW_REGISTER.HTML --------------- */
+
+.view-register-main {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 15vh;
+}
+
+.register-post-container {
+  max-width: 700px;
+  width: 100%;
+  padding: 0 20px;
+}
+
+.register-post-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 25px;
+}
+
+.register-post-card .post-title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #3b3b3b;
+  margin-bottom: 5px;
+}
+
+.register-post-card .post-date {
+  font-size: 0.9rem;
+  color: #777;
+  margin-bottom: 20px;
+}
+
+.register-post-card .post-content {
+  font-size: 1rem;
+  color: #3b3b3b;
+  line-height: 1.6;
+}
+
+/* Seção de Comentários */
+.comments-section {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.comments-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #3b3b3b;
+  margin-bottom: 20px;
+}
+
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.comment-item {
+  display: flex;
+  gap: 15px;
+  align-items: flex-start;
+}
+
+.comment-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.comment-body {
+  flex-grow: 1;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+
+.comment-username {
+  font-weight: 600;
+  color: #3b3b3b;
+}
+
+.comment-time {
+  font-size: 0.8rem;
+  color: #a0a0a0;
+}
+
+.comment-text {
+  margin: 0;
+  color: #555;
+  font-size: 0.95rem;
+}
+
+/* Input para Comentários */
+.comment-input-area {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.comment-input-area textarea {
+  width: 100%;
+  min-height: 80px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  background: #f8f8f8;
+  resize: vertical;
+  font-family: 'Montserrat', sans-serif;
+}
+
+.comment-btn {
+  align-self: flex-end;
+  padding: 10px 25px;
+  border: none;
+  border-radius: 20px;
+  background-color: #8260d1;
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.comment-btn:hover {
+  background-color: #9c4dcc;
 }

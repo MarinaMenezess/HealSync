@@ -3,8 +3,8 @@ const mysql = require('mysql2')
 const connection = mysql.createConnection({
     host: 'localhost',
     user: 'root',
-    password: '',
-    database: 'healsync'
+    password: 'root',
+    database: 'HealSyncDB'
 })
 
 connection.connect((err)=>{

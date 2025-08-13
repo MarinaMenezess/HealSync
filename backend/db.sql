@@ -8,8 +8,8 @@ CREATE TABLE usuario (
     email VARCHAR(45) NOT NULL UNIQUE,
     senha VARCHAR(45) NOT NULL,
     data_nascimento DATE,
-    genero VARCHAR(45),
-    is_psicologo TINYINT(1),
+    genero enum('feminino','masculino','indefinido'),
+    is_psicologo boolean,
     especialidade VARCHAR(45),
     contato VARCHAR(255),
     avaliacao DECIMAL(2,1)

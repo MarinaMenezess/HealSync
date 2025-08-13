@@ -1,48 +1,52 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const form = document.querySelector("form");
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.querySelector('form');
+    const nameInput = document.getElementById('name');
+    const emailInput = document.getElementById('email');
+    const birthdateInput = document.getElementById('birthdate');
+    const genreSelect = document.getElementById('genre');
+    const passwordInput = document.getElementById('password');
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
 
-    // Captura os campos
-    const nome = form.querySelector('#name').value.trim();
-    const email = form.querySelector('#email').value.trim();
-    const genero = form.querySelector('#genre').value;
-    const data_nascimento = form.querySelector('#birthdate').value;
-    const senha = form.querySelector('#password').value;
+        let generoValue = genreSelect.value.toLowerCase();
+        if (generoValue === "prefiro não informar") {
+            generoValue = "indefinido";
+        }
 
-    // Monta o objeto de envio
-    const dados = {
-      nome,
-      email,
-      senha,
-      genero,
-      data_nascimento,
-      is_psicologo: 0,              // padrão: paciente
-      especialidade: null,          // campo reservado para psicólogo
-      contato: null                 // opcional
-    };
+        const userData = {
+            nome: nameInput.value,
+            email: emailInput.value,
+            senha: passwordInput.value,
+            data_nascimento: birthdateInput.value,
+            genero: generoValue,
+            is_psicologo: false,
+            especialidade: null,
+            contato: null,
+        };
 
-    try {
-      const resposta = await fetch("http://localhost:3000/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(dados)
-      });
+        try {
+            const response = await fetch('http://localhost:3000/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(userData),
+            });
 
-      const resultado = await resposta.json();
-
-      if (resposta.ok) {
-        alert("Cadastro realizado com sucesso!");
-        window.location.href = "login.html";
-      } else {
-        alert(`Erro: ${resultado.error || 'Não foi possível cadastrar.'}`);
-      }
-    } catch (error) {
-      console.error("Erro ao cadastrar:", error);
-      alert("Erro na conexão com o servidor.");
-    }
-  });
+            if (response.ok) {
+                const result = await response.json();
+                console.log('Usuário cadastrado com sucesso:', result);
+                alert('Cadastro realizado com sucesso!');
+                window.location.href = 'index.html';
+            } else {
+                const error = await response.json();
+                console.error('Erro ao cadastrar:', error.error);
+                alert('Erro ao cadastrar: ' + error.error);
+            }
+        } catch (error) {
+            console.error('Erro na requisição:', error);
+            alert('Erro de conexão com o servidor.');
+        }
+    });
 });

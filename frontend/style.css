@@ -485,7 +485,7 @@ textarea:focus {
   background-color: #8260d1;
 }
 
-/* ------------------- CSS do Gooey Menu (Adaptado) ------------------- */
+/* --------------- CSS do Gooey Menu (Adaptado) ------------------- */
 body{
   background:#8260d1;
   color:#f1eee4;
@@ -919,6 +919,16 @@ h1{
   padding: 2px 5px;
 }
 
+.fc .fc-button-primary:focus, .fc .fc-button-primary:not(:disabled).fc-button-active:focus, .fc .fc-button-primary:not(:disabled):active:focus{
+  box-shadow: none;
+  background: rgba(255, 255, 255, 0.404) !important;
+  border-color: none;
+}
+
+main > svg {
+  position: absolute;
+}
+
 /* Modal de agendamento */
 #modal-container {
   position: fixed;
@@ -1318,17 +1328,13 @@ h1{
 }
 
 /* Modifique a classe .profile-card para torná-lo fixo */
-.profile-card {
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+.profile2-card {
     border-radius: 25px;
     padding: 20px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    width: 350px;
     position: fixed; /* Fixa o card na tela */
-    top: 15vh; /* Posiciona abaixo do header */
-    left: 3%; /* Define a margem da esquerda */
+    top: 25vh; /* Posiciona abaixo do header */
+    left: 4%; /* Define a margem da esquerda */
     text-align: center;
 }
 
@@ -1337,7 +1343,7 @@ h1{
     width: 100%;
     max-width: 600px;
     margin-top: 0; /* Ajusta a margem superior */
-    margin-left: 400px; /* Adiciona uma margem para compensar o card fixo */
+    margin-left: 650px; /* Adiciona uma margem para compensar o card fixo */
 }
 
 .user-posts-title {
@@ -1398,8 +1404,8 @@ h1{
 .notification-dropdown {
   display: none; /* Esconde por padrão */
   position: absolute;
-  right: 0;
-  top: 100%;
+  right: 85px;
+  top: 85%;
   width: 300px;
   background-color: #f1eee4;
   border-radius: 10px;
@@ -1442,18 +1448,6 @@ h1{
 
 .notification-item:hover {
   background-color: #f0f0f0;
-}
-
-.notification-item p {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-.notification-item span {
-  display: block;
-  font-size: 0.8rem;
-  color: #a0a0a0;
-  margin-top: 5px;
 }
 
 .notification-item.unread {
@@ -1531,13 +1525,13 @@ h1{
   display: flex;
   justify-content: center;
   width: 100%;
-  margin-top: 15vh;
 }
 
 .register-post-container {
   max-width: 700px;
   width: 100%;
   padding: 0 20px;
+  gap: 10%;
 }
 
 .register-post-card {
@@ -1569,99 +1563,124 @@ h1{
   line-height: 1.6;
 }
 
-/* Seção de Comentários */
-.comments-section {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  padding: 25px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.comments-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #3b3b3b;
-  margin-bottom: 20px;
-}
-
-.comment-list {
+/* Estilização da seção de comentários */
+.coment-section{
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 20px;
 }
 
-.comment-item {
+.comentar {
   display: flex;
-  gap: 15px;
-  align-items: flex-start;
-}
-
-.comment-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.comment-body {
-  flex-grow: 1;
-}
-
-.comment-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 5px;
-}
-
-.comment-username {
-  font-weight: 600;
-  color: #3b3b3b;
-}
-
-.comment-time {
-  font-size: 0.8rem;
-  color: #a0a0a0;
-}
-
-.comment-text {
-  margin: 0;
-  color: #555;
-  font-size: 0.95rem;
-}
-
-/* Input para Comentários */
-.comment-input-area {
-  display: flex;
-  flex-direction: column;
   gap: 10px;
+  align-items: flex-end;
 }
 
-.comment-input-area textarea {
-  width: 100%;
-  min-height: 80px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid #ddd;
-  background: #f8f8f8;
-  resize: vertical;
-  font-family: 'Montserrat', sans-serif;
-}
-
-.comment-btn {
-  align-self: flex-end;
-  padding: 10px 25px;
-  border: none;
+.comentar input {
+  flex-grow: 1;
+  padding: 10px 20px;
   border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.781);
+  background: rgba(255, 255, 255, 0.2);
+  color: #3b3b3b;
+  margin-bottom: 0 !important;
+}
+
+.comentar input::placeholder {
+  color: #777;
+}
+
+.comentar textarea:focus{
+  margin-bottom: 0;
+}
+
+.coment {
   background-color: #8260d1;
-  color: #fff;
+  border-radius: 20px;
+  border: none;
+  padding: 2px;
+  height: 40px;
+  width: 120px;
+  color: #f1eee4;
   font-weight: bold;
   cursor: pointer;
   transition: background-color 0.3s;
 }
 
-.comment-btn:hover {
+.coment:hover {
   background-color: #9c4dcc;
+}
+
+.coment-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.coment-card {
+  background: rgba(255, 255, 255, 0.425);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 20px;
+  padding: 15px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: #3b3b3b;
+  transition: transform 0.2s ease;
+  text-align: left;
+}
+
+.coment-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.coment-card .post-header {
+  margin-bottom: 10px;
+}
+
+.coment-card .avatar {
+  width: 35px;
+  height: 35px;
+}
+
+.coment-card .username {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #3b3b3b;
+}
+
+.coment-card .time {
+  font-size: 0.75rem;
+  color: #777;
+}
+
+.coment-card .post-content {
+  font-size: 0.9rem;
+  margin: 0;
+  color: #555;
+}
+
+/* Estilos para o input inicial e para o textarea quando ele é focado */
+.comentar-input, .comentar-textarea {
+  transition: all 0.3s ease;
+  min-height: 40px;
+}
+
+.comentar-textarea {
+  resize: vertical; /* Permite redimensionar apenas verticalmente */
+  padding: 15px 20px;
+  min-height: 80px; /* Altura mínima para mostrar que é um textarea */
+}
+
+/* Garante que o input e o textarea tenham o mesmo estilo de placeholder */
+.comentar-input::placeholder,
+.comentar-textarea::placeholder {
+  color: #777;
+}
+
+.emotion-options button{
+  border: none;
+  outline: none;
+  background: none;
+  gap: 20px;
 }

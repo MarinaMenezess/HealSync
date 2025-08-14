@@ -14,110 +14,160 @@ const JWT_SECRET = 'chave_secreta';
 
 // Middleware de autenticação
 const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) return res.status(401).json({ error: 'Token não fornecido' });
-  const token = authHeader.split(' ')[1];
-  try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.userId = payload.id;
-    next();
-  } catch {
-    res.status(401).json({ error: 'Token inválido' });
-  }
+  const authHeader = req.headers['authorization'];
+  if (!authHeader) return res.status(401).json({ error: 'Token não fornecido' });
+  const token = authHeader.split(' ')[1];
+  try {
+    const payload = jwt.verify(token, JWT_SECRET);
+    req.userId = payload.id;
+    req.is_psicologo = payload.is_psicologo; // Adicionado is_psicologo ao request
+    next();
+  } catch {
+    res.status(401).json({ error: 'Token inválido' });
+  }
 };
 
 // ---------- AUTENTICAÇÃO ----------
 
 app.post('/register', async (req, res) => {
-  const { nome, email, senha, data_nascimento, genero, is_psicologo, especialidade, contato } = req.body;
-  const hashedPassword = await bcrypt.hash(senha, 10);
-  connection.query(
-    'INSERT INTO usuario (nome, email, senha, data_nascimento, genero, is_psicologo, especialidade, contato) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [nome, email, hashedPassword, data_nascimento, genero, is_psicologo, especialidade, contato],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+  const { nome, email, senha, data_nascimento, genero, is_psicologo, especialidade, contato } = req.body;
+  const hashedPassword = await bcrypt.hash(senha, 10);
+  connection.query(
+    'INSERT INTO usuario (nome, email, senha, data_nascimento, genero, is_psicologo, especialidade, contato) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    [nome, email, hashedPassword, data_nascimento, genero, is_psicologo, especialidade, contato],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ id: result.insertId });
+    }
+  );
 });
 
 app.post('/login', (req, res) => {
-  const { email, senha } = req.body;
-  connection.query('SELECT * FROM usuario WHERE email = ?', [email], async (err, results) => {
-    if (err || results.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
-    const user = results[0];
-    const match = await bcrypt.compare(senha, user.senha);
-    if (!match) return res.status(401).json({ error: 'Senha incorreta' });
-    const token = jwt.sign({ id: user.id_usuario }, JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user });
-  });
+  const { email, senha } = req.body;
+  connection.query('SELECT * FROM usuario WHERE email = ?', [email], async (err, results) => {
+    if (err || results.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
+    const user = results[0];
+    const match = await bcrypt.compare(senha, user.senha);
+    if (!match) return res.status(401).json({ error: 'Senha incorreta' });
+    // Incluindo o tipo de usuário no token
+    const token = jwt.sign({ id: user.id_usuario, is_psicologo: user.is_psicologo }, JWT_SECRET, { expiresIn: '1d' });
+    res.json({ token, user });
+  });
 });
 
 // ---------- CONVERSA IA ----------
 
 app.post('/ia/conversas', authMiddleware, (req, res) => {
-  const { titulo_opcional } = req.body;
-  connection.query(
-    'INSERT INTO ia_conversa (id_usuario, data_inicio, titulo_opcional) VALUES (?, NOW(), ?)',
-    [req.userId, titulo_opcional],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+  const { titulo_opcional } = req.body;
+  connection.query(
+    'INSERT INTO ia_conversa (id_usuario, data_inicio, titulo_opcional) VALUES (?, NOW(), ?)',
+    [req.userId, titulo_opcional],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ id: result.insertId });
+    }
+  );
 });
 
 app.post('/ia/mensagens', authMiddleware, (req, res) => {
-  const { id_conversa, remetente, conteudo } = req.body;
-  connection.query(
-    'INSERT INTO ia_mensagem (id_conversa, remetente, conteudo, data_hora) VALUES (?, ?, ?, NOW())',
-    [id_conversa, remetente, conteudo],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+  const { id_conversa, remetente, conteudo } = req.body;
+  connection.query(
+    'INSERT INTO ia_mensagem (id_conversa, remetente, conteudo, data_hora) VALUES (?, ?, ?, NOW())',
+    [id_conversa, remetente, conteudo],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ id: result.insertId });
+    }
+  );
 });
 
-// ---------- CONSULTAS ----------
+// ---------- CONSULTAS (Solicitações) ----------
 
+// Rota para paciente enviar uma solicitação de consulta
 app.post('/consultas', authMiddleware, (req, res) => {
-  const { id_usuario, id_psicologo, data_hora, status, motivo_recusa } = req.body;
-  connection.query(
-    'INSERT INTO consulta (id_usuario, id_psicologo, data_hora, status, motivo_recusa) VALUES (?, ?, ?, ?, ?)',
-    [id_usuario, id_psicologo, data_hora, status, motivo_recusa],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+  // Apenas pacientes podem enviar solicitações
+  if (req.is_psicologo) {
+    return res.status(403).json({ error: 'Apenas pacientes podem enviar solicitações de consulta.' });
+  }
+  const { id_psicologo, data_hora } = req.body;
+  connection.query(
+    'INSERT INTO consulta (id_paciente, id_psicologo, data_hora, status) VALUES (?, ?, ?, ?)',
+    [req.userId, id_psicologo, data_hora, 'pendente'],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ mensagem: 'Solicitação de consulta enviada com sucesso.', id: result.insertId });
+    }
+  );
 });
 
+// Rota para psicólogo visualizar suas solicitações pendentes
+app.get('/consultas/pendentes', authMiddleware, (req, res) => {
+  // Apenas psicólogos podem ver as solicitações
+  if (!req.is_psicologo) {
+    return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem visualizar as solicitações.' });
+  }
+  connection.query(
+    `SELECT c.*, u.nome AS nome_paciente, u.email AS email_paciente, u.data_nascimento
+     FROM consulta c
+     JOIN usuario u ON c.id_paciente = u.id_usuario
+     WHERE c.id_psicologo = ? AND c.status = 'pendente'`,
+    [req.userId],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(results);
+    }
+  );
+});
+
+// Rota para psicólogo responder a uma solicitação (aceitar/recusar)
 app.put('/consultas/:id', authMiddleware, (req, res) => {
-  const { data_hora, status, motivo_recusa } = req.body;
-  connection.query(
-    'UPDATE consulta SET data_hora = ?, status = ?, motivo_recusa = ? WHERE id_consulta = ?',
-    [data_hora, status, motivo_recusa, req.params.id],
-    (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ mensagem: 'Consulta atualizada com sucesso' });
-    }
-  );
+  // Apenas psicólogos podem responder
+  if (!req.is_psicologo) {
+    return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem responder às solicitações.' });
+  }
+  const { status, motivo_recusa } = req.body;
+  const { id } = req.params;
+
+  if (!['aceita', 'recusada'].includes(status)) {
+    return res.status(400).json({ error: 'Status inválido.' });
+  }
+  // Validação para obrigar o motivo quando o status for 'recusada'
+  if (status === 'recusada' && (!motivo_recusa || motivo_recusa.trim() === '')) {
+    return res.status(400).json({ error: 'O motivo da recusa é obrigatório.' });
+  }
+
+  let query = 'UPDATE consulta SET status = ?';
+  let params = [status];
+
+  if (status === 'recusada') {
+    query += ', motivo_recusa = ?';
+    params.push(motivo_recusa);
+  } else {
+    query += ', motivo_recusa = NULL'; // Limpa o motivo se aceitar
+  }
+
+  query += ' WHERE id_consulta = ? AND id_psicologo = ?';
+  params.push(id, req.userId);
+
+  connection.query(query, params, (err, result) => {
+    if (err) return res.status(500).json({ error: err.message });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ mensagem: 'Solicitação não encontrada ou você não tem permissão.' });
+    }
+    res.json({ mensagem: `Solicitação ${status} com sucesso.` });
+  });
 });
 
-app.delete('/consultas/:id', authMiddleware, (req, res) => {
-  connection.query(
-    'DELETE FROM consulta WHERE id_consulta = ?',
-    [req.params.id],
-    (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ mensagem: 'Consulta excluída com sucesso' });
-    }
-  );
-});
+
+// As rotas abaixo foram removidas para evitar conflito com a nova lógica.
+// app.post('/consultas', ...)
+// app.put('/consultas/:id', ...)
+// app.delete('/consultas/:id', ...)
 
 // ---------- REGISTROS ----------
-
+// ... (rotas de registros, comentários, curtidas, anotações e outras rotas originais)
+// Seu código original a partir daqui
+// ---------- REGISTROS ----------
 app.post('/registros', authMiddleware, (req, res) => {
   const { data, emocao, descricao } = req.body;
   connection.query(
@@ -251,9 +301,8 @@ app.delete('/anotacoes/:id', authMiddleware, (req, res) => {
     }
   );
 });
-
 // ---------- START SERVER ----------
 const PORT = 3000;
 app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

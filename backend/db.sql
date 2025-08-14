@@ -34,6 +34,18 @@ CREATE TABLE ia_mensagem (
     FOREIGN KEY (id_conversa) REFERENCES ia_conversa(id_conversa) ON DELETE CASCADE
 );
 
+-- Tabela: solicitacao_consulta
+CREATE TABLE solicitacao_consulta (
+    id_solicitacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_paciente INT NOT NULL,
+    id_psicologo INT NOT NULL,
+    data_solicitada DATETIME NOT NULL,
+    motivo_recusa TEXT DEFAULT NULL,
+    status ENUM('pendente', 'aceita', 'recusada') NOT NULL DEFAULT 'pendente',
+    FOREIGN KEY (id_paciente) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_psicologo) REFERENCES usuario(id_usuario) ON DELETE CASCADE
+);
+
 -- Tabela: consulta
 CREATE TABLE consulta (
     id_consulta INT AUTO_INCREMENT PRIMARY KEY,

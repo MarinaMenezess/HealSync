@@ -1682,5 +1682,28 @@ main > svg {
   border: none;
   outline: none;
   background: none;
-  gap: 20px;
+}
+
+.emotion-options{
+  display: flex;
+  gap: 30px;
+}
+
+.emotion-selector{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.emotion-btn{
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.emotion-btn:hover{
+  transform: scale(1.09);
+}
+
+.emotion-btn:active {
+  fill: #6a49b4;
 }

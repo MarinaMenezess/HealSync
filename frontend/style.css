@@ -1709,13 +1709,31 @@ main > svg {
 }
 
 /* --------------- ESTILIZAÇÃO PARA A PÁGINA REQUESTS.HTML --------------- */
+/* Container principal para os registros */
+.requests-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5%; /* Espaço entre os cartões */
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0 5%;
+}
 
 .header-requests {
   display: flex;
   gap: 20px;
   align-items: center;
-  margin: 0 5% 3%;
+  margin: 0 5% 2%;
+}
+
+.header-requests svg{
   cursor: pointer;
+}
+
+.requests-title {
+  font-weight: 700;
+  color:#7873f5;
+  font-size: 2.5rem;
 }
 
 .request-buttons{
@@ -1723,7 +1741,7 @@ main > svg {
   flex-direction: column;
 }
 
-/* Estilo para os cartões de registro */
+/* Estilo para os cartões de solicitação */
 .request-card {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
@@ -1795,4 +1813,231 @@ main > svg {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+}
+
+/* --------------- Estilização para o dropdown de solicitações --------------- */
+.requests-header-container {
+    position: relative;
+}
+
+.requests-dropdown {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    top: 75%;
+    left: 24%;
+    width: 250px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 15px;
+    overflow: hidden;
+    margin-top: 10px;
+    z-index: 10;
+}
+
+.requests-dropdown.show {
+    display: flex;
+}
+
+.dropdown-item {
+    padding: 15px 20px;
+    color: #f1eee4;
+    text-decoration: none;
+    font-size: 1.1rem;
+    font-weight: 500;
+    transition: background-color 0.3s;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(120, 115, 245, 0.5);
+}
+
+/* Estilos do Modal de Motivo de Recusa */
+#reason-modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: none; /* Inicia oculto */
+  justify-content: center;
+  align-items: center;
+  z-index: 1002; /* Garante que fique acima de outros modais */
+}
+
+#reason-modal-container.active {
+  display: flex;
+}
+
+#reason-modal {
+  background: rgba(255, 255, 255, 0.377);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.781);
+  padding: 0;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 10px rgba(250, 250, 250, 0.308);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+#reason-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  padding: 15px 20px;
+  background-color: #7873f5;
+}
+
+#reason-modal .modal-title {
+  color: #f1eee4;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+#reason-modal .modal-body {
+  padding: 20px;
+}
+
+#reason-modal textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 8px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.116);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.781);
+  color: #f1eee4;
+  resize: vertical;
+}
+
+#reason-modal textarea::placeholder {
+  color: #f1eee4;
+}
+
+#reason-modal .modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #ddd;
+  padding: 15px 20px;
+}
+
+#reason-modal .secondary-btn {
+  background-color: #777;
+  color: #f1eee4;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+#reason-modal .secondary-btn:hover {
+  background-color: #555;
+}
+
+#reason-modal .primary-btn {
+  background-color: #e04444; /* Cor de recusa */
+  color: #f1eee4;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+#reason-modal .primary-btn:hover {
+  background-color: #c73737;
+}
+
+/* Estilo para os cartões de solicitação */
+.notes-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5%; /* Espaço entre os cartões */
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0 5%;
+}
+
+.note-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  height: 80px; /* Altura fixa para o cartão */
+  width: 30%;
+  transition: transform 0.3s ease;
+  margin-bottom: 2%;
+}
+
+.note-card:hover {
+  transform: translateY(-5px);
+}
+
+.note-card h4 {
+  font-weight: 600;
+  color: #3b3b3b;
+  display: flex;
+  align-items: center;
+  font-size: 18px;
+}
+
+.note-card button {
+  color: #fff;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  align-self: flex-end; /* Alinha o botão à direita */
+  transition: background-color 0.3s;
+  width: 30px;
+  height: 30px;
+  text-align: center;
+}
+
+.note-card button svg {
+  align-self: center;
+}
+
+.note-card .add-btn {
+  background-color: #637cc7;
+}
+
+.note-card .trash-btn {
+  background-color: #8260d1;
+}
+
+.note-card .add-btn:hover {
+  background-color: #5165a1;
+}
+
+.note-card .trash-btn:hover {
+  background-color: #674ca5;
+}
+
+.note-buttons{
+  display: flex;
+  gap: 15px;
+  align-self: center;
+}
+
+.agenda-psicologo {
+  min-height: 60vh;
+  margin: 0 auto 0;
+  width: 80vw !important;
+}
+
+.hidden-section {
+  display: none !important;
 }

@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
                 console.log('Usuário cadastrado com sucesso:', result);
                 alert('Cadastro realizado com sucesso!');
-                window.location.href = 'index.html';
+                window.location.href = 'login.html';
             } else {
                 const error = await response.json();
                 console.error('Erro ao cadastrar:', error.error);

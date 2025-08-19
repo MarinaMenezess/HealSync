@@ -4,6 +4,11 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+require('dotenv').config(); // Carrega as variáveis de ambiente
+
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
 const app = express();
 app.use(bodyParser.json());
@@ -57,6 +62,31 @@ app.post('/login', (req, res) => {
 
 // ---------- CONVERSA IA ----------
 
+// Rota para buscar todas as conversas de um usuário
+app.get('/ia/conversas', authMiddleware, (req, res) => {
+    connection.query(
+        'SELECT id_conversa, titulo_opcional, data_inicio FROM ia_conversa WHERE id_usuario = ? ORDER BY data_inicio DESC',
+        [req.userId],
+        (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json(results);
+        }
+    );
+});
+
+// Rota para buscar as mensagens de uma conversa específica
+app.get('/ia/conversas/:id', authMiddleware, (req, res) => {
+    const { id } = req.params;
+    connection.query(
+        'SELECT remetente, conteudo, data_hora FROM ia_mensagem WHERE id_conversa = ? ORDER BY data_hora ASC',
+        [id],
+        (err, results) => {
+            if (err) return res.status(500).json({ error: err.message });
+            res.json(results);
+        }
+    );
+});
+
 app.post('/ia/conversas', authMiddleware, (req, res) => {
   const { titulo_opcional } = req.body;
   connection.query(
@@ -69,17 +99,84 @@ app.post('/ia/conversas', authMiddleware, (req, res) => {
   );
 });
 
-app.post('/ia/mensagens', authMiddleware, (req, res) => {
-  const { id_conversa, remetente, conteudo } = req.body;
-  connection.query(
-    'INSERT INTO ia_mensagem (id_conversa, remetente, conteudo, data_hora) VALUES (?, ?, ?, NOW())',
-    [id_conversa, remetente, conteudo],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+// ---------- CHAT COM IA ----------
+
+app.post('/ia/chat', authMiddleware, async (req, res) => {
+    const { id_conversa, mensagem_usuario } = req.body;
+
+    if (!id_conversa || !mensagem_usuario) {
+        return res.status(400).json({ error: 'ID da conversa e mensagem são obrigatórios.' });
+    }
+
+    try {
+        // 1. Salvar a mensagem do usuário no banco de dados
+        await new Promise((resolve, reject) => {
+            connection.query(
+                'INSERT INTO ia_mensagem (id_conversa, remetente, conteudo, data_hora) VALUES (?, ?, ?, NOW())',
+                [id_conversa, 'usuario', mensagem_usuario],
+                (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                }
+            );
+        });
+
+        // 2. Recuperar o histórico completo da conversa do banco de dados
+        const [historico] = await new Promise((resolve, reject) => {
+            connection.query(
+                'SELECT remetente, conteudo FROM ia_mensagem WHERE id_conversa = ? ORDER BY data_hora ASC',
+                [id_conversa],
+                (err, results) => {
+                    if (err) return reject(err);
+                    resolve([results]);
+                }
+            );
+        });
+
+        // 3. Formatar o histórico para a API do Gemini
+        const formattedHistory = historico.map(msg => ({
+            role: msg.remetente === 'usuario' ? 'user' : 'model',
+            parts: [{ text: msg.conteudo }]
+        }));
+
+        // Adiciona a mensagem do usuário para enviar à API
+        formattedHistory.push({
+            role: 'user',
+            parts: [{ text: mensagem_usuario }]
+        });
+        
+        // 4. Inicia uma nova conversa com o histórico recuperado
+        const chat = model.startChat({
+            history: formattedHistory,
+            generationConfig: {
+                maxOutputTokens: 100,
+            },
+        });
+        
+        // 5. Enviar a mensagem do usuário para o modelo Gemini
+        const result = await chat.sendMessage(mensagem_usuario);
+        const respostaIA = result.response.text();
+
+        // 6. Salvar a resposta da IA no banco de dados
+        await new Promise((resolve, reject) => {
+            connection.query(
+                'INSERT INTO ia_mensagem (id_conversa, remetente, conteudo, data_hora) VALUES (?, ?, ?, NOW())',
+                [id_conversa, 'ia', respostaIA],
+                (err) => {
+                    if (err) return reject(err);
+                    resolve();
+                }
+            );
+        });
+        
+        res.json({ resposta: respostaIA, mensagem: 'Mensagem e resposta salvas com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro na requisição da IA:', error);
+        res.status(500).json({ error: 'Erro ao processar a mensagem com a IA.' });
+    }
 });
+
 
 // ---------- CONSULTAS (Solicitações) ----------
 
@@ -91,7 +188,7 @@ app.post('/consultas', authMiddleware, (req, res) => {
   }
   const { id_psicologo, data_hora } = req.body;
   connection.query(
-    'INSERT INTO consulta (id_paciente, id_psicologo, data_hora, status) VALUES (?, ?, ?, ?)',
+    'INSERT INTO solicitacao_consulta (id_paciente, id_psicologo, data_solicitada, status) VALUES (?, ?, ?, ?)',
     [req.userId, id_psicologo, data_hora, 'pendente'],
     (err, result) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -108,7 +205,7 @@ app.get('/consultas/pendentes', authMiddleware, (req, res) => {
   }
   connection.query(
     `SELECT c.*, u.nome AS nome_paciente, u.email AS email_paciente, u.data_nascimento
-     FROM consulta c
+     FROM solicitacao_consulta c
      JOIN usuario u ON c.id_paciente = u.id_usuario
      WHERE c.id_psicologo = ? AND c.status = 'pendente'`,
     [req.userId],
@@ -136,7 +233,7 @@ app.put('/consultas/:id', authMiddleware, (req, res) => {
     return res.status(400).json({ error: 'O motivo da recusa é obrigatório.' });
   }
 
-  let query = 'UPDATE consulta SET status = ?';
+  let query = 'UPDATE solicitacao_consulta SET status = ?';
   let params = [status];
 
   if (status === 'recusada') {
@@ -146,7 +243,7 @@ app.put('/consultas/:id', authMiddleware, (req, res) => {
     query += ', motivo_recusa = NULL'; // Limpa o motivo se aceitar
   }
 
-  query += ' WHERE id_consulta = ? AND id_psicologo = ?';
+  query += ' WHERE id_solicitacao = ? AND id_psicologo = ?';
   params.push(id, req.userId);
 
   connection.query(query, params, (err, result) => {

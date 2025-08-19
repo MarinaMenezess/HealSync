@@ -1,60 +1,78 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Seu código existente para converter input em textarea
   const container = document.querySelector('.comentar');
-  const initialInput = document.querySelector('.comentar input');
+  if (container) {
+    const initialInput = document.querySelector('.comentar input');
 
-  // Função para converter o input para textarea
-  const toTextarea = () => {
-    // Evita múltiplas conversões se já for um textarea
-    if (container.querySelector('textarea')) return;
+    const toTextarea = () => {
+      if (container.querySelector('textarea')) return;
+      const inputElement = container.querySelector('input');
+      const textareaElement = document.createElement('textarea');
+      textareaElement.placeholder = inputElement.placeholder;
+      textareaElement.className = 'comentar-textarea';
+      textareaElement.value = inputElement.value;
+      textareaElement.rows = "3";
+      textareaElement.style.height = 'auto';
+      textareaElement.style.height = (textareaElement.scrollHeight) + 'px';
+      container.replaceChild(textareaElement, inputElement);
+      textareaElement.focus();
+      textareaElement.addEventListener('blur', toInput);
+    };
 
-    // Pega o input atual
-    const inputElement = container.querySelector('input');
-    
-    // Cria um novo elemento textarea
-    const textareaElement = document.createElement('textarea');
+    const toInput = () => {
+      if (container.querySelector('input')) return;
+      const textareaElement = container.querySelector('textarea');
+      const inputElement = document.createElement('input');
+      inputElement.type = 'text';
+      inputElement.placeholder = textareaElement.placeholder;
+      inputElement.className = 'comentar-input';
+      inputElement.value = textareaElement.value;
+      container.replaceChild(inputElement, textareaElement);
+      inputElement.addEventListener('focus', toTextarea);
+    };
 
-    // Copia os atributos do input para o textarea
-    textareaElement.placeholder = inputElement.placeholder;
-    textareaElement.className = 'comentar-textarea'; // Use uma nova classe para estilizar
-    textareaElement.value = inputElement.value;
-    textareaElement.rows = "3"; // Define o número de linhas para começar
-    textareaElement.style.height = 'auto'; // Reseta a altura para calcular o scrollHeight
-    textareaElement.style.height = (textareaElement.scrollHeight) + 'px'; // Ajusta a altura
+    if(initialInput) {
+        initialInput.addEventListener('focus', toTextarea);
+    }
+  }
 
-    // Substitui o input pelo textarea
-    container.replaceChild(textareaElement, inputElement);
+  // Código para o formulário de registro
+  const registerForm = document.getElementById('register-form'); // Assumindo que seu formulário tem o id="register-form"
 
-    // Foca no novo elemento textarea
-    textareaElement.focus();
+  if (registerForm) {
+    registerForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
 
-    // Adiciona o evento de perda de foco para reverter
-    textareaElement.addEventListener('blur', toInput);
-  };
+      const formData = new FormData(registerForm);
+      const data = Object.fromEntries(formData.entries());
 
-  // Função para converter o textarea de volta para input
-  const toInput = () => {
-    // Evita múltiplas conversões se já for um input
-    if (container.querySelector('input')) return;
+      // Converte 'is_psicologo' para booleano
+      data.is_psicologo = data.is_psicologo === 'on';
 
-    // Pega o textarea atual
-    const textareaElement = container.querySelector('textarea');
-    
-    // Cria um novo elemento input
-    const inputElement = document.createElement('input');
-    inputElement.type = 'text';
+      try {
+        const response = await fetch('http://localhost:3000/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data),
+        });
 
-    // Copia os atributos do textarea para o input
-    inputElement.placeholder = textareaElement.placeholder;
-    inputElement.className = 'comentar-input'; // Use a classe original ou uma nova
-    inputElement.value = textareaElement.value;
-
-    // Substitui o textarea pelo input
-    container.replaceChild(inputElement, textareaElement);
-    
-    // Adiciona o evento de foco de volta para o input
-    inputElement.addEventListener('focus', toTextarea);
-  };
-
-  // Evento inicial: ao focar no input, ele se transforma em textarea
-  initialInput.addEventListener('focus', toTextarea);
+        if (response.ok) {
+          const result = await response.json();
+          console.log('Registro bem-sucedido:', result);
+          // Redirecionar para a página de login ou mostrar uma mensagem de sucesso
+          window.location.href = 'login.html';
+        } else {
+          const error = await response.json();
+          console.error('Erro no registro:', error.error);
+          // Mostrar uma mensagem de erro para o usuário
+          alert(`Erro no registro: ${error.error}`);
+        }
+      } catch (error) {
+        console.error('Erro na requisição:', error);
+        alert('Não foi possível conectar ao servidor. Tente novamente mais tarde.');
+      }
+    });
+  }
 });

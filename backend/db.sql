@@ -2,11 +2,12 @@ CREATE DATABASE IF NOT EXISTS HealSyncDB;
 USE HealSyncDB;
 
 -- Tabela: usuario
+-- ALTERADA para usar 'firebase_uid' (do Firebase Auth) e remover 'senha' local.
 CREATE TABLE usuario (
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    firebase_uid VARCHAR(128) NOT NULL UNIQUE, -- ID único fornecido pelo Firebase Auth (usado no backend para identificar o usuário)
     nome VARCHAR(45) NOT NULL,
     email VARCHAR(45) NOT NULL UNIQUE,
-    senha VARCHAR(45) NOT NULL,
     data_nascimento DATE,
     genero enum('feminino','masculino','indefinido'),
     is_psicologo boolean,

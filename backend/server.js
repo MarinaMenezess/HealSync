@@ -2,9 +2,17 @@ const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config(); // Carrega as variáveis de ambiente
+
+// ---------- FIREBASE ADMIN SDK SETUP ----------
+const admin = require('firebase-admin');
+// ATENÇÃO: Você deve criar este arquivo na pasta 'backend'
+const serviceAccount = require('./serviceAccountKey.json'); 
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+});
+// ----------------------------------------------
 
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -17,7 +25,7 @@ app.use(cors({ origin: 'http://127.0.0.1:5500' }));
 
 const JWT_SECRET = 'chave_secreta';
 
-// Middleware de autenticação
+// Middleware de autenticação (permanece verificando o JWT local)
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers['authorization'];
   if (!authHeader) return res.status(401).json({ error: 'Token não fornecido' });
@@ -32,32 +40,94 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// ---------- AUTENTICAÇÃO ----------
+// ---------- AUTENTICAÇÃO COM FIREBASE ----------
 
-app.post('/register', async (req, res) => {
-  const { nome, email, senha, data_nascimento, genero, is_psicologo, especialidade, contato } = req.body;
-  const hashedPassword = await bcrypt.hash(senha, 10);
-  connection.query(
-    'INSERT INTO usuario (nome, email, senha, data_nascimento, genero, is_psicologo, especialidade, contato) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    [nome, email, hashedPassword, data_nascimento, genero, is_psicologo, especialidade, contato],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+// Rota para criar o registro do perfil no MySQL APÓS a autenticação no Firebase
+app.post('/register-profile', async (req, res) => {
+    // 1. Obter e verificar o token do Firebase enviado pelo frontend
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Token de autenticação Firebase não fornecido' });
+    }
+    const firebaseIdToken = authHeader.split(' ')[1];
+    let firebaseUid;
+    let userEmail;
+
+    try {
+        const decodedToken = await admin.auth().verifyIdToken(firebaseIdToken);
+        firebaseUid = decodedToken.uid; 
+        userEmail = decodedToken.email; // Usar o email do token Firebase
+    } catch (error) {
+        console.error('Erro ao verificar o token Firebase:', error);
+        return res.status(401).json({ error: 'Token Firebase inválido ou expirado' });
+    }
+
+    // 2. Extrair dados do perfil (a senha é gerenciada pelo Firebase e não é salva aqui)
+    // Usamos o email obtido do token do Firebase para garantir a consistência
+    const { nome, data_nascimento, genero, is_psicologo, especialidade, contato } = req.body;
+    
+    // 3. Salvar o perfil no MySQL (usando firebaseUid)
+    connection.query(
+        // ATENÇÃO: Sua tabela 'usuario' deve ser modificada para ter a coluna 'firebase_uid' (UNIQUE) e NÃO TER 'senha'.
+        'INSERT INTO usuario (firebase_uid, nome, email, data_nascimento, genero, is_psicologo, especialidade, contato) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [firebaseUid, nome, userEmail, data_nascimento, genero, is_psicologo, especialidade, contato],
+        (err, result) => {
+            if (err) {
+                // Erro comum aqui é DUPLICATE ENTRY se o usuário já estiver cadastrado no MySQL
+                if (err.code === 'ER_DUP_ENTRY') {
+                     return res.status(409).json({ error: 'Perfil de usuário já cadastrado.' });
+                }
+                console.error('Erro ao inserir no MySQL:', err.message);
+                return res.status(500).json({ error: 'Erro ao salvar perfil no banco de dados: ' + err.message });
+            }
+            res.status(201).json({ id: result.insertId, firebaseUid, mensagem: 'Perfil registrado com sucesso.' });
+        }
+    );
 });
 
-app.post('/login', (req, res) => {
-  const { email, senha } = req.body;
-  connection.query('SELECT * FROM usuario WHERE email = ?', [email], async (err, results) => {
-    if (err || results.length === 0) return res.status(401).json({ error: 'Usuário não encontrado' });
-    const user = results[0];
-    const match = await bcrypt.compare(senha, user.senha);
-    if (!match) return res.status(401).json({ error: 'Senha incorreta' });
-    // Incluindo o tipo de usuário no token
-    const token = jwt.sign({ id: user.id_usuario, is_psicologo: user.is_psicologo }, JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user });
-  });
+
+// Rota de login agora verifica o token do Firebase e retorna o JWT local
+app.post('/login', async (req, res) => {
+    // 1. Obter e verificar o token do Firebase enviado pelo frontend
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Token de autenticação Firebase não fornecido' });
+    }
+    const firebaseIdToken = authHeader.split(' ')[1];
+    let firebaseUid;
+    let userEmail;
+
+    try {
+        const decodedToken = await admin.auth().verifyIdToken(firebaseIdToken);
+        firebaseUid = decodedToken.uid;
+        userEmail = decodedToken.email;
+    } catch (error) {
+        console.error('Erro ao verificar o token Firebase:', error);
+        return res.status(401).json({ error: 'Token Firebase inválido ou expirado' });
+    }
+
+    // 2. Buscar o usuário no MySQL usando o firebase_uid
+    connection.query('SELECT * FROM usuario WHERE firebase_uid = ?', [firebaseUid], (err, results) => {
+        if (err) {
+            console.error('Erro ao consultar o banco de dados:', err.message);
+            return res.status(500).json({ error: 'Erro no servidor ao buscar usuário.' });
+        }
+        
+        if (results.length === 0) {
+            // O usuário está autenticado no Firebase, mas não tem perfil no MySQL. 
+            return res.status(404).json({ error: 'Perfil de usuário não encontrado no banco de dados. Conclua o cadastro.' });
+        }
+        
+        const user = results[0];
+        
+        // 3. Gerar e retornar o JWT local para uso nas rotas protegidas
+        const token = jwt.sign({ id: user.id_usuario, is_psicologo: user.is_psicologo }, JWT_SECRET, { expiresIn: '1d' });
+        
+        // Remover firebase_uid e qualquer campo sensível antes de enviar ao frontend
+        const { firebase_uid, ...userWithoutPrivateFields } = user;
+        
+        res.json({ token, user: userWithoutPrivateFields });
+    });
 });
 
 // ---------- CONVERSA IA ----------
@@ -256,14 +326,6 @@ app.put('/consultas/:id', authMiddleware, (req, res) => {
 });
 
 
-// As rotas abaixo foram removidas para evitar conflito com a nova lógica.
-// app.post('/consultas', ...)
-// app.put('/consultas/:id', ...)
-// app.delete('/consultas/:id', ...)
-
-// ---------- REGISTROS ----------
-// ... (rotas de registros, comentários, curtidas, anotações e outras rotas originais)
-// Seu código original a partir daqui
 // ---------- REGISTROS ----------
 app.post('/registros', authMiddleware, (req, res) => {
   const { data, emocao, descricao } = req.body;
@@ -398,6 +460,7 @@ app.delete('/anotacoes/:id', authMiddleware, (req, res) => {
     }
   );
 });
+
 // ---------- START SERVER ----------
 const PORT = 3000;
 app.listen(PORT, () => {

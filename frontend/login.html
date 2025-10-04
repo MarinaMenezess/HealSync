@@ -36,6 +36,24 @@
 </svg></h2></a></b>
     </div>
   </div>
+  
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script> 
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script>
+    // USE EXATAMENTE AS MESMAS CHAVES PÚBLICAS QUE FUNCIONARAM NO SEU signup.html
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzkSk84GLdKeEkLyUOStXtYHr5tfpJBak", 
+      authDomain: "healsync-cd5a6.firebaseapp.com", 
+      projectId: "healsync-cd5a6",
+      // ... Outras chaves ...
+    };
+
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    // Cria a referência global de autenticação
+    const auth = firebase.auth();
+  </script>
   <script src="login.js"></script>
 </body>
 </html>

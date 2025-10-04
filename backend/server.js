@@ -21,7 +21,7 @@ const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 const app = express();
 app.use(bodyParser.json());
 
-app.use(cors({ origin: 'http://127.0.0.1:5500' }));
+app.use(cors({ origin: 'http://127.0.0.1:5501' }));
 
 const JWT_SECRET = 'chave_secreta';
 

@@ -48,6 +48,29 @@
 </svg></h2></a></b>
     </div>
   </div>
+  
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script> 
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script>
+    // ATENÇÃO: SUBSTITUA ESTES VALORES PELAS SUAS CHAVES PÚBLICAS DO FIREBASE CONSOLE
+    // Estes dados são PÚBLICOS e diferentes do serviceAccountKey.json no backend.
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzkSk84GLdKeEkLyUOStXtYHr5tfpJBak",
+      authDomain: "healsync-cd5a6.firebaseapp.com",
+      projectId: "healsync-cd5a6",
+      storageBucket: "healsync-cd5a6.firebasestorage.app",
+      messagingSenderId: "133723858575",
+      appId: "1:133723858575:web:1fc432b178c1fbf7e2b2fa",
+      measurementId: "G-3B9V19FSGF"
+    };
+
+    // Inicializa o Firebase
+    if (!firebase.apps.length) {
+        firebase.initializeApp(firebaseConfig);
+    }
+    // A referência 'auth' é usada pelo signup.js para o cadastro
+    const auth = firebase.auth(); 
+  </script>
   <script src="signup.js"></script>
 </body>
 </html>

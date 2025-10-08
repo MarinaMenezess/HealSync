@@ -233,28 +233,32 @@ textarea:focus {
   background-color: #7a3a9e;
 }
 
-.social-buttons {
+#google-login-button {
+  margin-top: 5%;
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 35px;
-  margin-top: 15px;
-}
-
-.social-buttons button {
-  border-radius: 100%;
-  padding: 10px 13px;
+  gap: 3%;
+  width: 100%;
+  height: 6vh;
+  padding: 12px;
+  border-radius: 20px;
+  color: #f1eee4;
+  font-weight: bold;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.116);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.781);
   transition: transform 1.2s ease;
+  font-size: 88%;
 }
 
-.social-buttons img {
+#google-login-button img {
   width: 19px;
+  height: 30px;
 }
 
-.social-buttons button:hover {
+#google-login-button button:hover {
   transform: scale(1.09);
 }
 

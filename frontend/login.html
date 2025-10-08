@@ -21,12 +21,7 @@
         <button type="submit" class="btn">Entrar</button>
       </form>
 
-      <div class="social-buttons">
-        <button id="google-login-btn"><img src="../assets/Google.svg" alt="Google"></button>
-        <button><img src="../assets/facebook.svg" alt="Facebook"></button>
-        <button><img src="../assets/apple.svg" alt="Apple"></button>
-      </div>
-    </div>
+      <button id="google-login-button"><img src="../assets/Google.svg" alt="Google"> Entrar com o Google</button>
 
     <div class="login-box">
       <p>Ainda não possui uma conta?</p>
@@ -37,15 +32,18 @@
     </div>
   </div>
   
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script> 
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script> 
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
   <script>
     // USE EXATAMENTE AS MESMAS CHAVES PÚBLICAS QUE FUNCIONARAM NO SEU signup.html
     const firebaseConfig = {
-      apiKey: "AIzaSyBzkSk84GLtKeqSStXtYHr5tfpJBak", 
-      authDomain: "healsync-cd5a6.firebaseapp.com", 
+      apiKey: "AIzaSyBzkSk84GLdKeEkLyUOStXtYHr5tfpJBak",
+      authDomain: "healsync-cd5a6.firebaseapp.com",
       projectId: "healsync-cd5a6",
-      // ... Outras chaves ...
+      storageBucket: "healsync-cd5a6.firebasestorage.app",
+      messagingSenderId: "133723858575",
+      appId: "1:133723858575:web:1fc432b178c1fbf7e2b2fa",
+      measurementId: "G-3B9V19FSGF"
     };
 
     if (!firebase.apps.length) {

@@ -200,6 +200,40 @@ app.post('/login', async (req, res) => {
     });
 });
 
+// ---------- SOLICITAÇÃO DE PERFIL PSICÓLOGO ----------
+
+// Rota para o usuário solicitar/atualizar detalhes do perfil de psicólogo
+// O envio desses dados sinaliza a solicitação. O campo 'is_psicologo' deve ser
+// ativado por um administrador separadamente para fins de segurança e verificação.
+app.put('/users/psychologist-details', authMiddleware, (req, res) => {
+    const { especialidade, contato } = req.body;
+    const userId = req.userId;
+
+    if (!especialidade || !contato) {
+        return res.status(400).json({ error: 'Especialidade e contato são obrigatórios para a solicitação de perfil de psicólogo.' });
+    }
+
+    // A rota é usada tanto para a solicitação inicial quanto para a atualização de detalhes,
+    // se o usuário já for um psicólogo.
+    connection.query(
+        'UPDATE usuario SET especialidade = ?, contato = ? WHERE id_usuario = ?',
+        [especialidade, contato, userId],
+        (err, result) => {
+            if (err) {
+                console.error('Erro ao atualizar detalhes/solicitação de psicólogo:', err.message);
+                return res.status(500).json({ error: 'Erro ao processar sua solicitação.' });
+            }
+
+            if (req.is_psicologo) {
+                return res.json({ mensagem: 'Detalhes do perfil de psicólogo atualizados com sucesso.' });
+            } else {
+                return res.json({ mensagem: 'Solicitação de perfil de psicólogo enviada para análise (Detalhes atualizados). Um administrador revisará sua conta.' });
+            }
+        }
+    );
+});
+
+
 // ---------- CONVERSA IA ----------
 
 // Rota para buscar todas as conversas de um usuário

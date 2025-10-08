@@ -50,7 +50,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const result = await response.json();
                 
                 // 4. ARMAZENA O JWT LOCAL (para uso nas APIs) e os dados do usuário.
-                localStorage.setItem('token', result.token);
+                // CORREÇÃO APLICADA: O token deve ser salvo como 'jwt'
+                localStorage.setItem('jwt', result.token); 
                 localStorage.setItem('user', JSON.stringify(result.user));
                 
                 console.log('Login realizado com sucesso. Token local JWT obtido.');

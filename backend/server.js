@@ -85,7 +85,77 @@ app.post('/register-profile', async (req, res) => {
     );
 });
 
+// =========================================================================
+// CORREÇÃO: NOVA ROTA /register PARA CRIAR O USUÁRIO NO MYSQL APÓS O FIREBASE
+// =========================================================================
 
+// Rota de Registro Inicial (para ser usada após Google Sign Up ou Email/Senha Sign Up)
+// Nota: O frontend deve enviar o token do Firebase no header 'Authorization: Bearer <token>'
+app.post('/register', async (req, res) => {
+    // 1. Obter e verificar o token do Firebase enviado pelo frontend
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Token de autenticação Firebase não fornecido' });
+    }
+    const firebaseIdToken = authHeader.split(' ')[1];
+    let decodedToken;
+    // O nome e email no corpo da requisição são usados como fallback
+    let userName = req.body.name || 'Novo Usuário'; 
+    let userEmail = req.body.email; 
+
+    try {
+        decodedToken = await admin.auth().verifyIdToken(firebaseIdToken);
+        
+        // Usa os dados verificados do Firebase, que são mais confiáveis
+        const firebaseUid = decodedToken.uid;
+        userEmail = decodedToken.email || userEmail;
+        userName = decodedToken.name || userName; 
+
+        // 2. Tenta encontrar o usuário pelo firebase_uid
+        connection.query('SELECT id_usuario FROM usuario WHERE firebase_uid = ?', [firebaseUid], (err, results) => {
+            if (err) {
+                console.error('Erro ao consultar o banco de dados:', err.message);
+                return res.status(500).json({ error: 'Erro no servidor ao buscar usuário.' });
+            }
+            
+            if (results.length > 0) {
+                // Se já existe, significa que o registro no MySQL já foi feito.
+                return res.status(409).json({ error: 'Usuário já registrado. Prossiga para o login.' });
+            }
+            
+            // 3. Inserir o novo usuário no MySQL (is_psicologo = 0 por padrão para novo usuário)
+            const insertQuery = `
+                INSERT INTO usuario (firebase_uid, nome, email, is_psicologo) 
+                VALUES (?, ?, ?, 0)
+            `;
+            
+            connection.query(insertQuery, [firebaseUid, userName, userEmail], (insertErr, insertResult) => {
+                if (insertErr) {
+                    // Erro comum aqui é ER_DUP_ENTRY no campo 'email' se for unique
+                    if (insertErr.code === 'ER_DUP_ENTRY') {
+                         return res.status(409).json({ error: 'E-mail já cadastrado. Tente fazer login.' });
+                    }
+                    console.error('Erro ao inserir no MySQL:', insertErr.message);
+                    return res.status(500).json({ error: 'Erro ao registrar perfil no banco de dados.' });
+                }
+                
+                console.log(`Novo usuário (UID: ${firebaseUid}) registrado no MySQL.`);
+                res.status(201).json({ 
+                    id: insertResult.insertId, 
+                    firebaseUid, 
+                    mensagem: 'Usuário registrado com sucesso.' 
+                });
+            });
+        });
+
+    } catch (error) {
+        console.error('Erro ao verificar o token Firebase:', error);
+        // O Firebase falhou, o token está inválido ou expirado
+        return res.status(401).json({ error: 'Token Firebase inválido ou expirado' });
+    }
+});
+
+// =========================================================================
 // Rota de login agora verifica o token do Firebase e retorna o JWT local
 app.post('/login', async (req, res) => {
     // 1. Obter e verificar o token do Firebase enviado pelo frontend

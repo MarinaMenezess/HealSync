@@ -8,17 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Elementos de Login Social (Verificar se estes IDs estão no seu login.html)
     const googleLoginButton = document.getElementById('google-login-button');
-    const facebookLoginButton = document.getElementById('facebook-login-button');
 
     // Assume-se que o objeto global 'firebase' e 'auth' estão disponíveis (inicializados no HTML)
     const auth = firebase.auth(); 
     
     // Provedores de Autenticação (CRUCIAL: Instanciar com 'new')
     const googleProvider = new firebase.auth.GoogleAuthProvider();
-    const facebookProvider = new firebase.auth.FacebookAuthProvider();
-    
-    // CORREÇÃO FACEBOOK: Força a solicitação do escopo 'email', resolvendo o erro 1349048/Invalid Scopes
-    facebookProvider.addScope('email'); 
     
 
     // ----------------------------------------------------
@@ -130,33 +125,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ----------------------------------------------------
-    // 3. LÓGICA DE LOGIN COM FACEBOOK
-    // ----------------------------------------------------
-
-    if (facebookLoginButton) {
-        facebookLoginButton.addEventListener('click', async () => {
-            try {
-                // 1. AUTENTICAÇÃO NO FIREBASE COM POPUP
-                const result = await auth.signInWithPopup(facebookProvider);
-                const user = result.user;
-
-                // 2. CHAMA A LÓGICA CENTRALIZADA DE AUTENTICAÇÃO NO BACKEND
-                await authenticateInBackend(user, user.email, user.displayName);
-
-            } catch (error) {
-                console.error('Erro de autenticação Facebook Firebase:', error);
-                let errorMessage = 'Erro no login com Facebook.';
-                
-                if (error.code && error.code === 'auth/popup-closed-by-user') {
-                    errorMessage = 'Login cancelado pelo usuário.';
-                } else if (error.code && error.code === 'auth/account-exists-with-different-credential') {
-                     errorMessage = 'Este e-mail já está cadastrado com outro método de login. Use o provedor original.';
-                } else if (error.message) {
-                    errorMessage = `Erro de autenticação: ${error.message}`;
-                }
-                alert(errorMessage);
-            }
-        });
-    }
 });

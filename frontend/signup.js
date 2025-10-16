@@ -9,19 +9,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const nameInput = document.getElementById('name'); 
 
     // Elementos de Cadastro Social (Verificar se estes IDs estão no seu signup.html)
-    const googleSignupButton = document.getElementById('google-signup-button');
-    const facebookSignupButton = document.getElementById('facebook-signup-button');
+    const googleSignupButton = document.getElementById('google-login-button');
 
     // Assume-se que o objeto global 'firebase' e 'auth' estão disponíveis (inicializados no HTML)
     const auth = firebase.auth(); 
 
     // Provedores de Autenticação (CRUCIAL: Instanciar com 'new')
     const googleProvider = new firebase.auth.GoogleAuthProvider();
-    const facebookProvider = new firebase.auth.FacebookAuthProvider();
     
-    // CORREÇÃO FACEBOOK: Força a solicitação do escopo 'email', resolvendo o erro 'Invalid Scopes: email'
-    facebookProvider.addScope('email'); 
-
     // ----------------------------------------------------
     // LÓGICA DE REGISTRO CENTRALIZADA (REUTILIZADA)
     // ----------------------------------------------------
@@ -140,37 +135,4 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-
-    // ----------------------------------------------------
-    // 3. LÓGICA DE CADASTRO COM FACEBOOK
-    // ----------------------------------------------------
-
-    if (facebookSignupButton) {
-        facebookSignupButton.addEventListener('click', async () => {
-            try {
-                // 1. AUTENTICAÇÃO NO FIREBASE COM POPUP
-                const result = await auth.signInWithPopup(facebookProvider);
-                const user = result.user;
-                
-                // 2. CHAMA A LÓGICA CENTRALIZADA PARA REGISTRAR NO BACKEND
-                await registerInBackend(user, user.email, user.displayName);
-
-            } catch (error) {
-                console.error('Erro de autenticação Facebook Firebase:', error);
-                let errorMessage = 'Erro no cadastro com Facebook.';
-                
-                if (error.code && error.code === 'auth/popup-closed-by-user') {
-                    errorMessage = 'Cadastro cancelado pelo usuário.';
-                } else if (error.code && error.code === 'auth/account-exists-with-different-credential') {
-                    errorMessage = 'Este e-mail já está cadastrado. Redirecionando para o login...';
-                    alert(errorMessage);
-                    window.location.href = 'login.html';
-                    return;
-                } else if (error.message) {
-                    errorMessage = `Erro de autenticação: ${error.message}`;
-                }
-                alert(errorMessage);
-            }
-        });
-    }
 });

@@ -5,6 +5,9 @@ const cors = require("cors");
 const jwt = require('jsonwebtoken');
 require('dotenv').config(); // Carrega as variáveis de ambiente
 
+// NOVO: Importa o módulo de automação/scraping (instável)
+const { scrapeCfpValidation } = require('./cfp_scraper');
+
 // ---------- FIREBASE ADMIN SDK SETUP ----------
 const admin = require('firebase-admin');
 // ATENÇÃO: Você deve criar este arquivo na pasta 'backend'
@@ -63,14 +66,31 @@ app.post('/register-profile', async (req, res) => {
     }
 
     // 2. Extrair dados do perfil (a senha é gerenciada pelo Firebase e não é salva aqui)
-    // Usamos o email obtido do token do Firebase para garantir a consistência
-    const { nome, data_nascimento, genero, is_psicologo, especialidade, contato } = req.body;
+    // CFP e CPF Adicionados
+    const { nome, data_nascimento, genero, is_psicologo, especialidade, contato, cfp, cpf } = req.body; 
+    
+    // **VALIDAÇÃO DE CFP/CPF (Automação Solicitada)**
+    if (is_psicologo) {
+        if (!cfp || !cpf) {
+             return res.status(400).json({ error: 'CFP e CPF são obrigatórios para registro como psicólogo.' });
+        }
+        
+        // Chama a função de automação instável
+        const validationResult = await scrapeCfpValidation(cfp, cpf);
+        
+        if (!validationResult.valid) {
+            // Se a automação falhar, o processo de registro inicial é bloqueado.
+            return res.status(400).json({ error: 'A validação automática de profissional falhou: ' + validationResult.message });
+        }
+        // Nota: is_psicologo = 0 (false) para registro inicial, ativado apenas após ADMIN revisar.
+    }
+    // FIM DA VALIDAÇÃO DE CFP/CPF
     
     // 3. Salvar o perfil no MySQL (usando firebaseUid)
     connection.query(
-        // ATENÇÃO: Sua tabela 'usuario' deve ser modificada para ter a coluna 'firebase_uid' (UNIQUE) e NÃO TER 'senha'.
-        'INSERT INTO usuario (firebase_uid, nome, email, data_nascimento, genero, is_psicologo, especialidade, contato) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [firebaseUid, nome, userEmail, data_nascimento, genero, is_psicologo, especialidade, contato],
+        // CFP e CPF Adicionados
+        'INSERT INTO usuario (firebase_uid, nome, email, data_nascimento, genero, is_psicologo, especialidade, contato, cfp, cpf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [firebaseUid, nome, userEmail, data_nascimento, genero, 0, especialidade, contato, cfp, cpf], // is_psicologo = 0 (false)
         (err, result) => {
             if (err) {
                 // Erro comum aqui é DUPLICATE ENTRY se o usuário já estiver cadastrado no MySQL
@@ -123,10 +143,10 @@ app.post('/register', async (req, res) => {
                 return res.status(409).json({ error: 'Usuário já registrado. Prossiga para o login.' });
             }
             
-            // 3. Inserir o novo usuário no MySQL (is_psicologo = 0 por padrão para novo usuário)
+            // 3. Inserir o novo usuário no MySQL (is_psicologo = 0 por padrão para novo usuário). cfp and cpf are NULL initially.
             const insertQuery = `
-                INSERT INTO usuario (firebase_uid, nome, email, is_psicologo) 
-                VALUES (?, ?, ?, 0)
+                INSERT INTO usuario (firebase_uid, nome, email, is_psicologo, cfp, cpf) 
+                VALUES (?, ?, ?, 0, NULL, NULL)
             `;
             
             connection.query(insertQuery, [firebaseUid, userName, userEmail], (insertErr, insertResult) => {
@@ -194,6 +214,7 @@ app.post('/login', async (req, res) => {
         const token = jwt.sign({ id: user.id_usuario, is_psicologo: user.is_psicologo }, JWT_SECRET, { expiresIn: '1d' });
         
         // Remover firebase_uid e qualquer campo sensível antes de enviar ao frontend
+        // CFP e CPF estão incluídos em 'userWithoutPrivateFields'
         const { firebase_uid, ...userWithoutPrivateFields } = user;
         
         res.json({ token, user: userWithoutPrivateFields });
@@ -203,21 +224,30 @@ app.post('/login', async (req, res) => {
 // ---------- SOLICITAÇÃO DE PERFIL PSICÓLOGO ----------
 
 // Rota para o usuário solicitar/atualizar detalhes do perfil de psicólogo
-// O envio desses dados sinaliza a solicitação. O campo 'is_psicologo' deve ser
-// ativado por um administrador separadamente para fins de segurança e verificação.
-app.put('/users/psychologist-details', authMiddleware, (req, res) => {
-    const { especialidade, contato } = req.body;
+app.put('/users/psychologist-details', authMiddleware, async (req, res) => { 
+    const { especialidade, contato, cfp, cpf } = req.body; // CFP e CPF Adicionados
     const userId = req.userId;
 
-    if (!especialidade || !contato) {
-        return res.status(400).json({ error: 'Especialidade e contato são obrigatórios para a solicitação de perfil de psicólogo.' });
+    if (!especialidade || !contato || !cfp || !cpf) { // CPF Adicionado
+        return res.status(400).json({ error: 'Especialidade, contato, CFP e CPF são obrigatórios para a solicitação de perfil de psicólogo.' });
     }
+    
+    // **VALIDAÇÃO DE CFP/CPF (Automação Solicitada)**
+    const validationResult = await scrapeCfpValidation(cfp, cpf);
+    
+    // Se a validação automática falhar, o processo de atualização de dados (CPF/CFP) é impedido, 
+    // mas a mensagem de erro é o resultado da automação instável.
+    if (!validationResult.valid) {
+        return res.status(400).json({ error: validationResult.message });
+    }
+    // FIM DA VALIDAÇÃO DE CFP/CPF
 
     // A rota é usada tanto para a solicitação inicial quanto para a atualização de detalhes,
     // se o usuário já for um psicólogo.
     connection.query(
-        'UPDATE usuario SET especialidade = ?, contato = ? WHERE id_usuario = ?',
-        [especialidade, contato, userId],
+        // CFP e CPF Adicionados
+        'UPDATE usuario SET especialidade = ?, contato = ?, cfp = ?, cpf = ? WHERE id_usuario = ?',
+        [especialidade, contato, cfp, cpf, userId],
         (err, result) => {
             if (err) {
                 console.error('Erro ao atualizar detalhes/solicitação de psicólogo:', err.message);
@@ -227,7 +257,8 @@ app.put('/users/psychologist-details', authMiddleware, (req, res) => {
             if (req.is_psicologo) {
                 return res.json({ mensagem: 'Detalhes do perfil de psicólogo atualizados com sucesso.' });
             } else {
-                return res.json({ mensagem: 'Solicitação de perfil de psicólogo enviada para análise (Detalhes atualizados). Um administrador revisará sua conta.' });
+                // A mensagem reflete o resultado da automação, que agora permite a revisão manual.
+                return res.json({ mensagem: validationResult.message });
             }
         }
     );

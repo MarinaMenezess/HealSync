@@ -212,7 +212,7 @@ function togglePsychologistRequestForm() {
         toggleButton.textContent = 'Ocultar Formulário de Solicitação';
     } else {
         formContainer.style.display = 'none';
-        toggleButton.textContent = 'Sou profissional de saúde mental? Clique aqui para solicitar';
+        toggleButton.textContent = 'É profissional de saúde mental? Clique aqui para solicitar';
     }
 }
 
@@ -272,6 +272,8 @@ function loadUserProfile() {
 function handlePsychologistRequest() {
     const token = localStorage.getItem('jwt');
     const especialidadeInput = document.getElementById('especialidade-input');
+    const cfpInput = document.getElementById('cfp-input'); 
+    const cpfInput = document.getElementById('cpf-input'); // NOVO: Campo CPF
     const contatoInput = document.getElementById('contato-input');
     const statusMessage = document.getElementById('psychologist-request-status');
     
@@ -286,16 +288,18 @@ function handlePsychologistRequest() {
     }
 
     const especialidade = especialidadeInput ? especialidadeInput.value.trim() : '';
+    const cfp = cfpInput ? cfpInput.value.trim() : '';
+    const cpf = cpfInput ? cpfInput.value.trim() : ''; // Coleta o CPF
     const contato = contatoInput ? contatoInput.value.trim() : '';
 
-    if (!especialidade || !contato) {
-        statusMessage.textContent = 'Especialidade e Contato são obrigatórios para a solicitação.';
+    if (!especialidade || !cfp || !cpf || !contato) { // CPF Adicionado à validação de campos obrigatórios
+        statusMessage.textContent = 'Especialidade, CFP, CPF e Contato são obrigatórios para a solicitação.';
         statusMessage.style.color = 'red';
         return;
     }
-
-    // Exibe mensagem de processamento
-    statusMessage.textContent = 'Enviando solicitação para o administrador...';
+    
+    // Alerta de automação e latência
+    statusMessage.textContent = 'Iniciando validação automática do CFP/CPF. Isso pode levar alguns segundos e pode falhar devido a bloqueios anti-bot.';
     
     fetch(`${API_URL}/users/psychologist-details`, {
         method: 'PUT',
@@ -304,20 +308,22 @@ function handlePsychologistRequest() {
             // Usa o token de autenticação JWT local (necessário para o authMiddleware)
             'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ especialidade, contato })
+        body: JSON.stringify({ especialidade, cfp, cpf, contato }) // CFP e CPF Adicionados ao body
     })
     .then(response => response.json().then(data => {
         if (!response.ok) {
-            // Lógica para erros de backend (e.g., validação de campos)
+            // Lógica para erros de backend (incluindo falha na automação)
             throw new Error(data.error || 'Erro desconhecido ao processar a solicitação.');
         }
         
-        // Exibe a mensagem de sucesso retornada pelo backend
+        // Exibe a mensagem de sucesso ou de falha da automação com a nota de revisão manual
         statusMessage.textContent = data.mensagem;
         statusMessage.style.color = 'green';
         
         // Limpa os campos após o sucesso
         especialidadeInput.value = '';
+        cfpInput.value = ''; 
+        cpfInput.value = '';
         contatoInput.value = '';
 
     }))

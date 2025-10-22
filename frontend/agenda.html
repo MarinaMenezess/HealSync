@@ -20,12 +20,13 @@
             <h3>HealSync</h3>
         </div>
         <div id="nav">
+            <a href="./index.html">Início</a>
+            <a href="./registers.html" id="nav-dynamic-link">Diário</a>
+            <a href="./chat.html">Chat</a>
             <section>
-                <a href="./index.html">Início</a>
+                <a href="./agenda.html">Agenda</a>
                 <hr>
             </section>
-            <a href="./registers.html">Diário</a>
-            <a href="./chat.html">Chat</a>
         </div>
         <div id="info">
            <section class="notification-wrapper">
@@ -54,7 +55,7 @@
     <main class="agenda-container">
         <div id="calendar"></div>
     </main>
-
+    
     <div id="modal-container">
         <div id="modal">
           <div class="modal-header">
@@ -73,7 +74,7 @@
               </div>
               <div class="form-group">
                 <label for="event-date">Data</label>
-                <input type="text" id="event-date" readonly>
+                <input type="text" id="event-date">
               </div>
               <div class="form-group">
                 <label for="event-time">Hora</label>
@@ -82,9 +83,39 @@
             </form>
           </div>
           <div class="modal-footer">
-            <button id="close-btn-modal">Fechar</button>
-            <button id="create-btn-modal">Agendar</button>
+            <button id="close-btn-modal" class="secondary-btn">Fechar</button>
+            <button id="create-btn-modal" class="primary-btn">Agendar</button>
           </div>
+        </div>
+    </div>
+    <div id="modal-container">
+        <div id="view-appointment-modal" class="modal">
+            <div class="modal-header">
+                <h1 class="modal-title">Detalhes da Consulta</h1>
+                <button id="close-view-modal-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="appointment-details">
+                    <div class="form-group">
+                        <label>Título:</label> <p id="view-title"></p>
+                    </div>
+                    <div class="form-group">
+                        <label>Data:</label> <p id="view-date"></p>
+                    </div>
+                    <div class="form-group">
+                        <label>Horário:</label> <p id="view-time"></p>
+                    </div>
+                    <div class="form-group">
+                        <label>Profissional:</label> <p id="view-doctor"></p>
+                    </div>
+                    <div class="form-group">
+                        <label>Status:</label> <p id="view-status"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="close-btn-view-modal" class="secondary-btn">Fechar</button>
+            </div>
         </div>
     </div>
     <nav class="menu">
@@ -99,11 +130,11 @@
     <path fill-rule="evenodd" d="M8 5.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V10a.5.5 0 0 1-1 0V8.5H6a.5.5 0 0 1 0-1h1.5V6a.5.5 0 0 1 .5-.5"/>
     <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2"/>
     <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z"/>
-  </svg> </a>
+    </svg> </a>
         <a href="./agenda.html" class="menu-item"> <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-calendar-week" viewBox="0 0 16 16">
     <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-5 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>
     <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
-  </svg> </a>
+    </svg> </a>
         <a href="./psicologos.html" class="menu-item"> <img src="../assets/psicologist.svg" alt=""> </a>
         
         
@@ -133,6 +164,7 @@
     <script src="script.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/locales/pt-br.js"></script>
+    <script src="psicologos.js"></script> 
     <script src="agenda.js"></script>
 </body>
 </html>

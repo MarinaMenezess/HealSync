@@ -13,6 +13,8 @@ CREATE TABLE usuario (
     is_psicologo boolean,
     especialidade VARCHAR(45),
     contato VARCHAR(255),
+    cfp VARCHAR(45), -- CAMPO CFP ADICIONADO
+    cpf VARCHAR(14), -- CAMPO CPF ADICIONADO
     avaliacao DECIMAL(2,1)
 );
 

@@ -105,12 +105,7 @@ app.post('/register-profile', async (req, res) => {
     );
 });
 
-// =========================================================================
-// CORREÇÃO: NOVA ROTA /register PARA CRIAR O USUÁRIO NO MYSQL APÓS O FIREBASE
-// =========================================================================
-
-// Rota de Registro Inicial (para ser usada após Google Sign Up ou Email/Senha Sign Up)
-// Nota: O frontend deve enviar o token do Firebase no header 'Authorization: Bearer <token>'
+// ROTA /register (Registro Inicial)
 app.post('/register', async (req, res) => {
     // 1. Obter e verificar o token do Firebase enviado pelo frontend
     const authHeader = req.headers['authorization'];
@@ -119,14 +114,13 @@ app.post('/register', async (req, res) => {
     }
     const firebaseIdToken = authHeader.split(' ')[1];
     let decodedToken;
-    // O nome e email no corpo da requisição são usados como fallback
-    let userName = req.body.name || 'Novo Usuário'; 
+    
+    let userName = req.body.nome || req.body.name || 'Novo Usuário'; 
     let userEmail = req.body.email; 
 
     try {
         decodedToken = await admin.auth().verifyIdToken(firebaseIdToken);
         
-        // Usa os dados verificados do Firebase, que são mais confiáveis
         const firebaseUid = decodedToken.uid;
         userEmail = decodedToken.email || userEmail;
         userName = decodedToken.name || userName; 
@@ -139,19 +133,26 @@ app.post('/register', async (req, res) => {
             }
             
             if (results.length > 0) {
-                // Se já existe, significa que o registro no MySQL já foi feito.
                 return res.status(409).json({ error: 'Usuário já registrado. Prossiga para o login.' });
             }
             
-            // 3. Inserir o novo usuário no MySQL (is_psicologo = 0 por padrão para novo usuário). cfp and cpf are NULL initially.
+            // 3. Inserir o novo usuário no MySQL (is_psicologo = 0 por padrão).
             const insertQuery = `
                 INSERT INTO usuario (firebase_uid, nome, email, is_psicologo, cfp, cpf) 
-                VALUES (?, ?, ?, 0, NULL, NULL)
+                VALUES (?, ?, ?, ?, ?, ?)
             `;
             
-            connection.query(insertQuery, [firebaseUid, userName, userEmail], (insertErr, insertResult) => {
+            const queryParams = [
+                firebaseUid, 
+                userName, 
+                userEmail, 
+                0,    // Valor para is_psicologo (0 = false)
+                null, // Valor para cfp (null)
+                null  // Valor para cpf (null)
+            ];
+
+            connection.query(insertQuery, queryParams, (insertErr, insertResult) => {
                 if (insertErr) {
-                    // Erro comum aqui é ER_DUP_ENTRY no campo 'email' se for unique
                     if (insertErr.code === 'ER_DUP_ENTRY') {
                          return res.status(409).json({ error: 'E-mail já cadastrado. Tente fazer login.' });
                     }
@@ -170,12 +171,73 @@ app.post('/register', async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao verificar o token Firebase:', error);
-        // O Firebase falhou, o token está inválido ou expirado
         return res.status(401).json({ error: 'Token Firebase inválido ou expirado' });
     }
 });
 
+// ROTA PARA OBTER PSICÓLOGOS APROVADOS (Listagem da página)
+app.get('/psychologists', (req, res) => {
+    const searchTerm = req.query.search;
+    let query = 'SELECT id_usuario, nome, email, especialidade, contato, avaliacao FROM usuario WHERE is_psicologo = 1';
+    const params = [];
+
+    if (searchTerm) {
+        // Adiciona a condição para buscar por nome OU especialidade (case insensitive)
+        query += ' AND (nome LIKE ? OR especialidade LIKE ?)';
+        const likeTerm = `%${searchTerm}%`;
+        params.push(likeTerm, likeTerm);
+    }
+    
+    query += ' ORDER BY avaliacao DESC';
+
+    connection.query(query, params, (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar lista de psicólogos:', err.message);
+            return res.status(500).json({ error: 'Erro no servidor ao buscar psicólogos.' });
+        }
+        res.json(results);
+    });
+});
+
 // =========================================================================
+// NOVO: ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
+// =========================================================================
+app.get('/users/:id', (req, res) => {
+    const userId = req.params.id;
+    
+    const query = 'SELECT nome, email, especialidade, contato, avaliacao, is_psicologo, cfp FROM usuario WHERE id_usuario = ?';
+
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar perfil de usuário:', err.message);
+            return res.status(500).json({ error: 'Erro no servidor ao buscar perfil.' });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Perfil não encontrado.' });
+        }
+        
+        const user = results[0];
+        
+        // Regra de segurança: Se a página é para perfil de psicólogo, confirmamos se é um.
+        if (user.is_psicologo !== 1) {
+             return res.status(404).json({ error: 'Perfil não encontrado ou não é um psicólogo aprovado.' });
+        }
+
+        // Removendo campos sensíveis/privados que não devem ser exibidos
+        delete user.is_psicologo;
+        delete user.cfp; // O CFP não deve ser público
+        delete user.email; // O email não deve ser público
+
+        // Adicionando uma biografia fictícia (assumindo que o campo 'bio' não existe no schema)
+        user.bio = 'Profissional com vasta experiência na área de saúde mental. Dedicado a fornecer suporte e orientação para o desenvolvimento pessoal e emocional.'; 
+
+        res.json(user);
+    });
+});
+// =========================================================================
+
+
 // Rota de login agora verifica o token do Firebase e retorna o JWT local
 app.post('/login', async (req, res) => {
     // 1. Obter e verificar o token do Firebase enviado pelo frontend

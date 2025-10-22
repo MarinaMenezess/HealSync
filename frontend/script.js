@@ -140,36 +140,92 @@ function openModal() {
     });
 }
 
+// =========================================================================
+// NOVO: Função para ajustar a navegação com base no perfil do usuário
+// =========================================================================
+function updateNavigationForUserRole() {
+    // O token JWT é salvo como 'jwt' no login.js, mas o perfil é salvo como 'user'.
+    const userJson = localStorage.getItem('user');
+    const dynamicLink = document.getElementById('nav-dynamic-link');
+
+    if (!userJson || !dynamicLink) {
+        // Se o usuário não está logado ou o link dinâmico não existe, não faz nada.
+        return;
+    }
+
+    try {
+        const user = JSON.parse(userJson);
+        
+        // Verifica se o usuário tem perfil de psicólogo (is_psicologo: true)
+        if (user.is_psicologo) {
+            // Se for psicólogo, muda o link para Consultas
+            dynamicLink.setAttribute('href', './consultas.html');
+            dynamicLink.textContent = 'Consultas';
+        } else {
+            // Se for paciente, garante que o link seja Diário
+            dynamicLink.setAttribute('href', './registers.html');
+            dynamicLink.textContent = 'Diário';
+        }
+
+        // Se o usuário psicólogo estiver na página Diário, ele deve ser redirecionado para Consultas
+        // Verifica se a página atual é registers.html
+        if (user.is_psicologo && window.location.pathname.includes('registers.html')) {
+             // Redireciona para consultas.html
+             window.location.replace('./consultas.html');
+        }
+
+        // Se o usuário paciente estiver na página Consultas, ele deve ser redirecionado para Diário
+        if (!user.is_psicologo && window.location.pathname.includes('consultas.html')) {
+             // Redireciona para registers.html
+             window.location.replace('./registers.html');
+        }
+
+
+    } catch (e) {
+        console.error('Erro ao processar dados do usuário no localStorage:', e);
+        // Opcional: Em caso de erro de parsing, redireciona para o login para evitar estado inconsistente
+        // window.location.href = 'login.html'; 
+    }
+}
+
+
 // Lógica do dropdown de notificação (mantida do seu código original)
 document.addEventListener('DOMContentLoaded', () => {
+    // Chama a nova função de ajuste de navegação ao carregar a página
+    updateNavigationForUserRole();
+
     let dropdownToggle = document.getElementById('dropdownToggle');
     let dropdownMenu = document.getElementById('dropdownMenu');
 
-    function toggleDropdown() {
-        dropdownMenu.classList.toggle('active');
-    }
-
-    function hideDropdown() {
-        dropdownMenu.classList.remove('active');
-    }
-
-    dropdownToggle.addEventListener('click', (event) => {
-        event.preventDefault(); // Impede a navegação
-        event.stopPropagation(); // Impede o clique de ser propagado para o documento
-        toggleDropdown();
-    });
-
-    // Ocultar o dropdown quando um item é clicado (opcional)
-    dropdownMenu.querySelectorAll('.notification-item, .view-all-btn').forEach((item) => {
-        item.addEventListener('click', () => {
-            hideDropdown();
-        });
-    });
-
-    // Ocultar o dropdown quando clicar fora dele
-    document.addEventListener('click', (event) => {
-        if (!dropdownMenu.contains(event.target) && !dropdownToggle.contains(event.target)) {
-            hideDropdown();
+    if (dropdownToggle) {
+        // Função para mostrar/esconder o dropdown
+        function toggleDropdown() {
+            dropdownMenu.classList.toggle('active');
         }
+
+        // Função para esconder o dropdown
+        function hideDropdown() {
+            dropdownMenu.classList.remove('active');
+        }
+
+        dropdownToggle.addEventListener('click', (event) => {
+            event.preventDefault(); // Impede a navegação
+            event.stopPropagation(); // Impede o clique de ser propagado para o documento
+            toggleDropdown();
+        });
+
+        // Ocultar o dropdown quando um item é clicado (opcional)
+        dropdownMenu.querySelectorAll('.notification-item, .view-all-btn').forEach((item) => {
+            item.addEventListener('click', () => {
+                hideDropdown();
+            });
+        });
+
+        // Ocultar o dropdown quando clicar fora dele
+        document.addEventListener('click', (event) => {
+            if (!dropdownMenu.contains(event.target) && !dropdownToggle.contains(event.target)) {
+                hideDropdown();
+            }
+        });
+    }
 });
-    });

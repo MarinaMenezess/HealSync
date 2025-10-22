@@ -947,12 +947,12 @@ main > svg {
   z-index: 1001;
 }
 
-#modal-container.active {
+#modal-container.active, #view-appointment-modal.active {
   display: flex;
 }
 
 #modal {
-  background: rgba(255, 255, 255, 0.459);
+  background: #ffffff17;
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.781);
   padding: 0;
@@ -1361,13 +1361,13 @@ main > svg {
     background-color: #8260d1;
 }
 
-.logout-btn, .cancel-edit-btn {
+.logout-btn, .cancel-edit-btn, .report-btn {
     background-color: transparent;
     border: 2px solid #f1eee4;
     color: #f1eee4;
 }
 
-.logout-btn:hover, .cancel-edit-btn:hover {
+.logout-btn:hover, .cancel-edit-btn:hover, .report-btn:hover {
     background-color: #f1eee4;
     color: #3b3b3b;
 }
@@ -1401,7 +1401,7 @@ main > svg {
     width: 100%;
     max-width: 600px;
     margin-top: 0; /* Ajusta a margem superior */
-    margin-left: 650px; /* Adiciona uma margem para compensar o card fixo */
+    margin-left: 56%; /* Adiciona uma margem para compensar o card fixo */
 }
 
 .user-posts-title {
@@ -1918,7 +1918,7 @@ main > svg {
 }
 
 #reason-modal {
-  background: rgba(255, 255, 255, 0.377);
+  background: #ffffff17;
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.781);
   padding: 0;

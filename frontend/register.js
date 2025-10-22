@@ -70,7 +70,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const email = data.email;
       const senha = data.senha; 
-      const isPsicologoBoolean = data.is_psicologo === 'on';
+      // A variável isPsicologoBoolean não é usada no registro inicial (/register)
+      // const isPsicologoBoolean = data.is_psicologo === 'on';
 
       let firebaseIdToken = null;
 
@@ -89,21 +90,20 @@ document.addEventListener('DOMContentLoaded', () => {
         // FIM DA ETAPA 1
         // ----------------------------------------------------
 
-        // Prepara os dados do perfil para o backend (MySQL)
+        // Prepara os dados mínimos para o backend. 
+        // A rota '/register' só precisa do token e usa nome/email como fallback.
         const profileData = {
-          nome: data.nome,
-          email: email, 
-          data_nascimento: data.data_nascimento,
-          genero: data.genero,
-          is_psicologo: isPsicologoBoolean,
-          especialidade: data.especialidade,
-          contato: data.contato
+          nome: data.nome, // Enviado como fallback, mas o backend usa o nome do token se disponível
+          email: email
         };
+        // Os campos 'data_nascimento', 'genero', 'is_psicologo', 'especialidade', 'contato' 
+        // não são mais necessários para o registro inicial na rota /register.
 
-        // ----------------------------------------------------
-        // ETAPA 2: REGISTRO DO PERFIL NO BACKEND (MySQL)
-        // ----------------------------------------------------
-        const response = await fetch('http://localhost:3000/register-profile', {
+        // -------------------------------------------------------------------
+        // ETAPA 2: REGISTRO SIMPLES NO BACKEND (MySQL) USANDO A ROTA CORRETA
+        // Rota CORRIGIDA para '/register'
+        // -------------------------------------------------------------------
+        const response = await fetch('http://localhost:3000/register', { 
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (response.ok) {
           const result = await response.json();
-          console.log('Registro de perfil bem-sucedido (MySQL):', result);
+          console.log('Registro de usuário bem-sucedido (MySQL):', result);
           // Redirecionar para a página de login
           window.location.href = 'login.html';
         } else {

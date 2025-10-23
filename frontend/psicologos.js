@@ -1,4 +1,4 @@
-// ARQUIVO: frontend/psicologos.js
+// ARQUIVO: frontend/psicologos.js (CORRIGIDO)
 
 document.addEventListener('DOMContentLoaded', () => {
     const psychologistsListContainer = document.getElementById('psychologists-list');
@@ -48,7 +48,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Função principal para buscar e exibir os psicólogos, aceitando um termo de busca
     async function fetchPsychologists() {
-        const searchTerm = searchInput.value.trim();
+        // CORREÇÃO: Verifica se searchInput existe para evitar TypeError ao acessar .value
+        const searchTerm = searchInput ? searchInput.value.trim() : '';
         let url = `${BACKEND_URL}/psychologists`;
 
         if (searchTerm) {
@@ -56,12 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
             url += `?search=${encodeURIComponent(searchTerm)}`;
         }
 
-        psychologistsListContainer.innerHTML = ''; // Limpa a listagem anterior
+        if (psychologistsListContainer) {
+            psychologistsListContainer.innerHTML = ''; // Limpa a listagem anterior
 
-        // Exibe mensagem de carregamento enquanto busca
-        const loadingMessage = document.createElement('p');
-        loadingMessage.textContent = 'Buscando psicólogos...';
-        psychologistsListContainer.appendChild(loadingMessage);
+            // Exibe mensagem de carregamento enquanto busca
+            const loadingMessage = document.createElement('p');
+            loadingMessage.textContent = 'Buscando psicólogos...';
+            psychologistsListContainer.appendChild(loadingMessage);
+        }
 
         try {
             const response = await fetch(url, {
@@ -74,23 +77,29 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const psychologists = await response.json();
                 
-                psychologistsListContainer.innerHTML = ''; // Limpa a mensagem de carregamento
-                
-                if (psychologists.length > 0) {
-                    psychologists.forEach(psy => {
-                        psychologistsListContainer.appendChild(createPsychologistCard(psy));
-                    });
-                } else {
-                    psychologistsListContainer.innerHTML = '<p class="empty-list-message">Nenhum psicólogo encontrado que corresponda à sua pesquisa.</p>';
+                if (psychologistsListContainer) {
+                    psychologistsListContainer.innerHTML = ''; // Limpa a mensagem de carregamento
+                    
+                    if (psychologists.length > 0) {
+                        psychologists.forEach(psy => {
+                            psychologistsListContainer.appendChild(createPsychologistCard(psy));
+                        });
+                    } else {
+                        psychologistsListContainer.innerHTML = '<p class="empty-list-message">Nenhum psicólogo encontrado que corresponda à sua pesquisa.</p>';
+                    }
                 }
             } else {
                 const error = await response.json();
                 console.error('Erro ao buscar psicólogos:', error.error);
-                psychologistsListContainer.innerHTML = `<p class="error-message">Erro ao carregar psicólogos: ${error.error}</p>`;
+                if (psychologistsListContainer) {
+                    psychologistsListContainer.innerHTML = `<p class="error-message">Erro ao carregar psicólogos: ${error.error}</p>`;
+                }
             }
         } catch (error) {
             console.error('Erro de rede ao buscar psicólogos:', error);
-            psychologistsListContainer.innerHTML = `<p class="error-message">Erro de conexão com o servidor. Verifique se o backend está ativo em ${BACKEND_URL}.</p>`;
+            if (psychologistsListContainer) {
+                psychologistsListContainer.innerHTML = `<p class="error-message">Erro de conexão com o servidor. Verifique se o backend está ativo em ${BACKEND_URL}.</p>`;
+            }
         }
     }
 

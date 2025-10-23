@@ -445,23 +445,53 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
 });
 
 
+// =========================================================================
+// NOVO: ROTA PARA AGENDAMENTO DE CONSULTA PELO CALENDÁRIO (AGENDA.JS)
+// O endpoint /api/agenda/agendar foi solicitado nas correções do frontend.
+// =========================================================================
+app.post('/api/agenda/agendar', authMiddleware, (req, res) => {
+    // 1. Apenas pacientes podem enviar solicitações
+    if (req.is_psicologo) {
+        return res.status(403).json({ error: 'Apenas pacientes podem enviar solicitações de agendamento.' });
+    }
+
+    // 2. Extrai dados do payload (do frontend atualizado)
+    const { titulo, data, hora, id_psicologo } = req.body;
+    const id_paciente = req.userId; // ID do paciente via JWT
+    
+    // 3. Validação básica de campos
+    if (!titulo || !data || !hora || !id_psicologo) {
+        return res.status(400).json({ error: 'Dados de agendamento incompletos (título, data, hora, ou ID do psicólogo ausentes).' });
+    }
+    
+    // 4. Combina data e hora para o formato DATETIME do MySQL (YYYY-MM-DD HH:MM:SS)
+    const dataHoraConsulta = `${data} ${hora}:00`; 
+    
+    // 5. Query de inserção
+    connection.query(
+        // ATENÇÃO: Assumindo que a tabela possui as colunas 'data_solicitada' e 'motivo'
+        'INSERT INTO solicitacao_consulta (id_paciente, id_psicologo, data_solicitada, status, motivo) VALUES (?, ?, ?, ?, ?)',
+        [id_paciente, id_psicologo, dataHoraConsulta, 'pendente', titulo],
+        (err, result) => {
+            if (err) {
+                console.error('Erro ao registrar a solicitação de agendamento:', err.message);
+                return res.status(500).json({ error: 'Erro ao salvar solicitação no banco de dados. Verifique a estrutura da tabela solicitacao_consulta (colunas: id_paciente, id_psicologo, data_solicitada, status, motivo).' });
+            }
+            res.status(201).json({ 
+                mensagem: 'Solicitação de agendamento enviada com sucesso.', 
+                insertId: result.insertId 
+            });
+        }
+    );
+});
+// =========================================================================
+
+
 // ---------- CONSULTAS (Solicitações) ----------
 
-// Rota para paciente enviar uma solicitação de consulta
+// Rota POST /consultas ORIGINAL, agora descontinuada para forçar o uso de /api/agenda/agendar.
 app.post('/consultas', authMiddleware, (req, res) => {
-  // Apenas pacientes podem enviar solicitações
-  if (req.is_psicologo) {
-    return res.status(403).json({ error: 'Apenas pacientes podem enviar solicitações de consulta.' });
-  }
-  const { id_psicologo, data_hora } = req.body;
-  connection.query(
-    'INSERT INTO solicitacao_consulta (id_paciente, id_psicologo, data_solicitada, status) VALUES (?, ?, ?, ?)',
-    [req.userId, id_psicologo, data_hora, 'pendente'],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ mensagem: 'Solicitação de consulta enviada com sucesso.', id: result.insertId });
-    }
-  );
+    return res.status(400).json({ error: 'Rota de agendamento POST /consultas descontinuada. Use /api/agenda/agendar para agendamentos completos com título/motivo.' });
 });
 
 // Rota para psicólogo visualizar suas solicitações pendentes

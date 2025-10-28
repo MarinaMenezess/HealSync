@@ -1,3 +1,4 @@
+// ARQUIVO: backend/server.js (COMPLETO E ATUALIZADO)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -446,10 +447,11 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
 
 
 // =========================================================================
-// NOVO: ROTA PARA AGENDAMENTO DE CONSULTA PELO CALENDÁRIO (AGENDA.JS)
-// O endpoint /api/agenda/agendar foi solicitado nas correções do frontend.
+// ROTA PARA AGENDAMENTO DE CONSULTA PELO CALENDÁRIO (AGENDA.JS)
+// CORRIGIDO: Usa a coluna 'motivo_recusa' para a descrição da solicitação,
+// conforme o schema atual do usuário.
 // =========================================================================
-app.post('/api/agenda/agendar', authMiddleware, (req, res) => {
+app.post('/api/agenda/agendar', authMiddleware, (req, res) => { 
     // 1. Apenas pacientes podem enviar solicitações
     if (req.is_psicologo) {
         return res.status(403).json({ error: 'Apenas pacientes podem enviar solicitações de agendamento.' });
@@ -469,13 +471,14 @@ app.post('/api/agenda/agendar', authMiddleware, (req, res) => {
     
     // 5. Query de inserção
     connection.query(
-        // ATENÇÃO: Assumindo que a tabela possui as colunas 'data_solicitada' e 'motivo'
-        'INSERT INTO solicitacao_consulta (id_paciente, id_psicologo, data_solicitada, status, motivo) VALUES (?, ?, ?, ?, ?)',
+        // CORREÇÃO: Usa 'motivo_recusa' para o título/motivo da solicitação,
+        // já que o schema não possui a coluna 'motivo'.
+        'INSERT INTO solicitacao_consulta (id_paciente, id_psicologo, data_solicitada, status, motivo_recusa) VALUES (?, ?, ?, ?, ?)',
         [id_paciente, id_psicologo, dataHoraConsulta, 'pendente', titulo],
         (err, result) => {
             if (err) {
                 console.error('Erro ao registrar a solicitação de agendamento:', err.message);
-                return res.status(500).json({ error: 'Erro ao salvar solicitação no banco de dados. Verifique a estrutura da tabela solicitacao_consulta (colunas: id_paciente, id_psicologo, data_solicitada, status, motivo).' });
+                return res.status(500).json({ error: 'Erro ao salvar solicitação no banco de dados. Verifique a estrutura da tabela solicitacao_consulta (colunas: id_paciente, id_psicologo, data_solicitada, status, motivo_recusa).' });
             }
             res.status(201).json({ 
                 mensagem: 'Solicitação de agendamento enviada com sucesso.', 
@@ -484,8 +487,79 @@ app.post('/api/agenda/agendar', authMiddleware, (req, res) => {
         }
     );
 });
-// =========================================================================
 
+// =========================================================================
+// NOVO: ROTA PARA CARREGAR EVENTOS NO CALENDÁRIO (Requisito do usuário)
+// Regra: Pacientes veem tudo. Psicólogos veem apenas o que foi 'aceita'.
+// =========================================================================
+app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
+    const userId = req.userId;
+    const is_psicologo = req.is_psicologo;
+
+    let query;
+    let params;
+
+    if (is_psicologo) {
+        // Psicólogo: Apenas consultas aceitas
+        query = `
+            SELECT 
+                s.id_solicitacao,
+                s.data_solicitada,
+                s.motivo_recusa AS titulo_motivo,
+                s.status,
+                u.nome AS nome_paciente 
+            FROM solicitacao_consulta s
+            JOIN usuario u ON s.id_paciente = u.id_usuario
+            WHERE s.id_psicologo = ? AND s.status = 'aceita'
+        `;
+        params = [userId];
+    } else {
+        // Paciente: Todas as solicitações que ele enviou
+        query = `
+            SELECT 
+                s.id_solicitacao,
+                s.data_solicitada,
+                s.motivo_recusa AS titulo_motivo,
+                s.status,
+                u.nome AS nome_psicologo
+            FROM solicitacao_consulta s
+            JOIN usuario u ON s.id_psicologo = u.id_usuario
+            WHERE s.id_paciente = ?
+        `;
+        params = [userId];
+    }
+    
+    connection.query(query, params, (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar eventos do calendário:', err.message);
+            return res.status(500).json({ error: 'Erro no servidor ao buscar eventos.' });
+        }
+
+        // Formata os resultados para o formato FullCalendar
+        const events = results.map(row => {
+            const titlePrefix = is_psicologo ? `(C) ${row.nome_paciente}: ` : `(P) ${row.nome_psicologo}: `;
+            
+            return {
+                id: row.id_solicitacao,
+                // Combina prefixo com o motivo da consulta (que está em motivo_recusa)
+                title: titlePrefix + row.titulo_motivo, 
+                start: row.data_solicitada, // Formato DATETIME é compatível
+                extendedProps: {
+                    status: row.status,
+                    // Armazena o nome do contato relevante
+                    contactName: is_psicologo ? row.nome_paciente : row.nome_psicologo 
+                },
+                // Define a cor baseada no status
+                color: (row.status === 'aceita' || row.status === 'confirmada') ? '#28a745' : // Verde
+                       (row.status === 'pendente') ? '#ffc107' : // Amarelo
+                       '#dc3545' // Vermelho (Recusada)
+            };
+        });
+
+        res.json(events);
+    });
+});
+// =========================================================================
 
 // ---------- CONSULTAS (Solicitações) ----------
 

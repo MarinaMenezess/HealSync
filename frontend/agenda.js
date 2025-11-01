@@ -2,9 +2,10 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
-    // CORREÇÃO: Referência ao modal de agendamento que agora possui ID no HTML
+    
+    // Elementos do Modal de Agendamento
     var modalContainer = document.getElementById('modal-container'); 
-    // CORREÇÃO: Referência ao modal de visualização que agora possui ID no HTML
+    // CORREÇÃO: Necessário ter um container de modal de visualização no HTML para o usuário paciente
     var viewModalContainer = document.getElementById('view-appointment-modal-container'); 
     
     var eventDateInput = document.getElementById('event-date');
@@ -12,10 +13,9 @@ document.addEventListener('DOMContentLoaded', function() {
     var eventTimeInput = document.getElementById('event-time');
     var doctorSelect = document.getElementById('doctor-select'); 
     var createBtnModal = document.getElementById('create-btn-modal');
-    // CORREÇÃO: QuerySelectorAll para o modal principal para evitar erro de null
     var closeBtns = document.querySelectorAll('#modal-container .modal-footer button, #modal-container .modal-header button'); 
   
-    // Seletores do Modal de Visualização
+    // Seletores do Modal de Visualização (usado pelo perfil 'paciente' ou default)
     var viewTitle = document.getElementById('view-title');
     var viewDate = document.getElementById('view-date');
     var viewTime = document.getElementById('view-time');
@@ -24,14 +24,24 @@ document.addEventListener('DOMContentLoaded', function() {
     var closeViewModalBtn = document.getElementById('close-view-modal-btn');
     var closeBtnViewModal = document.getElementById('close-btn-view-modal');
   
-  
+    
     // CORREÇÃO: Garante que o modal de visualização esteja fechado no início
     if (viewModalContainer) {
         viewModalContainer.classList.remove('active');
         viewModalContainer.style.display = 'none'; 
     }
   
-  
+    // =========================================================================
+    // FUNÇÃO AUXILIAR: Obtém o perfil do usuário
+    // Assume que a role está armazenada no localStorage.
+    // =========================================================================
+    function getUserRole() {
+        // A função deve ser implementada para retornar o perfil correto do usuário logado.
+        // Se a role não estiver definida, o comportamento padrão será abrir o modal (comportamento paciente).
+        // Exemplo: 'psicologo' ou 'paciente'.
+        return localStorage.getItem('userRole'); 
+    }
+
     // 1. Função para ler parâmetros da URL
     function getUrlParams() {
         const params = new URLSearchParams(window.location.search);
@@ -102,11 +112,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // =========================================================================
-    // NOVO: Função para buscar eventos do backend
+    // Função para buscar eventos do backend
     // =========================================================================
     async function fetchAppointments(info, successCallback, failureCallback) {
         const BACKEND_URL = 'http://localhost:3000';
-        const token = localStorage.getItem('jwt'); // Corrigido para 'jwt'
+        const token = localStorage.getItem('jwt'); 
   
         if (!token) {
             console.error('Token JWT não encontrado. Falha ao carregar eventos.');
@@ -126,7 +136,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
             if (response.ok) {
                 const events = await response.json();
-                // Os eventos já vêm formatados do backend, basta passá-los.
                 successCallback(events); 
             } else {
                 const result = await response.json();
@@ -154,7 +163,6 @@ document.addEventListener('DOMContentLoaded', function() {
       editable: true,
       selectable: true,
       
-      // NOVO: Adiciona a função fetchAppointments como fonte de eventos
       events: fetchAppointments,
       
       // Ação ao clicar na data (abre modal de agendamento)
@@ -175,45 +183,54 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       },
       
-      // AÇÃO AO CLICAR EM UM EVENTO (abre modal de visualização)
+      // AÇÃO AO CLICAR EM UM EVENTO (condicional por perfil)
       eventClick: function(info) {
           info.jsEvent.preventDefault();
   
+          const userRole = getUserRole(); // Verifica o perfil
           const event = info.event;
-          const extendedProps = event.extendedProps;
-          
-          const startDateTime = event.start;
-          const eventDate = startDateTime.toLocaleDateString('pt-BR');
-          const eventTime = formatEventTime(startDateTime);
+          const consultaId = event.id; // Assumimos que o ID do evento é o ID da consulta.
   
-          // Preenche o modal de visualização
-          if (viewTitle) viewTitle.textContent = event.title;
-          if (viewDate) viewDate.textContent = eventDate;
-          if (viewTime) viewTime.textContent = eventTime;
-          
-          // CORREÇÃO: Usa 'contactName' (nome do psicólogo ou paciente)
-          if (viewDoctor) viewDoctor.textContent = extendedProps.contactName || 'Não informado'; 
-          if (viewStatus) viewStatus.textContent = extendedProps.status || 'Pendente';
-          
-          // Abre o modal de visualização
-          if (viewModalContainer) {
-              viewModalContainer.classList.add('active');
-              viewModalContainer.style.display = 'flex'; // Garante que seja exibido
+          if (userRole === 'psicologo' && consultaId) {
+              // SE PSICÓLOGO: Redireciona para a página de registro de consulta
+              window.location.href = `consulta.html?consultaId=${consultaId}`;
+          } else {
+              // SE PACIENTE ou default: Abre o modal de visualização (comportamento original)
+              
+              const extendedProps = event.extendedProps;
+              
+              const startDateTime = event.start;
+              const eventDate = startDateTime.toLocaleDateString('pt-BR');
+              const eventTime = formatEventTime(startDateTime);
+      
+              // Preenche o modal de visualização
+              if (viewTitle) viewTitle.textContent = event.title;
+              if (viewDate) viewDate.textContent = eventDate;
+              if (viewTime) viewTime.textContent = eventTime;
+              if (viewDoctor) viewDoctor.textContent = extendedProps.contactName || 'Não informado'; 
+              if (viewStatus) viewStatus.textContent = extendedProps.status || 'Pendente';
+              
+              // Abre o modal de visualização
+              if (viewModalContainer) {
+                  viewModalContainer.classList.add('active');
+                  viewModalContainer.style.display = 'flex';
+              }
           }
       }
     });
   
+    // Torna o calendário global para que consultas.js possa chamá-lo
+    window.calendar = calendar;
     calendar.render();
     
     // 4. Lógica de fechar o modal de VISUALIZAÇÃO
     function closeViewModal() {
         if (viewModalContainer) {
             viewModalContainer.classList.remove('active');
-            viewModalContainer.style.display = 'none'; // Garante que seja escondido
+            viewModalContainer.style.display = 'none'; 
         }
     }
     
-    // Adiciona event listeners com checagem para evitar TypeError (como recomendado)
     if (closeViewModalBtn) {
         closeViewModalBtn.addEventListener('click', closeViewModal);
     }
@@ -244,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   
   
-    // 6. Lógica de agendamento (MODIFICADA: Envia POST para o backend com Token de Autorização)
+    // 6. Lógica de agendamento (MANTIDA)
     if (createBtnModal) {
         createBtnModal.addEventListener('click', async function() {
           var title = eventTitleInput.value;
@@ -256,7 +273,6 @@ document.addEventListener('DOMContentLoaded', function() {
           if (title && date && time && selectedPsyId) {
             
             const BACKEND_URL = 'http://localhost:3000'; 
-            // CORREÇÃO DE AUTENTICAÇÃO: Obtém o token JWT do localStorage
             const token = localStorage.getItem('jwt');
   
             if (!token) {
@@ -269,7 +285,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 hora: time,
                 id_psicologo: selectedPsyId,
                 nome_psicologo: selectedPsyName
-                // id_paciente é obtido no backend via JWT (req.userId)
             };
   
             try {
@@ -277,7 +292,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        // CORREÇÃO DE AUTORIZAÇÃO: Adiciona o token JWT
                         'Authorization': `Bearer ${token}` 
                     },
                     body: JSON.stringify(appointmentData)
@@ -286,7 +300,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
   
                 if (response.ok) {
-                    // Após o sucesso, atualiza o calendário
                     calendar.refetchEvents();
                     
                     eventTitleInput.value = '';
@@ -334,4 +347,4 @@ document.addEventListener('DOMContentLoaded', function() {
     // 8. Executa a função de pré-preenchimento na inicialização da página
     const params = getUrlParams();
     prefillModal(params.psyId, params.psyName);
-  });
+});

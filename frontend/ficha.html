@@ -3,173 +3,88 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HealSync - Diário</title>
+  <title>HealSync - Ficha do Paciente</title>
   <link rel="shortcut icon" type="imagex/png" href="../assets/logo.svg">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.css">
-  <link rel="stylesheet" href="agenda.css"></head>
+</head>
 <body id="main-body">
   <header>
-        <div id="logo">
-            <img src="../assets/logo.svg" alt="HealSync Logo">
-            <h3>HealSync</h3>
-        </div>
-        <div id="nav">
-            <a href="./index.html">Início</a>
-            <section>
-              <a href="./consultas.html" id="nav-dynamic-link">Consultas</a> <hr>
-            </section>
-            <a href="./chat.html">Chat</a>
-        </div>
-        <div id="info">
-           <section class="notification-wrapper">
-                <a href="#" id="dropdownToggle" class="notification-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="28" fill="#f1eee4" class="bi bi-bell" viewBox="0 0 16 16">
-                        <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
-                    </svg>
-                    <div id="dropdownMenu" class="notification-dropdown">
-                        <div class="dropdown-header">
-                            <h3>Notificações</h3>
-                        </div>
-                        <div class="notification-list">
-                            <a href="#" class="notification-item">
-                                <p><b>Dr. João</b> enviou uma nova mensagem.</p>
-                                <span>Há 5 minutos</span>
-                            </a>
-                        </div>
-                        <a href="./notifications.html" class="view-all-btn">Ver todas</a>
+    <div id="logo">
+        <img src="../assets/logo.svg" alt="HealSync Logo">
+        <h3>HealSync</h3>
+    </div>
+    <div id="nav">
+        <a href="./index.html">Início</a>
+        <section>
+          <a href="./consultas.html" id="nav-dynamic-link">Consultas</a> <hr>
+        </section>
+        <a href="./chat.html">Chat</a>
+    </div>
+    <div id="info">
+       <section class="notification-wrapper">
+            <a href="#" id="dropdownToggle" class="notification-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="28" fill="#f1eee4" class="bi bi-bell" viewBox="0 0 16 16">
+                    <path d="M8 16a2 2 0 0 0 2-2H6a2 2 0 0 0 2 2M8 1.918l-.797.161A4 4 0 0 0 4 6c0 .628-.134 2.197-.459 3.742-.16.767-.376 1.566-.663 2.258h10.244c-.287-.692-.502-1.49-.663-2.258C12.134 8.197 12 6.628 12 6a4 4 0 0 0-3.203-3.92zM14.22 12c.223.447.481.801.78 1H1c.299-.199.557-.553.78-1C2.68 10.2 3 6.88 3 6c0-2.42 1.72-4.44 4.005-4.901a1 1 0 1 1 1.99 0A5 5 0 0 1 13 6c0 .88.32 4.2 1.22 6"/>
+                </svg>
+                <div id="dropdownMenu" class="notification-dropdown">
+                    <div class="dropdown-header">
+                        <h3>Notificações</h3>
                     </div>
-                </a>
-           </section>
-            <a href="./profile.html"><img src="../assets/user-default.svg" alt="User Avatar"></a>
-        </div>
-    </header>
+                    <div class="notification-list">
+                        <a href="#" class="notification-item">
+                            <p><b>Dr. João</b> enviou uma nova mensagem.</p>
+                            <span>Há 5 minutos</span>
+                        </a>
+                    </div>
+                    <a href="./notifications.html" class="view-all-btn">Ver todas</a>
+                </div>
+            </a>
+       </section>
+        <a href="./profile.html"><img src="../assets/user-default.svg" alt="User Avatar"></a>
+    </div>
+  </header>
 
   <main>
-    <div class="requests-header-container">
-      <div class="header-requests" id="requests-dropdown-toggle">
-        <h1 class="requests-title">Agenda</h1>
-        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#7873f5" class="bi bi-caret-down-fill" viewBox="0 0 16 16">
-          <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z"/>
-        </svg>
-      </div>
-      <div class="requests-dropdown">
-          <a href="#solicitacoes" class="dropdown-item" onclick="showSection('requests-content', this)">Solicitações</a>
-          <a href="#anotacoes" class="dropdown-item" onclick="showSection('notes-content', this)">Anotações</a>
-          <a href="#agenda" class="dropdown-item" onclick="showSection('agenda-content', this)">Agenda</a>
-      </div>
-      <input type="text" placeholder="Encontre o paciente" class="search-patient">
-    </div>
-
-    <div class="agenda-container agenda-psicologo" id="agenda-content">
-        <div id="calendar"></div>
-    </div>
-    
-    <div class="requests-container hidden-section" id="requests-content">
-      </div>
-    
-    <div class="notes-container hidden-section" id="notes-content">
-      <div class="note-card">
-        <a href="ficha.html?pacienteId=1" class="patient-link">
-            <h4>Nome do Paciente 1</h4>
-        </a>
-        <div class="note-buttons">
-          <button class="add-btn"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
-            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
-          </svg></button>
-          <button class="trash-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-          </svg></button>
-        </div>
-      </div>
-      <div class="note-card">
-        <a href="ficha.html?pacienteId=2" class="patient-link">
-            <h4>Nome do Paciente 2</h4>
-        </a>
-        <div class="note-buttons">
-          <button class="add-btn"><svg xmlns="http://www.w3.org/2000/svg" width="23" height="23" fill="currentColor" class="bi bi-plus" viewBox="0 0 16 16">
-            <path d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4"/>
-          </svg></button>
-          <button class="trash-btn"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
-            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
-            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
-          </svg></button>
-        </div>
-      </div>
-    </div>
-
-    <nav class="menu">
-      <input type="checkbox" href="#" class="menu-open" name="menu-open" id="menu-open"/>
-      <label class="menu-open-button" for="menu-open">
-        <span class="hamburger hamburger-1"></span>
-        <span class="hamburger hamburger-2"></span>
-        <span class="hamburger hamburger-3"></span>
-      </label>
+    <div class="ficha-layout">
+      
+      <div class="history-container">
+        <h2>Histórico de Consultas</h2>
         
-      <a href="http://127.0.0.1:5500/frontend/consultas.html#anotacoes" class="menu-item"> <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-journal-plus" viewBox="0 0 16 16">
-  <path fill-rule="evenodd" d="M8 5.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V10a.5.5 0 0 1-1 0V8.5H6a.5.5 0 0 1 0-1h1.5V6a.5.5 0 0 1 .5-.5"/>
-  <path d="M3 0h10a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2v-1h1v1a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v1H1V2a2 2 0 0 1 2-2"/>
-  <path d="M1 5v-.5a.5.5 0 0 1 1 0V5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0V8h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1zm0 3v-.5a.5.5 0 0 1 1 0v.5h.5a.5.5 0 0 1 0 1h-2a.5.5 0 0 1 0-1z"/>
-</svg> </a>
-      <a href="http://127.0.0.1:5500/frontend/consultas.html#agenda" class="menu-item"> <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-calendar-week" viewBox="0 0 16 16">
-  <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-5 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>
-  <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z"/>
-</svg> </a>
-      <a href="http://127.0.0.1:5500/frontend/consultas.html#solicitacoes" class="menu-item"> <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-check2-circle" viewBox="0 0 16 16">
-  <path d="M2.5 8a5.5 5.5 0 0 1 8.25-4.764.5.5 0 0 0 .5-.866A6.5 6.5 0 1 0 14.5 8a.5.5 0 0 0-1 0 5.5 5.5 0 1 1-11 0"/>
-  <path d="M15.354 3.354a.5.5 0 0 0-.708-.708L8 9.293 5.354 6.646a.5.5 0 1 0-.708.708l3 3a.5.5 0 0 0 .708 0z"/>
-</svg> </a>
-    </nav>
+        <a href="consulta.html?id=123" class="history-card">
+          <h4>Consulta em 25/10/2025 - 14:00</h4>
+          <p>Motivação: Crise de ansiedade e dificuldade em lidar com prazos no trabalho.</p>
+          <p>Status: Concluída</p>
+        </a>
 
-
-    <svg xmlns="http://www.w3.org/2000/svg" version="1.1">
-        <defs>
-          <filter id="shadowed-goo">
-              
-              <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="10" />
-              <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
-              <feGaussianBlur in="goo" stdDeviation="3" result="shadow" />
-              <feColorMatrix in="shadow" mode="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 -0.2" result="shadow" />
-              <feOffset in="shadow" dx="1" dy="1" result="shadow" />
-              <feComposite in2="shadow" in="goo" result="goo" />
-              <feComposite in2="goo" in="SourceGraphic" result="mix" />
-          </filter>
-          <filter id="goo">
-              <feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="10" />
-              <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="goo" />
-              <feComposite in2="goo" in="SourceGraphic" result="mix" />
-          </filter>
-        </defs>
-    </svg>
-
-    <div id="reason-modal-container" class="modal-container">
-      <div id="reason-modal" class="modal">
-        <div class="modal-header">
-          <h1 class="modal-title">Motivo da Recusa</h1>
-          <button id="close-reason-modal-btn">&times;</button>
+        <a href="consulta.html?id=122" class="history-card">
+            <h4>Consulta em 18/10/2025 - 14:00</h4>
+            <p>Motivação: Acompanhamento de rotina sobre humor e sono.</p>
+            <p>Status: Concluída</p>
+        </a>
+        
+        <div class="history-card">
+          <h4>Próxima Consulta em 01/11/2025 - 14:00</h4>
+          <p>Motivação: Análise de novos exercícios de atenção plena.</p>
+          <p>Status: Agendada</p>
         </div>
-        <div class="modal-body">
-          <form id="reason-form">
-            <div class="form-group">
-              <label for="reason-textarea">Descreva o motivo da recusa:</label>
-              <textarea id="reason-textarea" rows="4" placeholder="Por favor, forneça uma justificativa." required></textarea>
-            </div>
-          </form>
-        </div>
-        <div class="modal-footer">
-          <button id="cancel-reason-btn" class="secondary-btn">Cancelar</button>
-          <button id="submit-reason-btn" type="submit" form="reason-form" class="primary-btn">Enviar</button>
+
+      </div>
+
+      <div class="profile-card profile-card-ficha">
+        <img src="../assets/user-default.svg" alt="Foto de Perfil" class="profile-avatar">
+        
+        <h3>Nome do Paciente</h3>
+        
+        <div class="patient-info">
+          <p><strong>Email:</strong> paciente@exemplo.com</p>
+          <p><strong>Gênero:</strong> (Gênero)</p>
+          <p><strong>Nascimento:</strong> (DD/MM/AAAA)</p>
         </div>
       </div>
     </div>
   </main>
   
   <script src="script.js"></script>
-  <script src="consultas.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/main.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.0/locales/pt-br.js"></script>
-  <script src="agenda.js"></script>
-</body>
+  </body>
 </html>

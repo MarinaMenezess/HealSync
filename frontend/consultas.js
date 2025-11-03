@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Mapeamento de hash para ID da seção, título e função de carregamento
     const hashToSection = {
         'solicitacoes': { id: 'requests-content', title: 'Solicitações', loadFunction: loadPendingRequests }, 
-        'anotacoes': { id: 'notes-content', title: 'Anotações', loadFunction: loadPatientNotesList }, 
+        'pacientes': { id: 'notes-content', title: 'Pacientes', loadFunction: loadPatientNotesList }, 
         'agenda': { id: 'agenda-content', title: 'Agenda' } 
     };
 

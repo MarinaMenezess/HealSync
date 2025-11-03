@@ -2106,22 +2106,21 @@ main > svg {
 }
 
 .profile-card-ficha { /* Renomeada para evitar conflito com .profile-card do profile.html */
-  background: rgba(255, 255, 255, 0.7); /* Usando fundo semi-transparente como outros cards */
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 12px;
-  padding: 20px;
   display: flex;
+  width: 100%;
+  min-width: 100%;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   position: sticky;
   top: 100px;
-  height: fit-content;
+  height: 100%;
+  margin: 0;
 }
 
 .profile-card-ficha h3 {
-  color: #19142f; /* Cor escura para texto no card claro */
+  color: #f1eee4; /* Cor escura para texto no card claro */
   margin-top: 10px;
 }
 
@@ -2137,7 +2136,7 @@ main > svg {
 .patient-info p {
   margin: 8px 0;
   font-size: 0.95em;
-  color: #3b3b3b; /* Cor de texto mais escuro */
+  color: #f1eee4; /* Cor de texto mais escuro */
   text-align: left;
 }
 
@@ -2154,15 +2153,17 @@ main > svg {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 15px;
+  border-radius: 25px;
+  padding: 10px 15px;
   margin-bottom: 15px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   border-left: 5px solid #7873f5;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.3s;
   text-decoration: none;
-  display: block; /* Para o link ocupar o bloco */
+  display: flex; 
+  flex-direction: column;
+  align-items: flex-start;
 }
 
 .history-card:hover {

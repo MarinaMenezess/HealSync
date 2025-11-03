@@ -746,7 +746,7 @@ app.delete('/curtidas/:id', authMiddleware, (req, res) => {
 
 // ---------- ANOTAÇÕES ----------
 
-app.post('/anotacoes', authMiddleware, (req, res) => {
+app.post('/pacientes', authMiddleware, (req, res) => {
   const { id_usuario, conteudo } = req.body;
   connection.query(
     'INSERT INTO anotacao_paciente (id_psicologo, id_usuario, data_anotacao, conteudo) VALUES (?, ?, CURDATE(), ?)',
@@ -758,7 +758,7 @@ app.post('/anotacoes', authMiddleware, (req, res) => {
   );
 });
 
-app.put('/anotacoes/:id', authMiddleware, (req, res) => {
+app.put('/pacientes/:id', authMiddleware, (req, res) => {
   const { conteudo } = req.body;
   connection.query(
     'UPDATE anotacao_paciente SET conteudo = ? WHERE id_anotacao = ? AND id_psicologo = ?',
@@ -770,7 +770,7 @@ app.put('/anotacoes/:id', authMiddleware, (req, res) => {
   );
 });
 
-app.delete('/anotacoes/:id', authMiddleware, (req, res) => {
+app.delete('/pacientes/:id', authMiddleware, (req, res) => {
   connection.query(
     'DELETE FROM anotacao_paciente WHERE id_anotacao = ? AND id_psicologo = ?',
     [req.params.id, req.userId],

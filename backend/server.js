@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (COMPLETO E ATUALIZADO - ROTAS DE CONSULTA REORDENADAS)
+// ARQUIVO: backend/server.js (COMPLETO E ATUALIZADO)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -201,7 +201,7 @@ app.get('/psychologists', (req, res) => {
 });
 
 // =========================================================================
-// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
+// NOVO: ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
 // =========================================================================
 app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
@@ -277,7 +277,6 @@ app.post('/login', async (req, res) => {
         const token = jwt.sign({ id: user.id_usuario, is_psicologo: user.is_psicologo }, JWT_SECRET, { expiresIn: '1d' });
         
         // Remover firebase_uid e qualquer campo sensível antes de enviar ao frontend
-        // CFP e CPF estão incluídos em 'userWithoutPrivateFields'
         const { firebase_uid, ...userWithoutPrivateFields } = user;
         
         res.json({ token, user: userWithoutPrivateFields });
@@ -448,11 +447,10 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
 
 // =========================================================================
 // ROTA PARA AGENDAMENTO DE CONSULTA PELO CALENDÁRIO (AGENDA.JS)
-// ATUALIZADO: Usa o novo campo 'motivo' no INSERT.
 // =========================================================================
 app.post('/api/agenda/agendar', authMiddleware, (req, res) => { 
     // 1. Apenas pacientes podem enviar solicitações
-    if (req.is_psicologo) {
+    if (!req.is_psicologo) {
         return res.status(403).json({ error: 'Apenas pacientes podem enviar solicitações de agendamento.' });
     }
 
@@ -470,7 +468,6 @@ app.post('/api/agenda/agendar', authMiddleware, (req, res) => {
     
     // 5. Query de inserção
     connection.query(
-        // CORREÇÃO: Usando a nova coluna 'motivo' para o título/motivação da solicitação.
         'INSERT INTO solicitacao_consulta (id_paciente, id_psicologo, data_solicitada, status, motivo) VALUES (?, ?, ?, ?, ?)',
         [id_paciente, id_psicologo, dataHoraConsulta, 'pendente', titulo],
         (err, result) => {
@@ -488,7 +485,6 @@ app.post('/api/agenda/agendar', authMiddleware, (req, res) => {
 
 // =========================================================================
 // ROTA PARA CARREGAR EVENTOS NO CALENDÁRIO (CORRIGIDA E ATUALIZADA)
-// Queries limpas e campo 'motivo' agora é utilizado.
 // =========================================================================
 app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
     const userId = req.userId;
@@ -499,7 +495,6 @@ app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
 
     if (is_psicologo) {
         // Psicólogo: Apenas consultas aceitas
-        // Versão limpa de caracteres de espaçamento
         query = `SELECT s.id_solicitacao, s.data_solicitada, s.motivo AS titulo_motivo, s.status, u.nome AS nome_paciente 
             FROM solicitacao_consulta s
             JOIN usuario u ON s.id_paciente = u.id_usuario
@@ -507,7 +502,6 @@ app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
         params = [userId];
     } else {
         // Paciente: Todas as solicitações que ele enviou
-        // Versão limpa de caracteres de espaçamento
         query = `SELECT s.id_solicitacao, s.data_solicitada, s.motivo AS titulo_motivo, s.status, u.nome AS nome_psicologo
             FROM solicitacao_consulta s
             JOIN usuario u ON s.id_psicologo = u.id_usuario
@@ -517,7 +511,6 @@ app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
     
     connection.query(query, params, (err, results) => {
         if (err) {
-            // Este log de erro deve parar de aparecer no console após a correção.
             console.error('Erro fatal de SQL ao buscar eventos do calendário:', err.message); 
             return res.status(500).json({ error: 'Erro no servidor ao buscar eventos.' });
         }
@@ -528,18 +521,15 @@ app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
             
             return {
                 id: row.id_solicitacao,
-                // Combina prefixo com o motivo da consulta (agora em 'motivo')
                 title: titlePrefix + row.titulo_motivo, 
-                start: row.data_solicitada, // Formato DATETIME é compatível
+                start: row.data_solicitada, 
                 extendedProps: {
                     status: row.status,
-                    // Armazena o nome do contato relevante
                     contactName: is_psicologo ? row.nome_paciente : row.nome_psicologo 
                 },
-                // Define a cor baseada no status
-                color: (row.status === 'aceita' || row.status === 'confirmada') ? '#28a745' : // Verde
-                       (row.status === 'pendente') ? '#ffc107' : // Amarelo
-                       '#dc3545' // Vermelho (Recusada)
+                color: (row.status === 'aceita' || row.status === 'confirmada') ? '#28a745' : 
+                       (row.status === 'pendente') ? '#ffc107' : 
+                       '#dc3545' 
             };
         });
 
@@ -556,10 +546,8 @@ app.post('/consultas', authMiddleware, (req, res) => {
 });
 
 // =========================================================================
-// ROTAS ESPECÍFICAS (Deve vir antes de /consultas/:id)
-// =========================================================================
-
 // ROTA ESPECÍFICA 1 (GET): ROTA PARA PSICÓLOGO VISUALIZAR SUAS SOLICITAÇÕES PENDENTES
+// =========================================================================
 app.get('/consultas/pendentes', authMiddleware, (req, res) => {
   // Apenas psicólogos podem ver as solicitações
   if (!req.is_psicologo) {
@@ -578,7 +566,9 @@ app.get('/consultas/pendentes', authMiddleware, (req, res) => {
   );
 });
 
+// =========================================================================
 // ROTA ESPECÍFICA 2 (GET): ROTA PARA LISTAR PACIENTES ATENDIDOS (ANOTAÇÕES)
+// =========================================================================
 app.get('/consultas/pacientes-atendidos', authMiddleware, (req, res) => {
     if (!req.is_psicologo) {
         return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem ver esta lista.' });
@@ -607,7 +597,6 @@ app.get('/consultas/pacientes-atendidos', authMiddleware, (req, res) => {
 
 // =========================================================================
 // ROTAS DE GERENCIAMENTO DE SESSÃO ESPECÍFICA (GET/POST/PUT /consultas/:id/session-note)
-// CORRIGIDO: Rota mais específica. Deve vir antes de /consultas/:id
 // =========================================================================
 
 // GET /consultas/:id/session-note: Busca a anotação da sessão
@@ -636,7 +625,6 @@ app.get('/consultas/:id/session-note', authMiddleware, (req, res) => {
         }
 
         if (results.length === 0) {
-            // Retorna 404 para indicar que a nota não existe, mas a rota funcionou
             return res.status(404).json({ error: 'Nenhuma anotação encontrada para esta sessão.' });
         }
 
@@ -710,7 +698,6 @@ app.put('/consultas/:id/session-note', authMiddleware, (req, res) => {
 
 // =========================================================================
 // ROTA GENÉRICA 1 (GET): ROTA PARA OBTER DETALHES DE UMA CONSULTA ESPECÍFICA
-// Esta rota (e as demais genéricas) DEVE vir depois das rotas específicas acima.
 // =========================================================================
 app.get('/consultas/:id', authMiddleware, (req, res) => {
     const consultaId = parseInt(req.params.id, 10);
@@ -983,6 +970,32 @@ app.get('/anotacoes/paciente/:id_paciente', authMiddleware, (req, res) => {
 });
 
 
+// =========================================================================
+// ROTA PARA OBTER REGISTROS DE PROGRESSO DO USUÁRIO (NOVA)
+// =========================================================================
+app.get('/registros', authMiddleware, (req, res) => {
+    const userId = req.userId;
+
+    // Busca todos os registros de progresso do usuário logado
+    const query = `
+        SELECT id_registro, data, emocao, descricao
+        FROM registro_progresso
+        WHERE id_usuario = ?
+        ORDER BY data DESC;
+    `;
+
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar registros de progresso:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar registros.' });
+        }
+
+        res.json(results);
+    });
+});
+// =========================================================================
+
+
 // ---------- REGISTROS (MANTIDOS) ----------
 app.post('/registros', authMiddleware, (req, res) => {
   const { data, emocao, descricao } = req.body;
@@ -1086,7 +1099,6 @@ app.delete('/curtidas/:id', authMiddleware, (req, res) => {
 app.post('/pacientes', authMiddleware, (req, res) => {
   const { id_usuario, conteudo } = req.body;
   connection.query(
-    // Esta rota é para anotações que NÃO ESTÃO VINCULADAS A UMA CONSULTA ESPECÍFICA (id_consulta = NULL)
     'INSERT INTO anotacao_paciente (id_psicologo, id_usuario, data_anotacao, conteudo) VALUES (?, ?, CURDATE(), ?)',
     [req.userId, id_usuario, conteudo],
     (err, result) => {

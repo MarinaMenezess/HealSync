@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HealSync - Registro de Consulta</title>
+  <title>HealSync - Detalhes da Consulta</title>
   <link rel="shortcut icon" type="imagex/png" href="../assets/logo.svg">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -46,25 +46,58 @@
   </header>
 
   <main>
-    <div class="consulta-layout">
-      
-      <div class="consultation-details">
-        <h2>Detalhes da Consulta</h2>
-        <p><strong>Paciente:</strong> (Nome do Paciente)</p>
-        <p><strong>Data:</strong> (DD/MM/AAAA)</p>
-        <p><strong>Horário:</strong> (HH:MM - HH:MM)</p>
-        <p><strong>Motivação:</strong> (Motivação da Consulta)</p>
-      </div>
-
-      <div class="notes-area">
-        <h3>Registro da Sessão</h3>
-        <textarea id="session-notes" placeholder="Digite suas anotações, observações e planos para a próxima sessão aqui..."></textarea>
-        <button class="save-button">Salvar Registro</button>
-      </div>
-      
+    <div class="content-container">
+        <div id="loading-message" style="text-align: center; color: #7873f5; font-size: 1.2em; margin-top: 50px;">
+            Carregando detalhes da consulta...
+        </div>
+        <div id="error-message" style="text-align: center; color: #dc3545; font-size: 1.1em; padding: 10px; border: 1px solid #dc3545; margin-top: 50px; display: none;"></div>
+        
+        <div id="consultation-content" style="display: none;">
+            <div class="consultation-header">
+                <h1 id="consultation-title">Detalhes da Consulta</h1>
+                <span id="consultation-status" class="status-badge"></span>
+            </div>
+            
+            <div id="stopwatch-container" class="stopwatch-container" style="display: none;">
+                <div class="stopwatch-display">
+                    <p>Controle de Tempo</p>
+                    <h2 id="stopwatch-time">00:00:00</h2>
+                </div>
+                <div class="stopwatch-actions">
+                    <button id="start-stop-btn" class="start-stop-btn start-btn">Iniciar</button>
+                    <button id="reset-btn" class="reset-btn" disabled>Zerar</button>
+                </div>
+            </div>
+            <div class="consultation-info-box">
+                <p><strong>ID da Consulta:</strong> <span id="consultation-id"></span></p>
+                <p><strong>Data/Hora:</strong> <span id="consultation-datetime"></span></p>
+                <p id="consultation-duration-p" style="display: none;"><strong>Duração Registrada:</strong> <span id="consultation-duration"></span></p>
+                <p><strong>Motivo da Solicitação:</strong> <span id="consultation-motive"></span></p>
+                <p><strong>Paciente:</strong> <span id="consultation-patient-name"></span></p>
+                <p><strong>Psicólogo:</strong> <span id="consultation-psychologist-name"></span></p>
+                <p id="rejection-reason-p" style="color: #dc3545; display: none;"><strong>Motivo da Recusa:</strong> <span id="rejection-reason"></span></p>
+            </div>
+            
+            <div id="notes-section" class="notes-section">
+                <div class="consultation-header">
+                    <h2>Registro da Sessão</h2>
+                </div>
+                
+                <div class="notes-area">
+                    <div id="session-note-content-area">
+                    </div>
+                </div>
+                
+                <h3 class="mt-4">Histórico de Anotações do Paciente</h3>
+                 <div id="notes-list-container">
+                    <p id="notes-loading-message" style="text-align: center; color: #7873f5; font-size: 1em;">Carregando histórico...</p>
+                </div>
+            </div>
+        </div>
     </div>
   </main>
   
   <script src="script.js"></script>
-  </body>
+  <script src="consulta.js"></script> 
+</body>
 </html>

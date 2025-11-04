@@ -2198,59 +2198,148 @@ main > svg {
 
 /* --------------- ESTILIZAÇÃO PARA A PÁGINA consulta.html --------------- */
 
-.consulta-layout {
-  width: 90%;
-  max-width: 900px;
-  margin: 14vh auto 30px; /* Ajuste a margem superior para compensar o header fixo */
-  padding: 20px;
+.content-container { /* Novo contêiner principal */
+  width: 100%;
+  min-width: 50vw;
+  padding: 0;
 }
 
-.consultation-details {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 20px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  border-top: 5px solid #7873f5;
+.consultation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.3); /* Ajustado para fundo escuro */
+    gap: 30px;
 }
 
-.consultation-details h2 {
-  color: #19142f;
-  border-bottom: 1px solid #ddd;
-  padding-bottom: 10px;
-  margin-bottom: 15px;
-  font-weight: 700;
+.consultation-header h1{
+  font-size: 35px;
 }
 
-.consultation-details p {
-  margin: 5px 0;
-  font-size: 1em;
-  color: #3b3b3b;
+.consultation-info-box {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    color: #f1eee4; /* Cor de texto padrão para o bloco */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
-.consultation-details p strong {
-    color: #7873f5; /* Destaca as chaves de informação */
+.consultation-info-box p {
+    margin-bottom: 8px;
+    font-size: 17px;
+}
+
+.consultation-info-box strong {
+    color: #fff; /* Destaca as chaves de informação */
+}
+
+.consultation-info-box #rejection-reason-p {
+    color: #dc3545;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+.notes-section {
+    margin-top: 40px;
+}
+
+.notes-section h2 {
+    color: #f1eee4;
+    font-weight: 700;
+}
+
+.note-card {
+    background: rgba(255, 255, 255, 0.15); /* Fundo um pouco mais claro para destaque */
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.note-card:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.note-card h5 {
+    font-size: 1.1em;
+    margin-bottom: 5px;
+    color: #7873f5;
+    font-weight: 600;
+}
+
+.note-card p {
+    white-space: pre-wrap;
+    color: #f1eee4;
+    margin: 0;
+    font-size: 0.95em;
+}
+
+/* Estilos para Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #fff;
+}
+.status-pending { background-color: #ffc107; color: #3b3b3b; }
+.status-scheduled { background-color: #007bff; }
+.status-rejected { background-color: #dc3545; }
+.status-confirmed { background-color: #28a745; }
+
+/* Botão de Adicionar Anotação */
+#add-note-btn {
+    background-color: #7873f5;
+    color: #f1eee4;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s;
+    text-decoration: none; /* Garante que o link não seja sublinhado */
+}
+#add-note-btn:hover {
+    background-color: #615ec7;
+}
+
+.notes-section {
+    margin-top: 40px;
+}
+
+.notes-section h2 {
+    color: #f1eee4;
+    font-weight: 700;
+    margin-bottom: 20px;
 }
 
 .notes-area {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    /* Base para o container de anotação de sessão */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    margin-bottom: 25px;
 }
 
-.notes-area h3 {
-  color: #f1eee4;
-  margin-bottom: 15px;
-}
-
-.notes-area textarea {
+/* Estilo para a textarea no modo de edição/criação */
+#session-note-textarea {
   width: 100%;
-  min-height: 400px;
+  min-height: 250px; /* Altura razoável para notas de sessão */
   padding: 15px;
   border-radius: 10px;
   font-family: 'Montserrat', sans-serif;
@@ -2263,11 +2352,12 @@ main > svg {
   color: #f1eee4;
 }
 
-.notes-area textarea::placeholder {
-  color: #f1eee4;
+#session-note-textarea::placeholder {
+  color: #f1eee4a0;
 }
 
-.save-button {
+/* Estilo para o botão de Salvar Anotação (save-button) */
+#save-session-note-btn {
   background-color: #7873f5;
   color: #f1eee4;
   border: none;
@@ -2275,16 +2365,173 @@ main > svg {
   border-radius: 20px;
   cursor: pointer;
   font-weight: bold;
-  margin-top: 15px;
   transition: background-color 0.3s;
+  align-self: flex-start;
 }
 
-.save-button:hover {
+#save-session-note-btn:hover {
   background-color: #615ec7;
 }
 
+/* Estilo para o bloco de anotação SALVA (Visualização) */
+.saved-note-card {
+    background: rgba(120, 115, 245, 0.2); /* Cor de fundo suave para a nota salva */
+    border: 1px solid #7873f5;
+    border-radius: 8px;
+    padding: 20px;
+    color: #f1eee4;
+    text-align: left;
+    /* Remover margin-bottom para não duplicar o espaçamento do notes-area */
+    margin-bottom: 0; 
+    width: 100%;
+}
+
+.saved-note-card h4 {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    line-height: 1.5;
+}
+
+.saved-note-card p {
+    white-space: pre-wrap;
+    margin-top: 15px;
+    font-size: 1em;
+    color: #e0e0e0;
+}
+
+.note-header-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+/* Estilo para o botão de Editar */
+#edit-session-note-btn {
+    background-color: transparent;
+    color: #f1eee4;
+    border: 1px solid #f1eee4;
+    padding: 8px 15px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s, color 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#edit-session-note-btn:hover {
+    background-color: #f1eee4;
+    color: #7873f5;
+}
+
+#edit-session-note-btn svg {
+    fill: currentColor; /* Faz o SVG herdar a cor do texto */
+}
+
+/* Estilo para o histórico de anotações */
+.history-card {
+    border-left: 5px solid #7ba6dd; /* Cor diferente para diferenciar do card da sessão atual */
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.history-card div{
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.view-note-btn{
+  display: flex;
+  max-width: 25%;
+  height: 30px;
+  justify-content: center;
+  align-items: center;
+}
+/* --------------- ESTILIZAÇÃO PARA O CRONÔMETRO (consulta.html) --------------- */
+
+.stopwatch-container {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stopwatch-display p {
+    font-size: 0.85em;
+    color: #f1eee4;
+    margin: 0;
+}
+
+#stopwatch-time {
+    font-size: 2.5em;
+    font-weight: 700;
+    color: #7873f5;
+    margin: 5px 0 0;
+    letter-spacing: 2px;
+}
+
+.stopwatch-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.stopwatch-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    color: #f1eee4;
+    min-width: 100px;
+}
+
+.start-stop-btn {
+    background-color: #28a745; /* Verde para Iniciar */
+}
+
+.start-stop-btn.stop-btn {
+    background-color: #dc3545; /* Vermelho para Parar */
+}
+
+.reset-btn {
+    background-color: #777;
+}
+
+.start-stop-btn:hover {
+    background-color: #218838;
+}
+
+.start-stop-btn.stop-btn:hover {
+    background-color: #c82333;
+}
+
+.reset-btn:not([disabled]):hover {
+    background-color: #555;
+}
+
+.stopwatch-actions button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsividade */
 @media (max-width: 600px) {
-  .consulta-layout {
+  .content-container {
     padding: 10px;
   }
 }

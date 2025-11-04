@@ -46,45 +46,37 @@
   </header>
 
   <main>
-    <div class="ficha-layout">
+    <div class="ficha-layout" id="ficha-layout">
       
+      <div id="loading-message" style="text-align: center; color: #7873f5; font-size: 1.2em; display: none;">
+        Carregando dados do paciente...
+      </div>
+      <div id="error-message" style="text-align: center; color: #dc3545; font-size: 1.1em; padding: 10px; border: 1px solid #dc3545; display: none;"></div>
+
       <div class="history-container">
         <h2>Histórico de Consultas</h2>
-        
-        <a href="consulta.html?id=123" class="history-card">
-          <h4>Consulta em 25/10/2025 - 14:00</h4>
-          <p>Motivação: Crise de ansiedade e dificuldade em lidar com prazos no trabalho.</p>
-          <p>Status: Concluída</p>
-        </a>
-
-        <a href="consulta.html?id=122" class="history-card">
-            <h4>Consulta em 18/10/2025 - 14:00</h4>
-            <p>Motivação: Acompanhamento de rotina sobre humor e sono.</p>
-            <p>Status: Concluída</p>
-        </a>
-        
-        <div class="history-card">
-          <h4>Próxima Consulta em 01/11/2025 - 14:00</h4>
-          <p>Motivação: Análise de novos exercícios de atenção plena.</p>
-          <p>Status: Agendada</p>
+        <div id="history-list">
+          <p id="history-loading-message" style="text-align: center; color: #7873f5; font-size: 1.2em;">Carregando histórico...</p>
         </div>
-
       </div>
 
-      <div class="profile-card profile-card-ficha">
+      <div class="profile-card profile-card-ficha" id="patient-info-card" style="display: none;">
         <img src="../assets/user-default.svg" alt="Foto de Perfil" class="profile-avatar">
         
-        <h3>Nome do Paciente</h3>
+        <h3 id="patient-name">Carregando...</h3>
         
         <div class="patient-info">
-          <p><strong>Email:</strong> paciente@exemplo.com</p>
-          <p><strong>Gênero:</strong> (Gênero)</p>
-          <p><strong>Nascimento:</strong> (DD/MM/AAAA)</p>
+          <p><strong>ID do Paciente:</strong> <span id="patient-id">N/A</span></p>
+          <p><strong>Email:</strong> <span id="patient-email">N/A</span></p>
+          <p><strong>Gênero:</strong> <span id="patient-gender">N/A</span></p>
+          <p><strong>Nascimento:</strong> <span id="patient-dob">N/A</span></p>
+          <p><strong>Contato:</strong> <span id="patient-contact">N/A</span></p>
         </div>
       </div>
     </div>
   </main>
   
   <script src="script.js"></script>
-  </body>
+  <script src="ficha.js"></script> 
+</body>
 </html>

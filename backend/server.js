@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (COMPLETO E ATUALIZADO - CORRIGIDO ERRO SQL DE ESPAÇAMENTO)
+// ARQUIVO: backend/server.js (COMPLETO E ATUALIZADO - ROTAS DE CONSULTA REORDENADAS)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -127,7 +127,7 @@ app.post('/register', async (req, res) => {
         userName = decodedToken.name || userName; 
 
         // 2. Tenta encontrar o usuário pelo firebase_uid
-        connection.query('SELECT id_usuario FROM usuario WHERE firebase_uid = ?', [firebaseUid], (err, results) => {
+        connection.query('SELECT * FROM usuario WHERE firebase_uid = ?', [firebaseUid], (err, results) => {
             if (err) {
                 console.error('Erro ao consultar o banco de dados:', err.message);
                 return res.status(500).json({ error: 'Erro no servidor ao buscar usuário.' });
@@ -201,7 +201,7 @@ app.get('/psychologists', (req, res) => {
 });
 
 // =========================================================================
-// NOVO: ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
+// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
 // =========================================================================
 app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
@@ -555,14 +555,17 @@ app.post('/consultas', authMiddleware, (req, res) => {
     return res.status(400).json({ error: 'Rota de agendamento POST /consultas descontinuada. Use /api/agenda/agendar para agendamentos completos com título/motivo.' });
 });
 
-// Rota para psicólogo visualizar suas solicitações pendentes
+// =========================================================================
+// ROTAS ESPECÍFICAS (Deve vir antes de /consultas/:id)
+// =========================================================================
+
+// ROTA ESPECÍFICA 1 (GET): ROTA PARA PSICÓLOGO VISUALIZAR SUAS SOLICITAÇÕES PENDENTES
 app.get('/consultas/pendentes', authMiddleware, (req, res) => {
   // Apenas psicólogos podem ver as solicitações
   if (!req.is_psicologo) {
     return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem visualizar as solicitações.' });
   }
   connection.query(
-    // QUERY CORRIGIDA PARA LIMPEZA: Campo 'motivo' será usado pelo frontend
     `SELECT c.*, u.nome AS nome_paciente, u.email AS email_paciente, u.data_nascimento
      FROM solicitacao_consulta c
      JOIN usuario u ON c.id_paciente = u.id_usuario
@@ -575,7 +578,186 @@ app.get('/consultas/pendentes', authMiddleware, (req, res) => {
   );
 });
 
-// Rota para psicólogo responder a uma solicitação (aceitar/recusar)
+// ROTA ESPECÍFICA 2 (GET): ROTA PARA LISTAR PACIENTES ATENDIDOS (ANOTAÇÕES)
+app.get('/consultas/pacientes-atendidos', authMiddleware, (req, res) => {
+    if (!req.is_psicologo) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem ver esta lista.' });
+    }
+
+    const query = `
+        SELECT DISTINCT
+            u.id_usuario AS id_paciente,
+            u.nome AS nome_paciente
+        FROM solicitacao_consulta s
+        JOIN usuario u ON s.id_paciente = u.id_usuario
+        WHERE s.id_psicologo = ? AND s.status IN ('aceita', 'confirmada', 'pendente')
+        ORDER BY u.nome ASC;
+    `;
+
+    connection.query(query, [req.userId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar pacientes atendidos para anotações:', err.message);
+            return res.status(500).json({ error: 'Erro interno do servidor.' });
+        }
+        
+        res.json(results);
+    });
+});
+
+
+// =========================================================================
+// ROTAS DE GERENCIAMENTO DE SESSÃO ESPECÍFICA (GET/POST/PUT /consultas/:id/session-note)
+// CORRIGIDO: Rota mais específica. Deve vir antes de /consultas/:id
+// =========================================================================
+
+// GET /consultas/:id/session-note: Busca a anotação da sessão
+app.get('/consultas/:id/session-note', authMiddleware, (req, res) => {
+    const id_consulta = parseInt(req.params.id, 10);
+    const id_psicologo = req.userId;
+
+    if (!req.is_psicologo) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem ver anotações de sessão.' });
+    }
+    if (isNaN(id_consulta)) {
+        return res.status(400).json({ error: 'ID da consulta inválido.' });
+    }
+
+    // Busca a anotação vinculada ao ID da consulta e ao psicólogo
+    const query = `
+        SELECT id_anotacao, id_consulta, conteudo
+        FROM anotacao_paciente
+        WHERE id_consulta = ? AND id_psicologo = ?
+    `;
+
+    connection.query(query, [id_consulta, id_psicologo], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar anotação de sessão:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar anotação de sessão.' });
+        }
+
+        if (results.length === 0) {
+            // Retorna 404 para indicar que a nota não existe, mas a rota funcionou
+            return res.status(404).json({ error: 'Nenhuma anotação encontrada para esta sessão.' });
+        }
+
+        res.json(results[0]);
+    });
+});
+
+// POST /consultas/:id/session-note: Cria uma nova anotação para a sessão
+app.post('/consultas/:id/session-note', authMiddleware, (req, res) => {
+    const id_consulta = parseInt(req.params.id, 10);
+    const id_psicologo = req.userId;
+    const { id_paciente, conteudo } = req.body; 
+
+    if (!req.is_psicologo) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem criar anotações de sessão.' });
+    }
+    if (isNaN(id_consulta) || !id_paciente || !conteudo) {
+        return res.status(400).json({ error: 'Dados inválidos ou incompletos.' });
+    }
+
+    // Cria a anotação, vinculando-a à consulta ID
+    const query = `
+        INSERT INTO anotacao_paciente (id_psicologo, id_usuario, id_consulta, data_anotacao, conteudo)
+        VALUES (?, ?, ?, CURDATE(), ?)
+    `;
+    
+    connection.query(query, [id_psicologo, id_paciente, id_consulta, conteudo], (err, result) => {
+        if (err) {
+            if (err.code === 'ER_DUP_ENTRY') {
+                return res.status(409).json({ error: 'Já existe uma anotação para esta consulta. Use PUT para atualizar.' });
+            }
+            console.error('Erro ao criar anotação de sessão:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao criar anotação.' });
+        }
+        res.status(201).json({ mensagem: 'Anotação criada com sucesso.', id_anotacao: result.insertId });
+    });
+});
+
+// PUT /consultas/:id/session-note: Atualiza a anotação da sessão
+app.put('/consultas/:id/session-note', authMiddleware, (req, res) => {
+    const id_consulta = parseInt(req.params.id, 10);
+    const id_psicologo = req.userId;
+    const { conteudo } = req.body;
+
+    if (!req.is_psicologo) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem atualizar anotações de sessão.' });
+    }
+    if (isNaN(id_consulta) || !conteudo) {
+        return res.status(400).json({ error: 'ID da consulta ou conteúdo inválido.' });
+    }
+
+    // Atualiza a anotação existente usando o ID da consulta e o ID do psicólogo como chaves
+    const query = `
+        UPDATE anotacao_paciente
+        SET conteudo = ?, data_anotacao = CURDATE()
+        WHERE id_consulta = ? AND id_psicologo = ?
+    `;
+
+    connection.query(query, [conteudo, id_consulta, id_psicologo], (err, result) => {
+        if (err) {
+            console.error('Erro ao atualizar anotação de sessão:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao atualizar anotação.' });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Anotação não encontrada para esta sessão. Use POST para criar.' });
+        }
+        res.json({ mensagem: 'Anotação atualizada com sucesso.' });
+    });
+});
+
+
+// =========================================================================
+// ROTA GENÉRICA 1 (GET): ROTA PARA OBTER DETALHES DE UMA CONSULTA ESPECÍFICA
+// Esta rota (e as demais genéricas) DEVE vir depois das rotas específicas acima.
+// =========================================================================
+app.get('/consultas/:id', authMiddleware, (req, res) => {
+    const consultaId = parseInt(req.params.id, 10);
+    const userId = req.userId;
+
+    if (isNaN(consultaId)) {
+        return res.status(400).json({ error: 'ID da consulta inválido.' });
+    }
+
+    let query;
+    let params;
+
+    // A query precisa verificar se a consulta pertence ao psicólogo OU ao paciente logado.
+    query = `
+        SELECT
+            sc.id_solicitacao,
+            sc.data_solicitada,
+            sc.motivo,
+            sc.motivo_recusa,
+            sc.status,
+            sc.duracao_ms,
+            u_paciente.id_usuario AS id_paciente,
+            u_paciente.nome AS nome_paciente,
+            u_psicologo.nome AS nome_psicologo
+        FROM solicitacao_consulta sc
+        JOIN usuario u_paciente ON sc.id_paciente = u_paciente.id_usuario
+        JOIN usuario u_psicologo ON sc.id_psicologo = u_psicologo.id_usuario
+        WHERE sc.id_solicitacao = ? 
+          AND (sc.id_psicologo = ? OR sc.id_paciente = ?)
+    `;
+    params = [consultaId, userId, userId];
+
+    connection.query(query, params, (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar detalhes da consulta:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar detalhes da consulta.' });
+        }
+
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Consulta não encontrada ou acesso não permitido.' });
+        }
+
+        res.json(results[0]);
+    });
+});
+
+// Rota para psicólogo responder a uma solicitação (PUT /consultas/:id)
 app.put('/consultas/:id', authMiddleware, (req, res) => {
   // Apenas psicólogos podem responder
   if (!req.is_psicologo) {
@@ -614,39 +796,194 @@ app.put('/consultas/:id', authMiddleware, (req, res) => {
   });
 });
 
+// =========================================================================
+// ROTA PARA ATUALIZAR A DURAÇÃO DA CONSULTA (PUT /consultas/:id/duracao)
+// =========================================================================
+app.put('/consultas/:id/duracao', authMiddleware, (req, res) => {
+    const consultaId = parseInt(req.params.id, 10);
+    const userId = req.userId;
+    const { duracao_ms } = req.body;
 
-// =========================================================================
-// NOVO: ROTA PARA LISTAR PACIENTES ATENDIDOS (ANOTAÇÕES)
-// =========================================================================
-app.get('/consultas/pacientes-atendidos', authMiddleware, (req, res) => {
     if (!req.is_psicologo) {
-        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem ver esta lista.' });
+        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem registrar a duração da consulta.' });
     }
 
-    // Busca pacientes únicos que tiveram ou têm consultas aceitas/confirmadas/pendentes com o psicólogo logado
+    if (isNaN(consultaId) || !duracao_ms || typeof duracao_ms !== 'number' || duracao_ms < 0) {
+        return res.status(400).json({ error: 'ID da consulta ou duração (em ms) inválido.' });
+    }
+
+    // A atualização define o status como 'confirmada' (requer que 'confirmada' esteja no ENUM do DB)
     const query = `
-        SELECT DISTINCT
-            u.id_usuario AS id_paciente,
-            u.nome AS nome_paciente
-        FROM solicitacao_consulta s
-        JOIN usuario u ON s.id_paciente = u.id_usuario
-        WHERE s.id_psicologo = ? AND s.status IN ('aceita', 'confirmada', 'pendente')
-        ORDER BY u.nome ASC;
+        UPDATE solicitacao_consulta 
+        SET duracao_ms = ?, status = 'confirmada'
+        WHERE id_solicitacao = ? AND id_psicologo = ? AND status IN ('aceita', 'confirmada')
     `;
 
-    connection.query(query, [req.userId], (err, results) => {
+    connection.query(query, [duracao_ms, consultaId, userId], (err, result) => {
         if (err) {
-            console.error('Erro ao buscar pacientes atendidos para anotações:', err.message);
-            return res.status(500).json({ error: 'Erro interno do servidor.' });
+            console.error('Erro ao registrar duração da consulta:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao salvar duração.' });
         }
-        
-        // Retorna a lista de pacientes
-        res.json(results);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ mensagem: 'Consulta não encontrada, não agendada ou você não é o psicólogo responsável.' });
+        }
+
+        res.json({ mensagem: 'Duração da consulta salva e status atualizado para confirmada.', duracao_ms });
     });
 });
 
 
-// ---------- REGISTROS ----------
+// =========================================================================
+// ROTA PARA OBTER DETALHES COMPLETOS DO PACIENTE PARA O PRONTUÁRIO
+// =========================================================================
+app.get('/consultas/pacientes/:id', authMiddleware, (req, res) => {
+    // FIX: Garante que o ID é tratado como um inteiro
+    const pacienteId = parseInt(req.params.id, 10); 
+    const psicologoId = req.userId;
+
+    // 1. Verificar se o usuário logado é um psicólogo
+    if (!req.is_psicologo) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem visualizar o prontuário do paciente.' });
+    }
+    
+    // Se o ID não for um número válido após o parseInt, retorna erro.
+    if (isNaN(pacienteId)) {
+        return res.status(400).json({ error: 'ID do paciente inválido.' });
+    }
+
+
+    // 2. Verificar se o psicólogo atende este paciente (tem alguma consulta aceita/pendente/confirmada)
+    const checkQuery = `
+        SELECT id_solicitacao FROM solicitacao_consulta 
+        WHERE id_psicologo = ? AND id_paciente = ? AND status IN ('aceita', 'confirmada', 'pendente')
+        LIMIT 1
+    `;
+
+    connection.query(checkQuery, [psicologoId, pacienteId], (checkErr, checkResults) => {
+        if (checkErr) {
+            console.error('Erro ao verificar relacionamento psicólogo-paciente:', checkErr.message);
+            return res.status(500).json({ error: 'Erro interno ao verificar permissão.' });
+        }
+
+        if (checkResults.length === 0) {
+            return res.status(403).json({ error: 'Acesso negado. Você não está associado a este paciente.' });
+        }
+
+        // 3. Se a permissão for confirmada, busca todos os detalhes do paciente.
+        const patientQuery = `
+            SELECT nome, email, data_nascimento, genero, contato, cpf
+            FROM usuario
+            WHERE id_usuario = ?
+        `;
+
+        connection.query(patientQuery, [pacienteId], (patientErr, patientResults) => {
+            if (patientErr) {
+                console.error('Erro ao buscar perfil do paciente:', patientErr.message);
+                return res.status(500).json({ error: 'Erro interno ao buscar dados do paciente.' });
+            }
+
+            if (patientResults.length === 0) {
+                return res.status(404).json({ error: 'Paciente não encontrado ou perfil inválido.' });
+            }
+
+            // Retorna os dados do paciente
+            res.json(patientResults[0]);
+        });
+    });
+});
+
+// =========================================================================
+// ROTA PARA OBTER HISTÓRICO DE CONSULTAS DE UM PACIENTE
+// =========================================================================
+app.get('/consultas/pacientes/:id/historico', authMiddleware, (req, res) => {
+    const pacienteId = parseInt(req.params.id, 10);
+    const psicologoId = req.userId;
+
+    if (!req.is_psicologo) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem visualizar o histórico de consultas.' });
+    }
+
+    if (isNaN(pacienteId)) {
+        return res.status(400).json({ error: 'ID do paciente inválido.' });
+    }
+
+    // Busca todas as solicitações para o par psicólogo-paciente
+    const query = `
+        SELECT
+            id_solicitacao, 
+            data_solicitada, 
+            motivo, 
+            status,
+            motivo_recusa
+        FROM solicitacao_consulta
+        WHERE id_psicologo = ? AND id_paciente = ?
+        ORDER BY data_solicitada DESC;
+    `;
+
+    connection.query(query, [psicologoId, pacienteId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar histórico de consultas:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar o histórico de consultas.' });
+        }
+
+        res.json(results);
+    });
+});
+
+// =========================================================================
+// ROTA PARA OBTER ANOTAÇÕES GERAIS DE UM PACIENTE (PARA HISTÓRICO NO PRONTUÁRIO)
+// =========================================================================
+app.get('/anotacoes/paciente/:id_paciente', authMiddleware, (req, res) => {
+    const id_paciente = parseInt(req.params.id_paciente, 10);
+    const id_psicologo = req.userId;
+
+    if (!req.is_psicologo) {
+        return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem ver anotações.' });
+    }
+    
+    if (isNaN(id_paciente)) {
+        return res.status(400).json({ error: 'ID do paciente inválido.' });
+    }
+
+    // 1. Verifica se o psicólogo atende o paciente
+    const checkQuery = `
+        SELECT id_solicitacao FROM solicitacao_consulta 
+        WHERE id_psicologo = ? AND id_paciente = ? AND status IN ('aceita', 'confirmada', 'pendente')
+        LIMIT 1
+    `;
+
+    connection.query(checkQuery, [id_psicologo, id_paciente], (checkErr, checkResults) => {
+        if (checkErr) {
+            console.error('Erro ao verificar relacionamento psicólogo-paciente para anotações:', checkErr.message);
+            return res.status(500).json({ error: 'Erro interno ao verificar permissão.' });
+        }
+
+        if (checkResults.length === 0) {
+            return res.status(403).json({ error: 'Acesso negado. Você não está associado a este paciente.' });
+        }
+        
+        // 2. Se a permissão for concedida, busca as anotações.
+        const notesQuery = `
+            SELECT id_anotacao, data_anotacao, conteudo, id_consulta
+            FROM anotacao_paciente
+            WHERE id_usuario = ? AND id_psicologo = ?
+            ORDER BY data_anotacao DESC;
+        `;
+
+        connection.query(notesQuery, [id_paciente, id_psicologo], (notesErr, notesResults) => {
+            if (notesErr) {
+                console.error('Erro ao buscar anotações do paciente:', notesErr.message);
+                return res.status(500).json({ error: 'Erro interno ao buscar anotações.' });
+            }
+
+            res.json(notesResults);
+        });
+    });
+});
+
+
+// ---------- REGISTROS (MANTIDOS) ----------
 app.post('/registros', authMiddleware, (req, res) => {
   const { data, emocao, descricao } = req.body;
   connection.query(
@@ -682,7 +1019,7 @@ app.delete('/registros/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- COMENTÁRIOS ----------
+// ---------- COMENTÁRIOS (MANTIDOS) ----------
 
 app.post('/comentarios', authMiddleware, (req, res) => {
   const { id_registro, conteudo } = req.body;
@@ -719,7 +1056,7 @@ app.delete('/comentarios/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- CURTIDAS ----------
+// ---------- CURTIDAS (MANTIDAS) ----------
 
 app.post('/curtidas', authMiddleware, (req, res) => {
   const { id_registro } = req.body;
@@ -744,11 +1081,12 @@ app.delete('/curtidas/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- ANOTAÇÕES ----------
+// ---------- ANOTAÇÕES DE PACIENTE (MANTIDAS para anotações GERAIS/antigas) ----------
 
 app.post('/pacientes', authMiddleware, (req, res) => {
   const { id_usuario, conteudo } = req.body;
   connection.query(
+    // Esta rota é para anotações que NÃO ESTÃO VINCULADAS A UMA CONSULTA ESPECÍFICA (id_consulta = NULL)
     'INSERT INTO anotacao_paciente (id_psicologo, id_usuario, data_anotacao, conteudo) VALUES (?, ?, CURDATE(), ?)',
     [req.userId, id_usuario, conteudo],
     (err, result) => {

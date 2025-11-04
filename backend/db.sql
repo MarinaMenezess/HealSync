@@ -38,7 +38,7 @@ FOREIGN KEY (id_conversa) REFERENCES ia_conversa(id_conversa) ON DELETE CASCADE
 );
 
 -- Tabela: solicitacao_consulta
--- NOVO: Adicionado campo 'motivo' para a descrição da consulta.
+-- NOVO: Adicionado campo 'motivo' e corrigido ENUM para incluir 'confirmada'
 CREATE TABLE solicitacao_consulta (
 id_solicitacao INT AUTO_INCREMENT PRIMARY KEY,
 id_paciente INT NOT NULL,
@@ -46,12 +46,11 @@ id_psicologo INT NOT NULL,
 data_solicitada DATETIME NOT NULL,
 motivo TEXT NOT NULL, -- CAMPO ADICIONADO: Descrição/Motivação da solicitação
 motivo_recusa TEXT DEFAULT NULL, -- Campo para motivo de recusa (mantido)
-status ENUM('pendente', 'aceita', 'recusada') NOT NULL DEFAULT 'pendente',
+status ENUM('pendente', 'aceita', 'recusada', 'confirmada') NOT NULL DEFAULT 'pendente', -- STATUS 'confirmada' ADICIONADO
+duracao_ms BIGINT DEFAULT NULL, -- COLUNA ADICIONADA PARA O TEMPO DO CRONÔMETRO
 FOREIGN KEY (id_paciente) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
 FOREIGN KEY (id_psicologo) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
-
--- Tabela: consulta (REMOVIDA a definição anterior)
 
 -- Tabela: registro_progresso
 CREATE TABLE registro_progresso (

@@ -435,8 +435,10 @@ function renderHistoryNoteCard(note) {
 
 
     card.innerHTML = `
-        <h4>Anotação de ${formattedDate.split(' - ')[0]}</h4>
-        <div class="note-content-preview">${note.conteudo.substring(0, 150)}...</div>
+        <div>
+            <h4>Anotação de ${formattedDate.split(' - ')[0]}</h4>
+            <div class="note-content-preview">${note.conteudo.substring(0, 150)}...</div>
+        </div>
         ${buttonHtml}
     `;
     

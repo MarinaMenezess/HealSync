@@ -940,11 +940,12 @@ main > svg {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.164);
+  background-color: rgba(0, 0, 0, 0.5); /* Aumentado para melhor visibilidade */
   display: none;
   justify-content: center;
   align-items: center;
   z-index: 1001;
+  overflow-y: auto; /* CORREÇÃO: Permite rolagem no container */
 }
 
 .modal-container.active {
@@ -963,6 +964,7 @@ main > svg {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin: 40px auto; /* CORREÇÃO: Garante centralização vertical e horizontal com overflow */
 }
 
 .modal-header {
@@ -2254,72 +2256,6 @@ main > svg {
 .notes-section h2 {
     color: #f1eee4;
     font-weight: 700;
-}
-
-.note-card {
-    background: rgba(255, 255, 255, 0.15); /* Fundo um pouco mais claro para destaque */
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    padding: 15px;
-    border-radius: 6px;
-    margin-bottom: 15px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.note-card:hover {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-.note-card h5 {
-    font-size: 1.1em;
-    margin-bottom: 5px;
-    color: #7873f5;
-    font-weight: 600;
-}
-
-.note-card p {
-    white-space: pre-wrap;
-    color: #f1eee4;
-    margin: 0;
-    font-size: 0.95em;
-}
-
-/* Estilos para Status Badges */
-.status-badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.85em;
-    font-weight: 600;
-    color: #fff;
-}
-.status-pending { background-color: #ffc107; color: #3b3b3b; }
-.status-scheduled { background-color: #007bff; }
-.status-rejected { background-color: #dc3545; }
-.status-confirmed { background-color: #28a745; }
-
-/* Botão de Adicionar Anotação */
-#add-note-btn {
-    background-color: #7873f5;
-    color: #f1eee4;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: background-color 0.3s;
-    text-decoration: none; /* Garante que o link não seja sublinhado */
-}
-#add-note-btn:hover {
-    background-color: #615ec7;
-}
-
-.notes-section {
-    margin-top: 40px;
-}
-
-.notes-section h2 {
-    color: #f1eee4;
-    font-weight: 700;
     margin-bottom: 20px;
 }
 
@@ -2357,7 +2293,7 @@ main > svg {
 }
 
 /* Estilo para o botão de Salvar Anotação (save-button) */
-#save-session-note-btn {
+.save-button {
   background-color: #7873f5;
   color: #f1eee4;
   border: none;
@@ -2369,7 +2305,7 @@ main > svg {
   align-self: flex-start;
 }
 
-#save-session-note-btn:hover {
+.save-button:hover {
   background-color: #615ec7;
 }
 
@@ -2381,7 +2317,6 @@ main > svg {
     padding: 20px;
     color: #f1eee4;
     text-align: left;
-    /* Remover margin-bottom para não duplicar o espaçamento do notes-area */
     margin-bottom: 0; 
     width: 100%;
 }
@@ -2437,25 +2372,26 @@ main > svg {
 /* Estilo para o histórico de anotações */
 .history-card {
     border-left: 5px solid #7ba6dd; /* Cor diferente para diferenciar do card da sessão atual */
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .history-card div{
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .view-note-btn{
-  display: flex;
-  max-width: 25%;
-  height: 30px;
-  justify-content: center;
-  align-items: center;
+    display: flex;
+    max-width: 25%;
+    height: 30px;
+    justify-content: center;
+    align-items: center;
 }
+
 /* --------------- ESTILIZAÇÃO PARA O CRONÔMETRO (consulta.html) --------------- */
 
 .stopwatch-container {

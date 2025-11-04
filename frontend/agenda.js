@@ -1,15 +1,15 @@
-// ARQUIVO: frontend/agenda.js (COMPLETO E CORRIGIDO PARA CARREGAMENTO DE EVENTOS)
+// ARQUIVO: frontend/agenda.js (COMPLETO E CORRIGIDO)
 
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
     
     // Elementos do Modal de Agendamento
     var modalContainer = document.getElementById('modal-container'); 
-    // CORREÇÃO: Necessário ter um container de modal de visualização no HTML para o usuário paciente
     var viewModalContainer = document.getElementById('view-appointment-modal-container'); 
     
     var eventDateInput = document.getElementById('event-date');
-    var eventTitleInput = document.getElementById('event-title');
+    // MODIFICADO: Seleciona o novo campo textarea
+    var eventMotivationTextarea = document.getElementById('event-motivation');
     var eventTimeInput = document.getElementById('event-time');
     var doctorSelect = document.getElementById('doctor-select'); 
     var createBtnModal = document.getElementById('create-btn-modal');
@@ -33,13 +33,19 @@ document.addEventListener('DOMContentLoaded', function() {
   
     // =========================================================================
     // FUNÇÃO AUXILIAR: Obtém o perfil do usuário
-    // Assume que a role está armazenada no localStorage.
     // =========================================================================
     function getUserRole() {
-        // A função deve ser implementada para retornar o perfil correto do usuário logado.
-        // Se a role não estiver definida, o comportamento padrão será abrir o modal (comportamento paciente).
-        // Exemplo: 'psicologo' ou 'paciente'.
-        return localStorage.getItem('userRole'); 
+        const userJson = localStorage.getItem('user');
+        if (userJson) {
+            try {
+                const user = JSON.parse(userJson);
+                return user.is_psicologo ? 'psicologo' : 'paciente';
+            } catch (e) {
+                console.error("Erro ao parsear user do localStorage:", e);
+                return null;
+            }
+        }
+        return null;
     }
 
     // 1. Função para ler parâmetros da URL
@@ -86,9 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 doctorSelect.appendChild(option);
             }
             
-            if (eventTitleInput) {
-                eventTitleInput.value = `Consulta com ${psyName}`;
-            }
+            // REMOVIDA A PRÉ-DEFINIÇÃO DO TÍTULO/MOTIVAÇÃO NO FRONTEND
             
             shouldOpenModal = true;
   
@@ -120,7 +124,6 @@ document.addEventListener('DOMContentLoaded', function() {
   
         if (!token) {
             console.error('Token JWT não encontrado. Falha ao carregar eventos.');
-            alert('Sessão expirada. Por favor, faça login novamente.');
             if (failureCallback) failureCallback();
             return;
         }
@@ -178,8 +181,9 @@ document.addEventListener('DOMContentLoaded', function() {
              doctorSelect.innerHTML = '<option value="">Selecione um profissional</option>';
         }
         
-        if (eventTitleInput) {
-            eventTitleInput.focus();
+        // Foca no novo campo de motivação
+        if (eventMotivationTextarea) {
+            eventMotivationTextarea.focus();
         }
       },
       
@@ -204,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
               const eventTime = formatEventTime(startDateTime);
       
               // Preenche o modal de visualização
-              if (viewTitle) viewTitle.textContent = event.title;
+              if (viewTitle) viewTitle.textContent = event.title; // O título agora contém a motivação + nome do profissional
               if (viewDate) viewDate.textContent = eventDate;
               if (viewTime) viewTime.textContent = eventTime;
               if (viewDoctor) viewDoctor.textContent = extendedProps.contactName || 'Não informado'; 
@@ -261,16 +265,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   
   
-    // 6. Lógica de agendamento (MANTIDA)
+    // 6. Lógica de agendamento (MODIFICADA para usar motivation)
     if (createBtnModal) {
         createBtnModal.addEventListener('click', async function() {
-          var title = eventTitleInput.value;
+          // MODIFICADO: Pega o valor da textarea e usa 'motivation'
+          var motivation = eventMotivationTextarea.value;
           var date = eventDateInput.value;
           var time = eventTimeInput.value;
           var selectedPsyId = doctorSelect.value;
           var selectedPsyName = doctorSelect.options[doctorSelect.selectedIndex].text;
   
-          if (title && date && time && selectedPsyId) {
+          // MODIFICADO: Validação usa 'motivation'
+          if (motivation && date && time && selectedPsyId) {
             
             const BACKEND_URL = 'http://localhost:3000'; 
             const token = localStorage.getItem('jwt');
@@ -280,7 +286,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
   
             const appointmentData = {
-                titulo: title,
+                // IMPORTANTE: O backend espera o campo 'titulo', que agora contém a motivação
+                titulo: motivation,
                 data: date,
                 hora: time,
                 id_psicologo: selectedPsyId,
@@ -302,7 +309,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     calendar.refetchEvents();
                     
-                    eventTitleInput.value = '';
+                    // Limpa os campos
+                    eventMotivationTextarea.value = '';
                     eventTimeInput.value = '';
                     if (modalContainer) {
                         modalContainer.classList.remove('active');

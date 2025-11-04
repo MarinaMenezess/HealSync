@@ -81,8 +81,10 @@ function renderConsultationCard(consultation) {
     }
     
     card.innerHTML = `
-        <h4>${formattedDate}</h4>
-        <p>Motivação: ${consultation.motivo || 'N/A'}</p>
+        <div>
+            <h4>${formattedDate}</h4>
+            <p>Motivação: ${consultation.motivo || 'N/A'}</p>
+        </div>
         <div class="status-badge ${statusClass}">Status: ${statusDisplay}</div>
         ${rejectionReason}
     `;

@@ -153,50 +153,61 @@ function openModal() {
 }
 
 // =========================================================================
-// NOVO: Função para ajustar a navegação com base no perfil do usuário
+// NOVO: Função para ajustar a navegação e o acesso com base no perfil
 // =========================================================================
 function updateNavigationForUserRole() {
-    // O token JWT é salvo como 'jwt' no login.js, mas o perfil é salvo como 'user'.
     const userJson = localStorage.getItem('user');
-    const dynamicLink = document.getElementById('nav-dynamic-link');
+    // Renomeado para link2 para maior clareza, mas mantém o ID antigo como fallback.
+    const link2 = document.getElementById('nav-link-2') || document.getElementById('nav-dynamic-link'); 
+    const link3 = document.getElementById('nav-link-3'); 
 
-    if (!userJson || !dynamicLink) {
-        // Se o usuário não está logado ou o link dinâmico não existe, não faz nada.
+    // Verifica se o usuário está logado e se os elementos de navegação existem no DOM
+    if (!userJson || !link2 || !link3) {
         return;
     }
 
     try {
         const user = JSON.parse(userJson);
+        const currentPath = window.location.pathname;
         
-        // Verifica se o usuário tem perfil de psicólogo (is_psicologo: true)
+        // --- NAVEGAÇÃO PARA PSICÓLOGOS: Início | Consultas | Pacientes ---
         if (user.is_psicologo) {
-            // Se for psicólogo, muda o link para Consultas
-            dynamicLink.setAttribute('href', './consultas.html');
-            dynamicLink.textContent = 'Consultas';
+            // Link 2: Consultas
+            link2.setAttribute('href', './consultas.html');
+            link2.textContent = 'Consultas'; 
+
+            // Link 3: Pacientes (Exclusivo para Psicólogos)
+            link3.setAttribute('href', './pacientes.html');
+            link3.textContent = 'Pacientes';
+            
+            // --- LÓGICA DE REDIRECIONAMENTO PARA PSICÓLOGOS ---
+            // Impede acesso às páginas de paciente e redireciona para a principal do psicólogo
+            if (currentPath.includes('registers.html')) {
+                 window.location.replace('./consultas.html'); // Redirecionamento 1 (Diário)
+            } else if (currentPath.includes('chat.html')) {
+                window.location.replace('./pacientes.html'); // Redirecionamento 2 (Chat IA)
+            }
+
+        // --- NAVEGAÇÃO PARA USUÁRIOS COMUNS (PACIENTES): Início | Diário | Chat IA ---
         } else {
-            // Se for paciente, garante que o link seja Diário
-            dynamicLink.setAttribute('href', './registers.html');
-            dynamicLink.textContent = 'Diário';
+            // Link 2: Diário
+            link2.setAttribute('href', './registers.html');
+            link2.textContent = 'Diário';
+
+            // Link 3: Chat IA (Exclusivo para Comuns)
+            link3.setAttribute('href', './chat.html');
+            link3.textContent = 'Chat IA';
+            
+            // --- LÓGICA DE REDIRECIONAMENTO PARA PACIENTES ---
+            // Impede acesso às páginas de psicólogo e redireciona para a principal do paciente
+            if (currentPath.includes('consultas.html')) {
+                 window.location.replace('./registers.html'); // Redirecionamento 1 (Consultas)
+            } else if (currentPath.includes('pacientes.html')) {
+                 window.location.replace('./chat.html'); // Redirecionamento 2 (Pacientes)
+            }
         }
-
-        // Se o usuário psicólogo estiver na página Diário, ele deve ser redirecionado para Consultas
-        // Verifica se a página atual é registers.html
-        if (user.is_psicologo && window.location.pathname.includes('registers.html')) {
-             // Redireciona para consultas.html
-             window.location.replace('./consultas.html');
-        }
-
-        // Se o usuário paciente estiver na página Consultas, ele deve ser redirecionado para Diário
-        if (!user.is_psicologo && window.location.pathname.includes('consultas.html')) {
-             // Redireciona para registers.html
-             window.location.replace('./registers.html');
-        }
-
-
     } catch (e) {
         console.error('Erro ao processar dados do usuário no localStorage:', e);
-        // Opcional: Em caso de erro de parsing, redireciona para o login para evitar estado inconsistente
-        // window.location.href = 'login.html'; 
     }
 }
 
@@ -241,4 +252,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-

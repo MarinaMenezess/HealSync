@@ -2510,3 +2510,9 @@ main > svg {
     justify-content: center;
     align-items: center;
 }
+
+#pacientes-main{
+  display: flex;
+  flex-direction: column;
+  width: 70vw;
+}

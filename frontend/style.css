@@ -2338,6 +2338,21 @@ main > svg {
     align-items: flex-start;
 }
 
+/* Estilos para Status Badges */
+.status-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    font-weight: 600;
+    color: #fff;
+}
+.status-pending { background-color: #ffc107; color: #3b3b3b; }
+.status-scheduled { background-color: #007bff; }
+.status-rejected { background-color: #dc3545; }
+.status-confirmed { background-color: #28a745; }
+
+
 .consultation-info-box p {
     margin-bottom: 8px;
     font-size: 17px;

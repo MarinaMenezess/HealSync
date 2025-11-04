@@ -1,15 +1,24 @@
-// ARQUIVO: frontend/registers.js (NOVO)
+// ARQUIVO: frontend/registers.js (CORRIGIDO PARA TRATAR FORMATO DE DATA)
 
 const BACKEND_URL = 'http://localhost:3000';
 
-// Função auxiliar para formatar a data (AAAA-MM-DD para DD/MM/AAAA)
+// Função auxiliar para formatar a data (espera AAAA-MM-DD ou AAAA-MM-DDTHH:MM:SS.sssZ e retorna DD/MM/AAAA)
 function formatDisplayDate(dateString) {
     if (!dateString) return 'Data não informada';
-    // Espera YYYY-MM-DD, devolve DD/MM/AAAA
-    const parts = dateString.split('-');
+
+    // 1. Isola apenas a parte da data (YYYY-MM-DD), ignorando o tempo e fuso horário.
+    const datePart = dateString.split('T')[0];
+    
+    // 2. Divide a string no formato AAAA-MM-DD
+    const parts = datePart.split('-');
+    
     if (parts.length === 3) {
+        // 3. Reorganiza para DD/MM/AAAA
+        // parts[0] = YYYY, parts[1] = MM, parts[2] = DD
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
+    
+    // 4. Se o formato for inesperado, retorna a string original.
     return dateString;
 }
 
@@ -31,12 +40,15 @@ function renderRegisterCard(register) {
     const preview = register.descricao ? register.descricao.split('\n')[0].substring(0, 70) : 'Sem descrição.';
 
     card.innerHTML = `
-        <div>
+        <div class="register-card-header">
             <h4>${emotion.toUpperCase()}</h4>
             <span class="date">${formattedDate}</span>
         </div>
         <p style="font-size: 0.9em; color: #d4d4d4; text-align: left;">${preview}</p>
-        <div style="display: flex; justify-content: flex-end; width: 100%;">
+        <div style="display: flex; justify-content: flex-end; width: 100%; gap: 10px;">
+            <button class="publish-btn" onclick="event.stopPropagation(); alert('Publicar Registro ID: ${register.id_registro}')">
+                Publicar
+            </button>
             <button class="publish-btn" onclick="event.stopPropagation(); alert('Editar Registro ID: ${register.id_registro}')">
                 Editar
             </button>

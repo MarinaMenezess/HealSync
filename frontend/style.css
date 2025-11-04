@@ -405,7 +405,7 @@ textarea:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%;
+  width: 70vw;
   margin: 0 auto 3%;
   padding: 0 5%;
 }
@@ -414,6 +414,11 @@ textarea:focus {
   font-weight: 700;
   color:#7873f5;
   font-size: 2.5rem;
+}
+
+.register-card-header{
+  display: flex;
+  justify-content: space-between;
 }
 
 .create-btn {
@@ -889,9 +894,9 @@ h1{
 }
 
 .fc-button-primary:hover {
-  box-shadow: 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2), inset 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2) !important;
-  outline-color: rgba(255, 255, 255, 0) !important;
-  text-shadow: 1px 1px 2px #b5babd !important;
+  box-shadow: 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2), inset 0 0 20px rgba(255, 255, 255, .5), 0 0 20px rgba(255, 255, 255, .2);
+  outline-color: rgba(255, 255, 255, 0);
+  text-shadow: 1px 1px 2px #b5babd;
 }
 
 /* Estilos para os dias da semana e datas */
@@ -934,6 +939,25 @@ main > svg {
 }
 
 /* Modal de agendamento */
+#modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Aumentado para melhor visibilidade */
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999; /* CORRIGIDO: Aumento do z-index para garantir a sobreposição */
+  overflow-y: auto; /* CORREÇÃO: Permite rolagem no container */
+}
+
+#modal-container.active {
+  display: flex;
+}
+
+/* Modal de agendamento */
 .modal-container {
   position: fixed;
   top: 0;
@@ -944,7 +968,7 @@ main > svg {
   display: none;
   justify-content: center;
   align-items: center;
-  z-index: 1001;
+  z-index: 9999; /* CORRIGIDO: Aumento do z-index para garantir a sobreposição */
   overflow-y: auto; /* CORREÇÃO: Permite rolagem no container */
 }
 
@@ -964,7 +988,7 @@ main > svg {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  margin: 40px auto; /* CORREÇÃO: Garante centralização vertical e horizontal com overflow */
+  margin: auto; /* CORRIGIDO: Permite centralização vertical pelo flex container */
 }
 
 .modal-header {
@@ -1749,6 +1773,86 @@ main > svg {
   fill: #6a49b4;
 }
 
+/* --------------- ESTILIZAÇÃO PARA O CRONÔMETRO (consulta.html) --------------- */
+
+.stopwatch-container {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stopwatch-display p {
+    font-size: 0.85em;
+    color: #f1eee4;
+    margin: 0;
+}
+
+#stopwatch-time {
+    font-size: 2.5em;
+    font-weight: 700;
+    color: #7873f5;
+    margin: 5px 0 0;
+    letter-spacing: 2px;
+}
+
+.stopwatch-actions {
+    display: flex;
+    gap: 15px;
+}
+
+.stopwatch-actions button {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    color: #f1eee4;
+    min-width: 100px;
+}
+
+.start-stop-btn {
+    background-color: #28a745; /* Verde para Iniciar */
+}
+
+.start-stop-btn.stop-btn {
+    background-color: #dc3545; /* Vermelho para Parar */
+}
+
+.reset-btn {
+    background-color: #777;
+}
+
+.start-stop-btn:hover {
+    background-color: #218838;
+}
+
+.start-stop-btn.stop-btn:hover {
+    background-color: #c82333;
+}
+
+.reset-btn:not([disabled]):hover {
+    background-color: #555;
+}
+
+.stopwatch-actions button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsividade */
+@media (max-width: 600px) {
+  .content-container {
+    padding: 10px;
+  }
+}
+
 /* --------------- ESTILIZAÇÃO PARA A PÁGINA consultas.html --------------- */
 #consultas-main{
   display: flex;
@@ -1917,7 +2021,7 @@ main > svg {
   display: none; /* Inicia oculto */
   justify-content: center;
   align-items: center;
-  z-index: 1002; /* Garante que fique acima de outros modais */
+  z-index: 9999; /* Garante que fique acima de outros modais */
 }
 
 #reason-modal-container.active {
@@ -2390,84 +2494,4 @@ main > svg {
     height: 30px;
     justify-content: center;
     align-items: center;
-}
-
-/* --------------- ESTILIZAÇÃO PARA O CRONÔMETRO (consulta.html) --------------- */
-
-.stopwatch-container {
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    border-radius: 10px;
-    padding: 20px;
-    margin-bottom: 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.stopwatch-display p {
-    font-size: 0.85em;
-    color: #f1eee4;
-    margin: 0;
-}
-
-#stopwatch-time {
-    font-size: 2.5em;
-    font-weight: 700;
-    color: #7873f5;
-    margin: 5px 0 0;
-    letter-spacing: 2px;
-}
-
-.stopwatch-actions {
-    display: flex;
-    gap: 15px;
-}
-
-.stopwatch-actions button {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 20px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    color: #f1eee4;
-    min-width: 100px;
-}
-
-.start-stop-btn {
-    background-color: #28a745; /* Verde para Iniciar */
-}
-
-.start-stop-btn.stop-btn {
-    background-color: #dc3545; /* Vermelho para Parar */
-}
-
-.reset-btn {
-    background-color: #777;
-}
-
-.start-stop-btn:hover {
-    background-color: #218838;
-}
-
-.start-stop-btn.stop-btn:hover {
-    background-color: #c82333;
-}
-
-.reset-btn:not([disabled]):hover {
-    background-color: #555;
-}
-
-.stopwatch-actions button[disabled] {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-/* Responsividade */
-@media (max-width: 600px) {
-  .content-container {
-    padding: 10px;
-  }
 }

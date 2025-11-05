@@ -1,6 +1,21 @@
-// ARQUIVO: frontend/registers.js (COMPLETO E ATUALIZADO PARA BLOQUEIO)
+// ARQUIVO: frontend/registers.js (COMPLETO E ATUALIZADO PARA BLOQUEIO VISUAL)
 
 const BACKEND_URL = 'http://localhost:3000';
+
+// Adicionado função auxiliar para obter o status de inativação
+function getLoggedInUserPostingStatus() {
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+        try {
+            const user = JSON.parse(userJson);
+            // Retorna TRUE se a conta estiver ATIVA, FALSE se estiver inativa (0)
+            return user.is_active_for_posting === 1 || user.is_active_for_posting === true; 
+        } catch (e) {
+            console.error("Erro ao ler status de posting:", e);
+        }
+    }
+    return true; // Assume true se não há dados de login
+}
 
 // Função auxiliar para formatar a data (espera AAAA-MM-DD ou AAAA-MM-DDTHH:MM:SS.sssZ e retorna DD/MM/AAAA)
 function formatDisplayDate(dateString) {
@@ -14,11 +29,9 @@ function formatDisplayDate(dateString) {
     
     if (parts.length === 3) {
         // 3. Reorganiza para DD/MM/AAAA
-        // parts[0] = YYYY, parts[1] = MM, parts[2] = DD
         return `${parts[2]}/${parts[1]}/${parts[0]}`;
     }
     
-    // 4. Se o formato for inesperado, retorna a string original.
     return dateString;
 }
 
@@ -26,18 +39,17 @@ function formatDisplayDate(dateString) {
 async function publishRegister(registerId) {
     const token = localStorage.getItem('jwt');
     // Verifica a inativação antes de iniciar a ação
-    const userJson = localStorage.getItem('user');
-    if (userJson) {
-        const user = JSON.parse(userJson);
-        if (user.is_active_for_posting === 0 || user.is_active_for_posting === false) {
-             alert('Sua conta foi inativada para novas postagens e comentários devido a múltiplas denúncias.');
-             return;
-        }
+    if (!getLoggedInUserPostingStatus()) {
+         alert('Sua conta foi inativada para novas postagens e comentários devido a múltiplas denúncias.');
+         return;
     }
-    // Fim da verificação
 
     if (!token) {
         alert('Sessão expirada. Por favor, faça login novamente.');
+        return;
+    }
+
+    if (!confirm('Tem certeza que deseja publicar este registro?')) {
         return;
     }
 
@@ -55,6 +67,10 @@ async function publishRegister(registerId) {
             alert(result.mensagem);
             // Recarrega a lista para refletir a mudança de status
             loadUserRegisters(); 
+        } else if (response.status === 403) { 
+             // Captura o bloqueio do servidor para publicação/edição
+             const error = await response.json();
+             alert(error.error);
         } else {
             alert(`Falha ao publicar registro: ${result.error || response.statusText}`);
         }
@@ -68,37 +84,37 @@ async function publishRegister(registerId) {
 function renderRegisterCard(register) {
     const card = document.createElement('div');
     card.classList.add('register-card');
-    // Adiciona link para a página de visualização/edição completa (assumindo que existe)
+    
     card.setAttribute('data-register-id', register.id_registro);
-    // Link de navegação (apenas para exemplo, a rota view-register.html precisa ser criada)
     card.onclick = () => {
         alert(`Redirecionando para a visualização do Registro ID: ${register.id_registro}`);
-        // window.location.href = `./view-register.html?registerId=${register.id_registro}`;
     };
 
     const formattedDate = formatDisplayDate(register.data);
     const emotion = register.emocao || 'Não informado';
-    // Exibe apenas a primeira linha da descrição
     const preview = register.descricao ? register.descricao.split('\n')[0].substring(0, 70) : 'Sem descrição.';
 
     // Novos campos de status
     const isPublic = register.is_public == 1 || register.is_public === true;
     const isDenounced = register.is_denounced == 1 || register.is_denounced === true; 
+    const isActive = getLoggedInUserPostingStatus(); // Verifica o status de inativação
+
     
     let actionButtonsHTML = '';
     
-    // Lógica para o botão de status e ações
+    // 1. Lógica de sinalização Denunciado (Prioridade máxima)
     if (isDenounced) {
-        // Se denunciado: Apenas a sinalização e botões desabilitados
-        actionButtonsHTML = `
-            <p style="color: #dc3545; font-weight: bold; margin: 0; padding: 4px 8px; border: 1px solid #dc3545; border-radius: 4px; background-color: #3b1b1b;">DENUNCIADO</p>
-            <button class="published-btn" disabled style="cursor: default;">Editar</button>
-        `;
-    } else {
-        // Se não denunciado: Botões de Publicar/Público e Editar
+        actionButtonsHTML = `<p style="color: #dc3545; font-weight: bold; margin: 0; padding: 4px 8px; border: 1px solid #dc3545; border-radius: 4px; background-color: #3b1b1b;">DENUNCIADO</p>`;
+    } 
+    // 2. Lógica de Bloqueio Visual para Usuário Inativado
+    else if (!isActive) {
+         actionButtonsHTML = `<p style="color: #ffc107; font-weight: bold; margin: 0; padding: 4px 8px; border: 1px solid #ffc107; border-radius: 4px; background-color: #3b301b;">BLOQUEADO</p>`;
+         // Não exibe os botões de Publicar/Editar
+    }
+    // 3. Lógica para Usuário Ativo e Não Denunciado
+    else {
         const publishButton = isPublic ? 
             `<button class="published-btn" disabled style="background-color: #28a745; cursor: default;">Público</button>` : 
-            // Permite a publicação (chama a função que verifica a inativação no clique)
             `<button class="publish-btn" onclick="event.stopPropagation(); publishRegister(${register.id_registro})">
                 Publicar
             </button>`;
@@ -145,7 +161,6 @@ async function loadUserRegisters() {
     }
 
     try {
-        // A rota agora retorna o campo is_denounced e is_public
         const response = await fetch(`${BACKEND_URL}/registros`, {
             method: 'GET',
             headers: {

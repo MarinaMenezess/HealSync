@@ -291,6 +291,9 @@ textarea:focus {
   min-width: 700px;
   margin: 0 auto 0;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
 }
 
 .title {
@@ -306,7 +309,6 @@ textarea:focus {
   border-radius: 20px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   padding: 20px;
-  margin-bottom: 20px;
   transition: 0.3s ease;
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.3);
@@ -394,6 +396,17 @@ textarea:focus {
   transform: scale(1.08);
 }
 
+.top-right-buttons button{
+  border-style: none;
+  background-color: transparent;
+  transition: 0.2s;
+  cursor: pointer;
+}
+
+.top-right-buttons button:hover{
+    transform: scale(1.08);
+}
+
 /* --------------- ESTILIZAÇÃO PARA A PÁGINA REGISTERS.HTML --------------- */
 
 /* Container principal para os registros */
@@ -404,6 +417,37 @@ textarea:focus {
   width: 100%;
   justify-content: flex-start;
   padding: 0 5%;
+}
+
+.register-view-main{
+  display: flex;
+  flex-direction: column;
+  width: 60vw;
+  gap: 20px;
+}
+
+#comment-form{
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+#comment-textarea{
+  width: 80%;
+  margin-bottom: 0%;
+  height: 40px;
+}
+
+#comment-form button{
+  width: 20%;
+}
+
+#comments-list{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 /* Estilo para o título "Seus Registros" e o botão "Criar" */
@@ -1393,13 +1437,13 @@ main > svg {
     background-color: #8260d1;
 }
 
-.logout-btn, .cancel-edit-btn, .report-btn {
+.logout-btn, .cancel-edit-btn, .report-btn, .back-button {
     background-color: transparent;
     border: 2px solid #f1eee4;
     color: #f1eee4;
 }
 
-.logout-btn:hover, .cancel-edit-btn:hover, .report-btn:hover {
+.logout-btn:hover, .cancel-edit-btn:hover, .report-btn:hover, .back-button:hover {
     background-color: #f1eee4;
     color: #3b3b3b;
 }
@@ -1424,7 +1468,7 @@ main > svg {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     position: fixed; /* Fixa o card na tela */
     top: 25vh; /* Posiciona abaixo do header */
-    left: 4%; /* Define a margem da esquerda */
+    left: 6%; /* Define a margem da esquerda */
     text-align: center;
 }
 
@@ -1617,6 +1661,16 @@ main > svg {
   width: 100%;
 }
 
+.back-button{
+  padding: 12px 25px;
+  border-radius: 25px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  width: 15%;
+}
+
 .register-post-container {
   max-width: 700px;
   width: 100%;
@@ -1632,6 +1686,10 @@ main > svg {
   padding: 30px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   margin-bottom: 25px;
+}
+
+.full-post-card{
+  margin-bottom: 0%;
 }
 
 /* Estilização da seção de comentários */

@@ -17,12 +17,6 @@ function openModal() {
         }
     }
 
-    if (!is_active_for_posting) {
-        alert('Sua conta foi inativada para novas postagens e comentários devido a múltiplas denúncias. Por favor, entre em contato com o suporte.');
-        return; 
-    }
-    // FIM DA CORREÇÃO
-
     // Cria o container principal do modal
     const modalContainer = document.createElement('div');
     modalContainer.id = 'modal-container';
@@ -165,7 +159,7 @@ function openModal() {
                 // Recarrega a página para exibir o novo registro
                 window.location.reload(); 
             } else if (response.status === 403) { 
-                 // CORREÇÃO: Trata a inativação vinda do servidor
+                 // Trata a inativação vinda do servidor
                  const error = await response.json();
                  alert(error.error);
                  closeModal();

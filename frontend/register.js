@@ -1,157 +1,246 @@
-// frontend/register.js (Usando o SDK Modular do Firebase)
+// ARQUIVO: frontend/register.js (LÓGICA DE VISUALIZAÇÃO DE POST E COMENTÁRIOS)
 
-// Importa as funções necessárias do SDK
-import { initializeApp } from "firebase/app";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-// getAnalytics não é necessário para esta lógica de registro, então foi removido.
+const BACKEND_URL = 'http://localhost:3000';
 
-// Sua configuração do Firebase (fornecida pelo Firebase Console)
-const firebaseConfig = {
-  apiKey: "AIzaSyBzkSk84GLdKeEkLyUOStXtYHr5tfpJBak",
-  authDomain: "healsync-cd5a6.firebaseapp.com",
-  projectId: "healsync-cd5a6",
-  storageBucket: "healsync-cd5a6.firebasestorage.app",
-  messagingSenderId: "133723858575",
-  appId: "1:133723858575:web:1fc432b178c1fbf7e2b2fa",
-  measurementId: "G-3B9V19FSGF"
-};
+function getRegisterIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return parseInt(params.get('id'), 10);
+}
 
-// Inicializa o Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app); // Obtém a instância do serviço de autenticação
+function formatTimeAgo(dateString) {
+    if (!dateString) return "Data inválida";
+    const now = new Date();
+    // Cria um objeto Date corrigindo o formato MySQL (YYYY-MM-DD HH:MM:SS)
+    const past = new Date(dateString.replace(' ', 'T')); 
+    if (isNaN(past)) return "Data inválida";
+    
+    const diffInSeconds = Math.floor((now - past) / 1000);
 
-document.addEventListener('DOMContentLoaded', () => {
-  // Seu código existente para converter input em textarea (mantido)
-  const container = document.querySelector('.comentar');
-  if (container) {
-    const initialInput = document.querySelector('.comentar input');
-
-    const toTextarea = () => {
-      if (container.querySelector('textarea')) return;
-      const inputElement = container.querySelector('input');
-      const textareaElement = document.createElement('textarea');
-      textareaElement.placeholder = inputElement.placeholder;
-      textareaElement.className = 'comentar-textarea';
-      textareaElement.value = inputElement.value;
-      textareaElement.rows = "3";
-      textareaElement.style.height = 'auto';
-      textareaElement.style.height = (textareaElement.scrollHeight) + 'px';
-      container.replaceChild(textareaElement, inputElement);
-      textareaElement.focus();
-      textareaElement.addEventListener('blur', toInput);
-    };
-
-    const toInput = () => {
-      if (container.querySelector('input')) return;
-      const textareaElement = container.querySelector('textarea');
-      const inputElement = document.createElement('input');
-      inputElement.type = 'text';
-      inputElement.placeholder = textareaElement.placeholder;
-      inputElement.className = 'comentar-input';
-      inputElement.value = textareaElement.value;
-      container.replaceChild(inputElement, textareaElement);
-      inputElement.addEventListener('focus', toTextarea);
-    };
-
-    if(initialInput) {
-        initialInput.addEventListener('focus', toTextarea);
+    if (diffInSeconds < 60) {
+        return "há poucos segundos";
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `há ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `há ${hours} hora${hours > 1 ? 's' : ''}`;
+    } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `há ${days} dia${days > 1 ? 's' : ''}`;
     }
-  }
+}
 
-  // Código para o formulário de registro
-  const registerForm = document.getElementById('register-form'); 
+function getLoggedInUserId() {
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+        try {
+            const userData = JSON.parse(userJson);
+            // Retorna o ID do usuário como Number.
+            return Number(userData.id_usuario); 
+        } catch (e) {
+            return null;
+        }
+    }
+    return null;
+}
 
-  if (registerForm) {
-    registerForm.addEventListener('submit', async (event) => {
-      event.preventDefault();
+// Verifica se o usuário tem permissão para postar/comentar
+function getLoggedInUserPostingStatus() {
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+        try {
+            const user = JSON.parse(userJson);
+            // Retorna TRUE se a conta estiver ATIVA (1 ou true), FALSE caso contrário.
+            return user.is_active_for_posting === 1 || user.is_active_for_posting === true; 
+        } catch (e) {
+            return false;
+        }
+    }
+    return false; // Assume false se não há dados de login
+}
 
-      const formData = new FormData(registerForm);
-      const data = Object.fromEntries(formData.entries());
 
-      const email = data.email;
-      const senha = data.senha; 
-      // A variável isPsicologoBoolean não é usada no registro inicial (/register)
-      // const isPsicologoBoolean = data.is_psicologo === 'on';
+// =========================================================================
+// RENDERIZAÇÃO
+// =========================================================================
 
-      let firebaseIdToken = null;
+function renderPost(post) {
+    const postContainer = document.getElementById('post-container');
+    const timeAgo = formatTimeAgo(post.data);
+    const emotionTitle = post.emocao ? post.emocao.toUpperCase() : 'REGISTRO';
+    
+    // Conteúdo da postagem completa
+    postContainer.innerHTML = `
+        <div class="post-header-wrapper">
+            <a href="profile2.html?id=${post.id_autor}" class="profile-link">
+                <div class="post-header">
+                    <img src="../assets/user-default.svg" alt="Perfil" class="avatar">
+                    <div class="user-info">
+                        <strong class="username">${post.nome_usuario || 'Usuário Anônimo'}</strong>
+                        <span class="time">${timeAgo}</span>
+                    </div>
+                </div>
+            </a>
+            </div>
+        <div class="post-content">
+            <p style="font-size: 1.2em; font-weight: bold; color: #ddd;">[${emotionTitle}]</p>
+            <p>${post.descricao}</p>
+        </div>
+        <div class="post-actions">
+            </div>
+    `;
+}
 
-      try {
-        // ----------------------------------------------------
-        // ETAPA 1: REGISTRO NO FIREBASE AUTHENTICATION
-        // Usa a função modular 'createUserWithEmailAndPassword'
-        // ----------------------------------------------------
-        const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-        const firebaseUser = userCredential.user;
+function renderComments(comments) {
+    const commentsList = document.getElementById('comments-list');
+    commentsList.innerHTML = '';
+
+    if (comments.length === 0) {
+        commentsList.innerHTML = '<p style="color: #ccc; text-align: center;">Seja o primeiro a comentar!</p>';
+        return;
+    }
+
+    comments.forEach(comment => {
+        const commentDiv = document.createElement('div');
+        commentDiv.classList.add('coment-card');
         
-        // Obtém o ID Token para enviar ao seu backend
-        firebaseIdToken = await firebaseUser.getIdToken();
+        const timeAgo = formatTimeAgo(comment.data_hora);
+
+        commentDiv.innerHTML = `
+            <div class="post-header">
+              <img src="../assets/user-default.svg" alt="Perfil" class="avatar">
+              <div class="user-info">
+                <strong class="username">${comment.nome_usuario || 'Usuário Anônimo'}</strong>
+                <span class="time">${timeAgo}</span>
+              </div>
+            </div>
+            <div class="post-content">
+              <p>${comment.conteudo}</p>
+            </div>
+        `;
+        commentsList.appendChild(commentDiv);
+    });
+}
+
+function renderCommentForm(registerId) {
+    const formContainer = document.getElementById('new-comment-form');
+    const isLoggedIn = getLoggedInUserId() !== null;
+    const isActive = getLoggedInUserPostingStatus();
+
+    if (!isLoggedIn) {
+        formContainer.innerHTML = '<p style="text-align: center;"><a href="login.html">Faça login</a> para comentar.</p>';
+        return;
+    }
+    
+    // Bloqueia a criação de comentários para usuário inativo
+    if (!isActive) {
+        formContainer.innerHTML = '<p style="color: #dc3545; text-align: center; font-weight: bold;">Sua conta está inativa para comentários.</p>';
+        return;
+    }
+
+
+    formContainer.innerHTML = `
+        <form id="comment-form" style="margin-bottom: 20px;">
+            <input id="comment-textarea" placeholder="Adicione um comentário..." required></input>
+            <button type="submit" class="create-btn">Comentar</button>
+        </form>
+    `;
+    
+    // Adicionar evento de submit ao novo formulário
+    document.getElementById('comment-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const content = document.getElementById('comment-textarea').value;
+        await postComment(registerId, content);
+    });
+}
+
+// =========================================================================
+// LÓGICA DE DADOS
+// =========================================================================
+
+async function fetchPostData(registerId) {
+    const token = localStorage.getItem('jwt');
+    // Adiciona Authorization apenas se o token existir
+    const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+
+    try {
+        const [postResponse, commentsResponse] = await Promise.all([
+            fetch(`${BACKEND_URL}/posts/${registerId}`, { headers }),
+            fetch(`${BACKEND_URL}/posts/${registerId}/comentarios`, { headers })
+        ]);
+
+        const post = await postResponse.json();
+        const comments = await commentsResponse.json();
+
+        if (postResponse.ok) {
+            renderPost(post);
+            renderCommentForm(registerId); // Passa o ID correto aqui
+            if (commentsResponse.ok) {
+                renderComments(comments);
+            } else {
+                console.error('Erro ao carregar comentários:', comments);
+                document.getElementById('comments-list').innerHTML = '<p style="color: #dc3545;">Erro ao carregar comentários.</p>';
+            }
+        } else {
+            // Se o post não for encontrado (404), pode ser porque ele foi denunciado ou arquivado
+            document.getElementById('post-container').innerHTML = `<p style="color: #dc3545; text-align: center;">${post.mensagem || 'Post não encontrado ou indisponível.'}</p>`;
+        }
         
-        // ----------------------------------------------------
-        // FIM DA ETAPA 1
-        // ----------------------------------------------------
+    } catch (error) {
+        console.error('Erro de rede ao buscar dados do post:', error);
+        document.getElementById('post-container').innerHTML = `<p style="color: #dc3545; text-align: center;">Erro de conexão com o servidor.</p>`;
+    }
+}
 
-        // Prepara os dados mínimos para o backend. 
-        // A rota '/register' só precisa do token e usa nome/email como fallback.
-        const profileData = {
-          nome: data.nome, // Enviado como fallback, mas o backend usa o nome do token se disponível
-          email: email
-        };
-        // Os campos 'data_nascimento', 'genero', 'is_psicologo', 'especialidade', 'contato' 
-        // não são mais necessários para o registro inicial na rota /register.
-
-        // -------------------------------------------------------------------
-        // ETAPA 2: REGISTRO SIMPLES NO BACKEND (MySQL) USANDO A ROTA CORRETA
-        // Rota CORRIGIDA para '/register'
-        // -------------------------------------------------------------------
-        const response = await fetch('http://localhost:3000/register', { 
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            // Envia o token do Firebase no cabeçalho 'Authorization'
-            'Authorization': `Bearer ${firebaseIdToken}` 
-          },
-          body: JSON.stringify(profileData),
+async function postComment(registerId, content) {
+    const token = localStorage.getItem('jwt');
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/comentarios`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                id_registro: registerId,
+                conteudo: content
+            })
         });
 
         if (response.ok) {
-          const result = await response.json();
-          console.log('Registro de usuário bem-sucedido (MySQL):', result);
-          // Redirecionar para a página de login
-          window.location.href = 'login.html';
+            document.getElementById('comment-textarea').value = '';
+            // Recarrega o conteúdo do post para melhor UX
+            fetchPostData(registerId); 
+        } else if (response.status === 403) {
+            const error = await response.json();
+            alert(error.error);
         } else {
-          const error = await response.json();
-          console.error('Erro no registro do perfil (Backend):', error.error);
-          
-          // Se o perfil falhar, notifica o usuário
-          alert(`Erro no registro do perfil: ${error.error}. Por favor, tente novamente.`);
+            const error = await response.json();
+            alert(`Falha ao postar comentário: ${error.error || response.statusText}`);
         }
-      } catch (error) {
-        // Captura erros do Firebase Auth (ex: e-mail já em uso, senha fraca) ou da requisição
-        let errorMessage = 'Erro desconhecido durante o registro.';
-        
-        // Tratar erros comuns do Firebase Auth
-        if (error.code) {
-            switch (error.code) {
-                case 'auth/email-already-in-use':
-                    errorMessage = 'O e-mail fornecido já está em uso.';
-                    break;
-                case 'auth/invalid-email':
-                    errorMessage = 'O formato do e-mail é inválido.';
-                    break;
-                case 'auth/weak-password':
-                    errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
-                    break;
-                default:
-                    errorMessage = `Erro de Autenticação: ${error.message}`;
-            }
-        } else {
-             // Outros erros de rede ou de código
-             errorMessage = `Erro na requisição: ${error.message || 'Não foi possível conectar ao servidor.'}`;
-        }
+    } catch (error) {
+        console.error('Erro de rede ao postar comentário:', error);
+        alert('Erro de rede ao postar comentário.');
+    }
+}
 
-        console.error('Erro de Autenticação/Requisição:', error);
-        alert(errorMessage);
-      }
-    });
-  }
+
+// =========================================================================
+// INICIALIZAÇÃO
+// =========================================================================
+
+const registroId = getRegisterIdFromUrl();
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Verifica se a página está sendo usada para visualização de um post (se tem ID na URL)
+    if (!registroId || isNaN(registroId)) {
+        // Se não houver ID, assume-se que esta página seria para o registro/signup
+        // Como o foco é a visualização, apenas exibe erro se o ID for inválido.
+        if (document.getElementById('post-container')) {
+            document.getElementById('post-container').innerHTML = '<p style="color: #dc3545; text-align: center;">ID de registro inválido. Use a timeline para acessar posts.</p>';
+        }
+    } else {
+        fetchPostData(registroId);
+    }
 });

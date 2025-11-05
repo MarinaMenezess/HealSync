@@ -1,4 +1,28 @@
+// ARQUIVO: frontend/script.js (COMPLETO E ATUALIZADO PARA BLOQUEIO)
+
 function openModal() {
+    // CORREÇÃO: VERIFICAÇÃO DE STATUS DE CONTA ATIVA NO OPEN MODAL
+    const userJson = localStorage.getItem('user');
+    let is_active_for_posting = true; 
+
+    if (userJson) {
+        try {
+            const user = JSON.parse(userJson);
+            // Verifica se o campo existe e se é false (0)
+            if (user.is_active_for_posting === 0 || user.is_active_for_posting === false) { 
+                is_active_for_posting = false;
+            }
+        } catch (e) {
+            console.error('Erro ao ler status do usuário:', e);
+        }
+    }
+
+    if (!is_active_for_posting) {
+        alert('Sua conta foi inativada para novas postagens e comentários devido a múltiplas denúncias. Por favor, entre em contato com o suporte.');
+        return; 
+    }
+    // FIM DA CORREÇÃO
+
     // Cria o container principal do modal
     const modalContainer = document.createElement('div');
     modalContainer.id = 'modal-container';
@@ -140,6 +164,11 @@ function openModal() {
                 closeModal();
                 // Recarrega a página para exibir o novo registro
                 window.location.reload(); 
+            } else if (response.status === 403) { 
+                 // CORREÇÃO: Trata a inativação vinda do servidor
+                 const error = await response.json();
+                 alert(error.error);
+                 closeModal();
             } else {
                 const error = await response.json();
                 console.error('Erro ao criar registro:', error.error);

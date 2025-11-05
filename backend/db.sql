@@ -15,7 +15,8 @@ especialidade VARCHAR(45),
 contato VARCHAR(255),
 cfp VARCHAR(45), 
 cpf VARCHAR(14), 
-avaliacao DECIMAL(2,1)
+avaliacao DECIMAL(2,1),
+is_active_for_posting BOOLEAN DEFAULT TRUE
 );
 
 -- Tabela: ia_conversa
@@ -59,6 +60,8 @@ id_usuario INT NOT NULL,
 data DATE,
 emocao VARCHAR(45),
 descricao TEXT,
+is_public BOOLEAN DEFAULT FALSE, -- ADICIONADO: Campo para definir se o registro é público
+is_denounced BOOLEAN DEFAULT FALSE,
 FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 

@@ -1,4 +1,4 @@
-// ARQUIVO: frontend/registers.js (CORRIGIDO PARA TRATAR FORMATO DE DATA)
+// ARQUIVO: frontend/registers.js (COMPLETO E ATUALIZADO PARA BLOQUEIO)
 
 const BACKEND_URL = 'http://localhost:3000';
 
@@ -22,6 +22,48 @@ function formatDisplayDate(dateString) {
     return dateString;
 }
 
+// NOVA FUNÇÃO: Publicar um registro (inclui verificação de status)
+async function publishRegister(registerId) {
+    const token = localStorage.getItem('jwt');
+    // Verifica a inativação antes de iniciar a ação
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+        const user = JSON.parse(userJson);
+        if (user.is_active_for_posting === 0 || user.is_active_for_posting === false) {
+             alert('Sua conta foi inativada para novas postagens e comentários devido a múltiplas denúncias.');
+             return;
+        }
+    }
+    // Fim da verificação
+
+    if (!token) {
+        alert('Sessão expirada. Por favor, faça login novamente.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/registros/${registerId}/publish`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            alert(result.mensagem);
+            // Recarrega a lista para refletir a mudança de status
+            loadUserRegisters(); 
+        } else {
+            alert(`Falha ao publicar registro: ${result.error || response.statusText}`);
+        }
+    } catch (error) {
+        console.error('Erro de rede ao publicar registro:', error);
+        alert('Erro de conexão com o servidor ao publicar seu registro.');
+    }
+}
+
 // Renderiza um cartão de registro individual
 function renderRegisterCard(register) {
     const card = document.createElement('div');
@@ -39,6 +81,37 @@ function renderRegisterCard(register) {
     // Exibe apenas a primeira linha da descrição
     const preview = register.descricao ? register.descricao.split('\n')[0].substring(0, 70) : 'Sem descrição.';
 
+    // Novos campos de status
+    const isPublic = register.is_public == 1 || register.is_public === true;
+    const isDenounced = register.is_denounced == 1 || register.is_denounced === true; 
+    
+    let actionButtonsHTML = '';
+    
+    // Lógica para o botão de status e ações
+    if (isDenounced) {
+        // Se denunciado: Apenas a sinalização e botões desabilitados
+        actionButtonsHTML = `
+            <p style="color: #dc3545; font-weight: bold; margin: 0; padding: 4px 8px; border: 1px solid #dc3545; border-radius: 4px; background-color: #3b1b1b;">DENUNCIADO</p>
+            <button class="published-btn" disabled style="cursor: default;">Editar</button>
+        `;
+    } else {
+        // Se não denunciado: Botões de Publicar/Público e Editar
+        const publishButton = isPublic ? 
+            `<button class="published-btn" disabled style="background-color: #28a745; cursor: default;">Público</button>` : 
+            // Permite a publicação (chama a função que verifica a inativação no clique)
+            `<button class="publish-btn" onclick="event.stopPropagation(); publishRegister(${register.id_registro})">
+                Publicar
+            </button>`;
+
+        actionButtonsHTML = `
+            ${publishButton}
+            <button class="publish-btn" onclick="event.stopPropagation(); alert('Editar Registro ID: ${register.id_registro}')">
+                Editar
+            </button>
+        `;
+    }
+
+
     card.innerHTML = `
         <div class="register-card-header">
             <h4>${emotion.toUpperCase()}</h4>
@@ -46,12 +119,7 @@ function renderRegisterCard(register) {
         </div>
         <p style="font-size: 0.9em; color: #d4d4d4; text-align: left;">${preview}</p>
         <div style="display: flex; justify-content: flex-end; width: 100%; gap: 10px;">
-            <button class="publish-btn" onclick="event.stopPropagation(); alert('Publicar Registro ID: ${register.id_registro}')">
-                Publicar
-            </button>
-            <button class="publish-btn" onclick="event.stopPropagation(); alert('Editar Registro ID: ${register.id_registro}')">
-                Editar
-            </button>
+            ${actionButtonsHTML}
         </div>
     `;
 
@@ -77,6 +145,7 @@ async function loadUserRegisters() {
     }
 
     try {
+        // A rota agora retorna o campo is_denounced e is_public
         const response = await fetch(`${BACKEND_URL}/registros`, {
             method: 'GET',
             headers: {

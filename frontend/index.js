@@ -1,0 +1,260 @@
+// marinamenezess/healsync/HealSync-9ef57e052fdd1a81685a13d0ff8535418164231f/frontend/index.js
+
+const BACKEND_URL = 'http://localhost:3000';
+
+// Função auxiliar para obter o ID do usuário logado do localStorage
+function getLoggedInUserId() {
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+        try {
+            const userData = JSON.parse(userJson);
+            // Pega o ID e o força a ser um Number.
+            const userId = Number(userData.id_usuario); 
+            
+            if (!isNaN(userId) && userId > 0) {
+                return userId;
+            }
+        } catch (e) {
+            console.error("Erro ao parsear usuário do localStorage:", e);
+        }
+    }
+    return null;
+}
+
+// Função auxiliar para formatar a data como "há X tempo"
+function formatTimeAgo(dateString) {
+    if (!dateString) return "Data inválida";
+    const now = new Date();
+    const past = new Date(dateString.replace(' ', 'T')); 
+    if (isNaN(past)) return "Data inválida";
+    
+    const diffInSeconds = Math.floor((now - past) / 1000);
+
+    if (diffInSeconds < 60) {
+        return "há poucos segundos";
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `há ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `há ${hours} hora${hours > 1 ? 's' : ''}`;
+    } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `há ${days} dia${days > 1 ? 's' : ''}`;
+    }
+}
+
+// NOVA FUNÇÃO: Arquivar um post (seta is_public = 0)
+async function archivePost(registerId) {
+    const token = localStorage.getItem('jwt');
+    if (!token) {
+        alert('Sessão expirada. Por favor, faça login novamente.');
+        return;
+    }
+    if (!confirm('Tem certeza que deseja arquivar este post e removê-lo da timeline pública?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/registros/${registerId}/archive`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const result = await response.json();
+        if (response.ok) {
+            alert(result.mensagem);
+            loadPublicPosts(); // Recarrega a timeline
+        } else {
+            alert(`Falha ao arquivar post: ${result.error || response.statusText}`);
+        }
+    } catch (error) {
+        console.error('Erro de rede ao arquivar o post:', error);
+        alert('Erro de conexão ao arquivar o post.');
+    }
+}
+
+// NOVA FUNÇÃO: Denunciar um post (INCLUI LÓGICA DE INATIVAÇÃO LOCAL)
+async function denouncePost(registerId, authorId) {
+    const token = localStorage.getItem('jwt');
+    const currentUserId = getLoggedInUserId();
+
+    if (!token) {
+        alert('Você precisa estar logado para denunciar um registro.');
+        return;
+    }
+    
+    if (!confirm(`Atenção: A denúncia irá arquivar o post ID ${registerId} e sinalizá-lo. Deseja continuar?`)) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/registros/${registerId}/denounce`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            alert(result.mensagem);
+
+            // CORREÇÃO CRUCIAL: Verifica se a mensagem de inativação foi retornada pelo backend
+            // Esta lógica garante que o status inativado seja carregado na próxima sessão.
+            if (result.mensagem && result.mensagem.includes('foi inativado para postagens e comentários')) {
+                // Se o backend inativou o autor do post, limpamos o estado local
+                // APENAS SE O AUTOR FOR O USUÁRIO LOGADO.
+                if (currentUserId === Number(authorId)) {
+                    localStorage.removeItem('user');
+                    localStorage.removeItem('jwt');
+                    alert('Sua conta foi inativada. Você será desconectado. Por favor, faça login novamente para confirmar o novo status.');
+                    window.location.reload(); 
+                    return; 
+                }
+            }
+
+            loadPublicPosts(); // Recarrega a timeline para remover o post denunciado
+        } else {
+            // Tenta ler o erro como JSON primeiro
+            try {
+                const errorResult = await response.json();
+                alert(`Falha ao denunciar post (${response.status}): ${errorResult.error || errorResult.mensagem || response.statusText}`);
+            } catch (e) {
+                // Trata respostas não-JSON (como HTML de erro 404/500)
+                alert(`Falha ao denunciar post (Erro ${response.status}). Verifique o console para detalhes.`);
+            }
+        }
+    } catch (error) {
+        console.error('Erro de rede ao denunciar o post:', error);
+        alert('Erro de conexão com o servidor. Verifique se o backend está rodando.');
+    }
+}
+
+
+// Renderiza um cartão de post (Post Card)
+function renderPostCard(post) {
+    const postElement = document.createElement('div');
+    postElement.classList.add('post-card');
+    
+    const timeAgo = formatTimeAgo(post.data);
+    const emotionTitle = post.emocao ? post.emocao.toUpperCase() : 'REGISTRO';
+    
+    const currentUserId = getLoggedInUserId(); 
+    const postAuthorId = Number(post.id_autor || 0);
+    const isAuthor = currentUserId !== null && currentUserId === postAuthorId;
+    const isDenounced = post.is_denounced == 1 || post.is_denounced === true; 
+
+    // Lógica para os botões do canto superior direito
+    let topButtonsHTML = ``;
+    
+    // 1. Sinalização DENUNCIADO
+    if (isDenounced) {
+        topButtonsHTML = `<span style="color: #dc3545; font-weight: bold; padding: 4px 8px; border: 1px solid #dc3545; border-radius: 4px; background-color: #3b1b1b;">DENUNCIADO</span>`;
+    }
+    // 2. Botão de Arquivar (visível APENAS para o autor)
+    else if (isAuthor) { 
+        topButtonsHTML = `
+            <button class="action-btn archive-btn" title="Arquivar Post" onclick="archivePost(${post.id_registro})">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#f1eee4" class="bi bi-archive-fill" viewBox="0 0 16 16">
+                  <path d="M12.643 15C13.454 15 14 14.28 14 13.433V7.5H2v5.933C2 14.28 2.546 15 3.357 15z"/>
+                  <path d="M15.5 4H.5a.5.5 0 0 0 0 1h15a.5.5 0 0 0 0-1M11 2a1 1 0 0 0 1-1H4a1 1 0 0 0 1 1z"/>
+                </svg>
+            </button>`;
+    } 
+    
+    // 3. Botão de Denunciar (visível se o usuário estiver logado E NÃO for o autor)
+    else if (currentUserId !== null) { 
+         topButtonsHTML += `
+            <button class="action-btn denounce-btn" title="Denunciar" onclick="denouncePost(${post.id_registro}, ${post.id_autor})">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#dc3545" class="bi bi-flag-fill" viewBox="0 0 16 16">
+                  <path d="M14.778.257A1.5 1.5 0 0 1 14.5 1h-13A1.5 1.5 0 0 0 .5 2.5v11A1.5 1.5 0 0 0 2 15h12.5a.5.5 0 0 1 0 1H2a2 2 0 0 1-2-2V2.5A2.5 2.5 0 0 1 2.5 0h12a.5.5 0 0 1 .278.257"/>
+                </svg>
+            </button>`;
+    }
+
+
+    postElement.innerHTML = `
+      <div class="post-header-wrapper">
+          <a href="profile2.html?id=${post.id_autor}" class="profile-link">
+            <div class="post-header">
+                <img src="../assets/user-default.svg" alt="Perfil" class="avatar">
+                <div class="user-info">
+                    <strong class="username">${post.nome_usuario || 'Usuário Anônimo'}</strong>
+                    <span class="time">${timeAgo}</span>
+                </div>
+            </div>
+          </a>
+          <div class="top-right-buttons">
+              ${topButtonsHTML}
+          </div>
+      </div>
+      <a href="register.html?id=${post.id_registro}" class="post-content-link">
+          <div class="post-content">
+              <p><strong>[${emotionTitle}]</strong>: ${post.descricao}</p>
+          </div>
+      </a>
+      <div class="post-actions">
+          <button class="like-btn" aria-label="Curtir" onclick="alert('Curtir post: ${post.id_registro}')">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#f1eee4" class="bi bi-heart" viewBox="0 0 16 16">
+                  <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/>
+              </svg> <span>0</span>
+          </button>
+          <a href="register.html?id=${post.id_registro}">
+            <button class="comment-btn" aria-label="Comentar">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#f1eee4" class="bi bi-chat" viewBox="0 0 16 16">
+                    <path d="M2.678 11.894a1 1 0 0 1 .287.801 11 11 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8 8 0 0 0 8 14c3.996 0 7-2.807 7-6s-3.004-6-7-6-7 2.808-7 6c0 1.468.617 2.83 1.678 3.894m-.493 3.905a22 22 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a10 10 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9 9 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105"/>
+                </svg> <span>0</span>
+            </button>
+          </a>
+      </div>
+    `;
+
+    return postElement;
+}
+
+// Função principal para buscar e exibir os posts públicos
+async function loadPublicPosts() {
+    const timelineContainer = document.querySelector('.timeline-container');
+    timelineContainer.innerHTML = '';
+    
+    timelineContainer.innerHTML = '<p style="text-align: center; color: #f1eee4; font-size: 1.2em;">Carregando a timeline...</p>';
+
+    getLoggedInUserId(); 
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/posts`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            timelineContainer.innerHTML = ''; 
+            if (result.length === 0) {
+                timelineContainer.innerHTML = '<p style="color: #f1eee4; font-size: 1.1em; text-align: center;">Ainda não há posts públicos na timeline.</p>';
+            } else {
+                result.forEach(post => {
+                    const card = renderPostCard(post);
+                    timelineContainer.appendChild(card);
+                });
+            }
+        } else {
+            console.error('Erro ao carregar posts:', result.error);
+            timelineContainer.innerHTML = `<p style="color: #dc3545; font-size: 1.1em; text-align: center;">Falha ao carregar a timeline: ${result.error || response.statusText}</p>`;
+        }
+    } catch (error) {
+        console.error('Erro de rede ao buscar posts:', error);
+        timelineContainer.innerHTML = '<p style="color: #dc3545; font-size: 1.1em; text-align: center;">Erro de conexão com o servidor ao buscar a timeline.</p>';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (document.querySelector('.timeline-container')) {
+        loadPublicPosts();
+    }
+});

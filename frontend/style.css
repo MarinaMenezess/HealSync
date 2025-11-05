@@ -288,7 +288,7 @@ textarea:focus {
 /* ------------------- TIMELINE / POSTS ------------------- */
 
 .timeline-container {
-  max-width: 700px;
+  min-width: 700px;
   margin: 0 auto 0;
   width: 100%;
 }
@@ -310,6 +310,7 @@ textarea:focus {
   transition: 0.3s ease;
   backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 100%;
 }
 
 .post-card:hover {
@@ -321,6 +322,11 @@ textarea:focus {
   display: flex;
   align-items: center;
   margin-bottom: 12px;
+}
+
+.post-header-wrapper{
+  display: flex;
+  justify-content: space-between;
 }
 
 .profile-link {

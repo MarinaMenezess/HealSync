@@ -48,38 +48,19 @@
     <main class="profile-main profile2-main">
         <div class="profile-card profile2-card">
             <img src="../assets/user-default.svg" alt="User Avatar" class="profile-avatar">
-            <h1 class="profile-name">Nome de Outro Usuário</h1>
-            <p class="profile-email">outro.usuario@email.com</p>
+            <h1 class="profile-name" id="profile-name-display">Carregando...</h1>
+            <p class="profile-email" id="profile-email-display">Informação privada</p>
             <div class="profile-actions">
                 <button class="add-friend-btn">Adicionar Amigo</button>
-                <button class="report-btn">Denunciar Perfil</button>
+                <button class="report-btn" id="report-profile-btn">Denunciar Perfil</button>
             </div>
         </div>
 
         <div class="user-posts-section">
-            <h2 class="user-posts-title">Registros de Nome de Outro Usuário</h2>
-            <div class="user-posts-container">
-                <div class="post-card">
-                    <p class="post-content">Refleti sobre a última semana e sinto que progredi bastante nos meus objetivos.</p>
-                    <div class="post-actions">
-                        <span class="time">09/08/2025</span>
-                    </div>
+            <h2 class="user-posts-title" id="user-posts-title-display">Registros do Usuário</h2>
+            <div class="user-posts-container" id="user-posts-container-display">
                 </div>
-
-                <div class="post-card">
-                    <p class="post-content">A terapia tem me ajudado a entender melhor meus sentimentos e a lidar com eles.</p>
-                    <div class="post-actions">
-                        <span class="time">05/08/2025</span>
-                    </div>
-                </div>
-
-                <div class="post-card">
-                    <p class="post-content">Passei a praticar mindfulness diariamente e já sinto os resultados. É incrível.</p>
-                    <div class="post-actions">
-                        <span class="time">01/08/2025</span>
-                    </div>
-                </div>
-            </div>
+             <p id="no-posts-message" style="text-align: center; color: #777; display: none;">Este usuário não possui registros públicos no momento.</p>
         </div>
         <nav class="menu">
       <input type="checkbox" href="#" class="menu-open" name="menu-open" id="menu-open"/>
@@ -118,6 +99,31 @@
         </defs>
     </svg>
     </main>
+
+    <div id="denounce-modal-container" class="modal-container">
+        <div id="denounceModal" class="modal">
+            <div class="modal-header">
+                <h1 class="modal-title">Denunciar Perfil</h1>
+                <button id="close-denounce-modal-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="denounce-form">
+                    <p style="color: #f1eee4; text-align: left; margin-bottom: 10px;">Por favor, explique o motivo da denúncia. Isso pode levar à inativação da conta do usuário para postagens.</p>
+                    <div class="form-group">
+                        <label for="denounce-reason">Motivo da Denúncia</label>
+                        <textarea id="denounce-reason" rows="4" placeholder="Descreva o motivo da denúncia (mínimo 10 caracteres)" required minlength="10"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="cancel-denounce-btn">Fechar</button>
+                <button id="submit-denounce-btn" type="submit" form="denounce-form">Enviar Denúncia e Inativar</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="moderation.js"></script> 
+    <script src="profile2.js"></script>
     <script src="script.js"></script>
 </body>
 </html>

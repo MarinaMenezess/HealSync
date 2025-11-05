@@ -414,7 +414,7 @@ textarea:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 5%; /* Espaço entre os cartões */
-  width: 100%;
+  width: 70vw;
   justify-content: flex-start;
   padding: 0 5%;
 }
@@ -499,7 +499,7 @@ textarea:focus {
   flex-direction: column;
   justify-content: space-between;
   height: 150px; /* Altura fixa para o cartão */
-  width: 30%;
+  width: 320px;
   transition: transform 0.3s ease;
   margin-bottom: 2%;
 }
@@ -1459,6 +1459,28 @@ main > svg {
     height: auto;
     margin-top: 12vh;
     padding-top: 5%;
+}
+
+/* ARQUIVO: frontend/style.css (ADICIONAR AO FINAL) */
+
+/* Estilo específico para o botão de Denúncia para usar a cor de alerta */
+#submit-denounce-btn {
+    background-color: #dc3545; /* Cor Vermelha para Denúncia */
+    color: white;
+}
+
+#submit-denounce-btn:hover {
+    background-color: #c82333;
+}
+
+/* Garante que o botão de fechar denúncia (cancelar) use o estilo do botão de fechar normal */
+#cancel-denounce-btn {
+    background-color: #777;
+    color: #f1eee4;
+}
+
+#cancel-denounce-btn:hover {
+    background-color: #555;
 }
 
 /* Modifique a classe .profile-card para torná-lo fixo */

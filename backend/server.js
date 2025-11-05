@@ -280,7 +280,7 @@ app.get('/posts/:id/comentarios', (req, res) => {
 });
 
 // =========================================================================
-// NOVO: ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
+// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
 // =========================================================================
 app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
@@ -315,6 +315,69 @@ app.get('/users/:id', (req, res) => {
         res.json(user);
     });
 });
+// =========================================================================
+
+// =========================================================================
+// ROTA PARA OBTER DETALHES BÁSICOS DE PERFIL PÚBLICO POR ID (para profile2.html)
+// Protegida por authMiddleware para garantir que o usuário está logado.
+// =========================================================================
+app.get('/profile-data/:id', authMiddleware, (req, res) => {
+    const userId = req.params.id;
+    
+    // Busca o nome e se o usuário é um psicólogo (is_psicologo)
+    const query = 'SELECT nome, is_psicologo FROM usuario WHERE id_usuario = ?';
+
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar perfil de usuário:', err.message);
+            return res.status(500).json({ error: 'Erro no servidor ao buscar perfil.' });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'Perfil não encontrado.' });
+        }
+        
+        const user = results[0];
+        
+        // Retorna apenas dados públicos. O email é sempre privado, seguindo a regra de segurança.
+        res.json({
+            id_usuario: userId,
+            nome: user.nome,
+            is_psicologo: user.is_psicologo,
+            // A informação de e-mail é tratada como privada
+            email: '' 
+        });
+    });
+});
+
+// =========================================================================
+// ROTA PARA OBTER POSTS PÚBLICOS DE UM USUÁRIO ESPECÍFICO
+// Protegida por authMiddleware.
+// =========================================================================
+app.get('/users/:id/public-posts', authMiddleware, (req, res) => {
+    const userId = parseInt(req.params.id, 10);
+
+    if (isNaN(userId)) {
+        return res.status(400).json({ error: 'ID do usuário inválido.' });
+    }
+
+    // Retorna apenas posts públicos que NÃO FORAM DENUNCIADOS, e que pertencem ao usuário ID
+    const query = `
+        SELECT id_registro, data, descricao
+        FROM registro_progresso
+        WHERE id_usuario = ? AND is_public = 1 AND is_denounced = 0
+        ORDER BY data DESC;
+    `;
+
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar posts públicos do usuário:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar posts do usuário.' });
+        }
+        res.json(results);
+    });
+});
+
 // =========================================================================
 
 
@@ -354,6 +417,7 @@ app.post('/login', async (req, res) => {
         const user = results[0];
         
         // 3. Gerar e retornar o JWT local para uso nas rotas protegidas
+        // A CHAVE DO JWT LOCAL É 'jwt' para consistência com o frontend.
         const token = jwt.sign({ id: user.id_usuario, is_psicologo: user.is_psicologo }, JWT_SECRET, { expiresIn: '1d' });
         
         // Retorna o objeto user, que inclui is_active_for_posting
@@ -997,6 +1061,53 @@ app.get('/consultas/pacientes/:id/historico', authMiddleware, (req, res) => {
         res.json(results);
     });
 });
+
+// =========================================================================
+// NOVO: ROTA PARA DENUNCIAR/INATIVAR PERFIL DE OUTRO USUÁRIO (MODERAÇÃO)
+// A rota inativa o usuário (is_active_for_posting = 0) e registra a denúncia.
+// O denunciante deve estar logado (authMiddleware).
+// =========================================================================
+app.post('/users/:id/denounce-deactivate', authMiddleware, (req, res) => {
+    const denouncedUserId = parseInt(req.params.id, 10);
+    const reporterUserId = req.userId;
+    const { motivo } = req.body; 
+
+    if (isNaN(denouncedUserId)) {
+        return res.status(400).json({ error: 'ID do usuário denunciado inválido.' });
+    }
+    
+    if (!motivo || motivo.length < 10) {
+        return res.status(400).json({ error: 'O motivo da denúncia é obrigatório e deve ter pelo menos 10 caracteres.' });
+    }
+    
+    if (denouncedUserId === reporterUserId) {
+        return res.status(403).json({ error: 'Você não pode denunciar o seu próprio perfil.' });
+    }
+
+    // Ação 1: Inativar a conta do usuário denunciado para postagens/comentários
+    const deactivateQuery = 'UPDATE usuario SET is_active_for_posting = 0 WHERE id_usuario = ? AND is_active_for_posting = 1';
+    
+    connection.query(deactivateQuery, [denouncedUserId], (err, deactivateResult) => {
+        if (err) {
+            console.error('Erro ao inativar usuário:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao inativar a conta.' });
+        }
+        
+        let message = `Usuário (ID: ${denouncedUserId}) foi inativado para postagens.`;
+        if (deactivateResult.affectedRows === 0) {
+            message = `Usuário (ID: ${denouncedUserId}) já estava inativo ou não encontrado.`;
+        }
+        
+        // Ação 2 (Simulada): Registro da denúncia (necessitaria de uma tabela 'denuncia')
+        console.log(`[DENÚNCIA REGISTRADA] Usuário ${denouncedUserId} denunciado por ${reporterUserId}. Motivo: ${motivo}`);
+
+
+        res.json({ 
+            mensagem: 'Denúncia registrada com sucesso. ' + message
+        });
+    });
+});
+
 
 // =========================================================================
 // ROTA PARA OBTER ANOTAÇÕES GERAIS DE UM PACIENTE (PARA HISTÓRICO NO PRONTUÁRIO)

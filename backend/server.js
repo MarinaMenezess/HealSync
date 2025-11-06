@@ -379,6 +379,7 @@ app.get('/ia/conversas/:id', authMiddleware, (req, res) => {
 app.post('/ia/conversas', authMiddleware, (req, res) => {
   const { titulo_opcional } = req.body;
   connection.query(
+    // Inicia com um título padrão 'Nova Conversa' (ou o que for enviado), que será atualizado na primeira mensagem.
     'INSERT INTO ia_conversa (id_usuario, data_inicio, titulo_opcional) VALUES (?, NOW(), ?)',
     [req.userId, titulo_opcional],
     (err, result) => {
@@ -388,7 +389,7 @@ app.post('/ia/conversas', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- CHAT COM IA ----------
+// ---------- CHAT COM IA (ATUALIZADO) ----------
 
 app.post('/ia/chat', authMiddleware, async (req, res) => {
     const { id_conversa, mensagem_usuario } = req.body;
@@ -411,6 +412,7 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
         });
 
         // 2. Recuperar o histórico completo da conversa do banco de dados
+        // Note: 'historico' agora inclui a mensagem que acabamos de salvar
         const [historico] = await new Promise((resolve, reject) => {
             connection.query(
                 'SELECT remetente, conteudo FROM ia_mensagem WHERE id_conversa = ? ORDER BY data_hora ASC',
@@ -421,12 +423,58 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
                 }
             );
         });
+        
+        // 3. (NOVO) Lógica para gerar e atualizar o título da conversa na primeira mensagem
+        let novoTitulo = null;
+        // Se o histórico tem apenas 1 mensagem, é a primeira mensagem do usuário nesta conversa
+        const isFirstMessage = historico.length === 1; 
 
-        // 3. Formatar o histórico para a API do Gemini
-        const formattedHistory = historico.map(msg => ({
+        if (isFirstMessage) {
+            const titlePrompt = `Gere um título conciso (máximo 7 palavras) para uma conversa de chat com base na primeira mensagem do usuário: "${mensagem_usuario}". Retorne apenas o título, sem introduções, aspas ou formatação Markdown.`;
+            
+            // Chamada da IA para gerar o título
+            const titleResult = await model.generateContent(titlePrompt);
+            const tituloGerado = titleResult.response.text().trim().replace(/['"“”]/g, ''); // Remove aspas
+
+            // Atualiza o banco de dados
+            if (tituloGerado) {
+                await new Promise((resolve, reject) => {
+                    connection.query(
+                        'UPDATE ia_conversa SET titulo_opcional = ? WHERE id_conversa = ?',
+                        [tituloGerado, id_conversa],
+                        (err) => {
+                            if (err) return reject(err);
+                            novoTitulo = tituloGerado; // Armazena para retornar ao frontend
+                            resolve();
+                        }
+                    );
+                });
+            }
+        }
+
+        // 4. Formatar o histórico para a API do Gemini
+        // O histórico para a API deve ser tudo ANTES da mensagem atual do usuário
+        const historyForGemini = historico.slice(0, -1); 
+        
+        const formattedHistory = historyForGemini.map(msg => ({
             role: msg.remetente === 'usuario' ? 'user' : 'model',
             parts: [{ text: msg.conteudo }]
         }));
+
+        // Conteúdo da instrução de sistema expandido para incluir informações sobre a plataforma HealSync
+        const systemInstruction = `
+            Você é o HealSync AI, um assistente de saúde mental de apoio para a plataforma HealSync.
+            Sua função é responder a perguntas gerais sobre bem-estar e também fornecer informações específicas sobre como usar a plataforma.
+            Seja empático, não faça diagnósticos e encoraje o usuário a buscar ajuda profissional quando necessário.
+            
+            Informações sobre a plataforma HealSync:
+            - Objetivo: Conecta pacientes a psicólogos verificados e oferece ferramentas de auto-monitoramento.
+            - Diário/Registros: Permite registrar emoções, pensamentos e progresso diário. Os registros podem ser marcados como 'públicos' ou 'privados'.
+            - Timeline: Exibe apenas os 'Registros de Progresso' que foram marcados como públicos pelos usuários.
+            - Psicólogos: Possui um recurso para buscar e agendar consultas com psicólogos, cujos perfis são verificados (CFP/CPF).
+            - Consultas: Pacientes podem solicitar agendamentos de sessões. Psicólogos usam a área de consultas para gerenciar solicitações.
+            - Área do Psicólogo (Prontuário/Ficha): Permite ao psicólogo visualizar prontuários de pacientes, histórico de consultas e adicionar anotações de sessão (ficha).
+        `;
 
         // Adiciona a mensagem do usuário para enviar à API
         formattedHistory.push({
@@ -434,19 +482,23 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             parts: [{ text: mensagem_usuario }]
         });
         
-        // 4. Inicia uma nova conversa com o histórico recuperado
+        // 5. Inicia o chat com o histórico (sem a mensagem atual) e configurações
         const chat = model.startChat({
             history: formattedHistory,
-            generationConfig: {
-                maxOutputTokens: 100,
+            config: {
+                 // Usa a instrução do sistema expandida
+                 systemInstruction: systemInstruction, 
+                 generationConfig: {
+                    maxOutputTokens: 100,
+                 }
             },
         });
         
-        // 5. Enviar a mensagem do usuário para o modelo Gemini
+        // 6. Enviar SÓ a mensagem atual do usuário para o modelo Gemini
         const result = await chat.sendMessage(mensagem_usuario);
         const respostaIA = result.response.text();
 
-        // 6. Salvar a resposta da IA no banco de dados
+        // 7. Salvar a resposta da IA no banco de dados
         await new Promise((resolve, reject) => {
             connection.query(
                 'INSERT INTO ia_mensagem (id_conversa, remetente, conteudo, data_hora) VALUES (?, ?, ?, NOW())',
@@ -458,7 +510,8 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             );
         });
         
-        res.json({ resposta: respostaIA, mensagem: 'Mensagem e resposta salvas com sucesso.' });
+        // 8. Retorna a resposta da IA e o novo título (se gerado)
+        res.json({ resposta: respostaIA, novo_titulo: novoTitulo, mensagem: 'Mensagem e resposta salvas com sucesso.' });
 
     } catch (error) {
         console.error('Erro na requisição da IA:', error);

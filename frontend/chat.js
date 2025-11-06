@@ -54,9 +54,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const conversations = await response.json();
                 renderConversationList(conversations);
-                // Carrega a conversa mais recente por padrão
-                if (conversations.length > 0) {
+                // Carrega a conversa mais recente por padrão, se nenhuma estiver ativa
+                if (conversations.length > 0 && !currentConversationId) {
                     loadConversationMessages(conversations[0].id_conversa);
+                } else if (currentConversationId) {
+                     // Se já houver uma conversa ativa, apenas atualiza a barra lateral (incluindo o título)
+                    // mas não recarrega as mensagens do chat.
+                    loadConversationMessages(currentConversationId, false); 
                 } else {
                     // Se não houver conversas, limpa a tela de mensagens
                     chatMessagesContainer.innerHTML = ''; 
@@ -75,6 +79,9 @@ document.addEventListener('DOMContentLoaded', () => {
         list.forEach(conv => {
             const li = document.createElement('li');
             li.classList.add('conversation-item');
+            // Adiciona o ID da conversa como um atributo de dado
+            li.dataset.id = conv.id_conversa;
+            
             // Adiciona a classe 'active' se for a conversa atualmente carregada
             if (conv.id_conversa === currentConversationId) {
                 li.classList.add('active');
@@ -82,10 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const a = document.createElement('a');
             a.href = '#';
+            // Usa o título opcional, ou um título genérico
             a.textContent = conv.titulo_opcional || `Conversa #${conv.id_conversa}`;
             a.addEventListener('click', (e) => {
                 e.preventDefault();
-                loadConversationMessages(conv.id_conversa);
+                // Garante que o clique sempre recarrega as mensagens (shouldClear = true)
+                loadConversationMessages(conv.id_conversa, true); 
             });
             li.appendChild(a);
             conversationList.appendChild(li);
@@ -93,9 +102,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Função para carregar as mensagens de uma conversa
-    async function loadConversationMessages(id) {
+    async function loadConversationMessages(id, shouldClear = true) {
         currentConversationId = id;
-        chatMessagesContainer.innerHTML = ''; // Limpa o chat
+        
+        // Ativa a conversa na sidebar (sempre fazemos isso para atualizar o estado visual)
+        document.querySelectorAll('.conversation-item').forEach(item => item.classList.remove('active'));
+        const activeItem = document.querySelector(`.conversation-item[data-id="${id}"]`); 
+        if (activeItem) {
+            activeItem.classList.add('active');
+        }
+
+        // Se o shouldClear for false, significa que só queremos atualizar o estado da sidebar (por exemplo, após um novo título).
+        if (!shouldClear) {
+            return;
+        }
+
+        // Se for um carregamento novo (clique ou carregamento inicial), limpa e busca as mensagens
+        chatMessagesContainer.innerHTML = ''; 
+
         try {
             const response = await fetch(`${BACKEND_URL}/ia/conversas/${id}`, {
                 headers: {
@@ -107,15 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const messages = await response.json();
                 messages.forEach(msg => renderMessage(msg.remetente, msg.conteudo, msg.data_hora));
                 
-                // Ativa a conversa na sidebar
-                document.querySelectorAll('.conversation-item').forEach(item => item.classList.remove('active'));
-                const activeItem = Array.from(conversationList.querySelectorAll('li')).find(li => {
-                    const link = li.querySelector('a');
-                    return link && link.textContent.includes(id);
-                });
-                if (activeItem) {
-                    activeItem.classList.add('active');
-                }
             } else {
                 console.error('Erro ao carregar mensagens:', response.statusText);
             }
@@ -149,6 +164,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 const data = await response.json();
                 renderMessage('ia', data.resposta, new Date());
+
+                // NOVO: Verifica se a resposta contém um novo título gerado
+                if (data.novo_titulo) { 
+                    console.log('Novo título recebido:', data.novo_titulo);
+                    // Recarrega a lista para atualizar o título na sidebar
+                    await loadConversations();
+                }
             } else {
                 console.error('Erro ao enviar mensagem:', response.statusText);
                 alert('Erro ao processar a resposta da IA.');
@@ -189,17 +211,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('jwt')}` // CORRIGIDO
                 },
-                body: JSON.stringify({ titulo_opcional: 'Nova Conversa' })
+                // Passa um título temporário que será substituído pela IA na primeira mensagem
+                body: JSON.stringify({ titulo_opcional: 'Nova Conversa' }) 
             });
 
             if (response.ok) {
                 const newConversation = await response.json();
-                // Assumindo que a resposta retorna o id correto para loadConversationMessages
-                // Note que o id pode estar em 'id' ou 'id_conversa' dependendo do backend
                 const newId = newConversation.id || newConversation.id_conversa;
                 alert('Nova conversa iniciada!');
                 await loadConversations(); // Recarrega a lista para mostrar a nova conversa
                 loadConversationMessages(newId);
+                // Coloca o foco no input para o usuário começar a digitar
+                chatInput.focus(); 
             } else {
                 console.error('Erro ao iniciar nova conversa:', response.statusText);
             }

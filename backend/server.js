@@ -210,8 +210,8 @@ app.get('/posts', (req, res) => {
         FROM registro_progresso rp
         JOIN usuario u ON rp.id_usuario = u.id_usuario
         WHERE rp.is_public = 1
-        ORDER BY rp.data DESC;
-    `;
+        ORDER BY rp.data DESC
+    `; // Removido ponto e vírgula
 
     connection.query(query, (err, results) => {
         if (err) {
@@ -223,7 +223,64 @@ app.get('/posts', (req, res) => {
 });
 
 // =========================================================================
-// NOVO: ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
+// NOVO: ROTA PARA OBTER DETALHES DE UM POST ESPECÍFICO (GET /posts/:id) - CORRIGIDA
+// =========================================================================
+app.get('/posts/:id', (req, res) => {
+    const postId = parseInt(req.params.id, 10); // Adicionada conversão para INT
+    if (isNaN(postId)) {
+        return res.status(400).json({ error: 'ID de registro inválido.' });
+    }
+    
+    // A query une registro_progresso e usuário para obter o nome do autor.
+    const query = `
+        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, rp.id_usuario AS id_autor, u.nome AS nome_usuario
+        FROM registro_progresso rp
+        JOIN usuario u ON rp.id_usuario = u.id_usuario
+        WHERE rp.id_registro = ? AND rp.is_public = 1
+    `; // Removido ponto e vírgula
+
+    connection.query(query, [postId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar post individual:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar post.' });
+        }
+
+        if (results.length === 0) {
+            // Retorno 404 esperado pelo frontend quando o post não existe ou não é público
+            return res.status(404).json({ mensagem: 'Post não encontrado ou indisponível.' });
+        }
+        res.json(results[0]);
+    });
+});
+
+// =========================================================================
+// NOVO: ROTA PARA OBTER COMENTÁRIOS DE UM POST (GET /posts/:id/comentarios) - CORRIGIDA
+// =========================================================================
+app.get('/posts/:id/comentarios', (req, res) => {
+    const postId = parseInt(req.params.id, 10); // Adicionada conversão para INT
+    if (isNaN(postId)) {
+         return res.status(400).json({ error: 'ID de registro inválido.' });
+    }
+    const query = `
+        SELECT c.conteudo, c.data_hora, u.nome AS nome_usuario
+        FROM comentario c
+        JOIN usuario u ON c.id_usuario = u.id_usuario
+        WHERE c.id_registro = ?
+        ORDER BY c.data_hora ASC
+    `; // Removido ponto e vírgula
+
+    connection.query(query, [postId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar comentários:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar comentários.' });
+        }
+        // Retorna um array de comentários (pode ser vazio)
+        res.json(results);
+    });
+});
+
+// =========================================================================
+// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
 // =========================================================================
 app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
@@ -798,7 +855,7 @@ app.get('/consultas/:id', authMiddleware, (req, res) => {
             u_paciente.nome AS nome_paciente,
             u_psicologo.nome AS nome_psicologo
         FROM solicitacao_consulta sc
-        JOIN usuario u_paciente ON sc.id_paciente = u.id_usuario
+        JOIN usuario u_paciente ON sc.id_paciente = u_paciente.id_usuario
         JOIN usuario u_psicologo ON sc.id_psicologo = u_psicologo.id_usuario
         WHERE sc.id_solicitacao = ? 
           AND (sc.id_psicologo = ? OR sc.id_paciente = ?)

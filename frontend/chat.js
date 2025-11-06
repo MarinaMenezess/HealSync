@@ -1,272 +1,213 @@
-// ARQUIVO: frontend/consultas.js (COMPLETO E ATUALIZADO)
-
-let currentRequestId = null;
-const BACKEND_URL = 'http://localhost:3000';
-
-// Função auxiliar para formatar a data
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${day}/${month} - ${hours}:${minutes}`;
-}
-
-// =================================================================
-// LÓGICA DE AÇÃO (ACEITAR/RECUSAR)
-// =================================================================
-
-async function handleRequestAction(requestId, status, reason = null) {
-    const token = localStorage.getItem('jwt');
-
-    if (!token) {
-        alert('Sessão expirada. Por favor, faça login novamente.');
-        window.location.href = 'login.html';
-        return;
-    }
-
-    const payload = {
-        status: status,
-        motivo_recusa: status === 'recusada' ? reason : null
-    };
-
-    try {
-        const response = await fetch(`${BACKEND_URL}/consultas/${requestId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert(`Solicitação ${status} com sucesso!`);
-            // Recarrega apenas a seção de solicitações após a ação
-            loadPendingRequests();
-        } else if (response.status === 403) {
-             alert(`Acesso negado: ${result.error}`);
-        } else {
-            console.error('Erro na ação:', result.error);
-            alert(`Falha ao ${status} a solicitação: ${result.error}`);
-        }
-    } catch (error) {
-        console.error('Erro de rede:', error);
-        alert('Erro de conexão ao servidor ao processar a solicitação.');
-    }
-}
-
-function handleReasonSubmit(e) {
-    e.preventDefault();
-    const form = e.target;
-    const textarea = form.querySelector('#reason-textarea');
-    const reason = textarea.value;
-
-    if (!reason) {
-        alert('Por favor, insira o motivo da recusa.');
-        return;
-    }
-
-    // Chama a função de ação para recusar
-    handleRequestAction(currentRequestId, 'recusada', reason);
-    closeReasonModal();
-}
-
-function openReasonModal(requestId) {
-    const reasonModalContainer = document.getElementById('reason-modal-container');
-    reasonModalContainer.classList.add('active');
-    currentRequestId = requestId;
-    const form = document.getElementById('reason-form');
-    form.removeEventListener('submit', handleReasonSubmit);
-    form.addEventListener('submit', handleReasonSubmit);
-}
-
-function closeReasonModal() {
-    const reasonModalContainer = document.getElementById('reason-modal-container');
-    reasonModalContainer.classList.remove('active');
-    document.getElementById('reason-form').reset();
-    const form = document.getElementById('reason-form');
-    form.removeEventListener('submit', handleReasonSubmit);
-}
-
-
-// =================================================================
-// LÓGICA DE CARREGAMENTO DE DADOS (GET)
-// =================================================================
-
-async function loadPendingRequests() {
-    const requestsContainer = document.getElementById('requests-content');
-    requestsContainer.innerHTML = ''; // Limpa o conteúdo anterior
-
-    const token = localStorage.getItem('jwt');
-
-    if (!token) {
-        requestsContainer.innerHTML = '<p class="error-message">Erro de autenticação. Faça login novamente.</p>';
-        return;
-    }
-
-    try {
-        const response = await fetch(`${BACKEND_URL}/consultas/pendentes`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        const results = await response.json();
-
-        if (response.ok) {
-            if (results.length === 0) {
-                requestsContainer.innerHTML = '<p class="no-data-message">Não há solicitações pendentes no momento.</p>';
-                return;
-            }
-
-            results.forEach(request => {
-                const requestCard = document.createElement('div');
-                requestCard.classList.add('request-card');
-                
-                // Formata a data/hora solicitada
-                const formattedDate = formatDate(request.data_solicitada);
-                
-                // O nome_paciente e o motivo (motivo_recusa) são os campos relevantes
-                const patientName = request.nome_paciente || 'Paciente Desconhecido';
-                const requestTitle = request.motivo_recusa || 'Sem Título/Motivo'; 
-
-                requestCard.innerHTML = `
-                    <div class="request-info">
-                        <h4>${patientName}</h4>
-                        <span class="date">Data Solicitada: ${formattedDate}</span>
-                        <p class="request-title" style="font-size: 0.9em; color: #555;">Motivo: ${requestTitle}</p>
-                    </div>
-                    <div class="request-buttons">
-                        <button class="accept-btn" data-id="${request.id_solicitacao}">Aceitar</button>
-                        <button class="reject-btn" data-id="${request.id_solicitacao}">Recusar</button>
-                    </div>
-                `;
-
-                requestsContainer.appendChild(requestCard);
-            });
-            
-            // Adiciona event listeners para os botões Aceitar/Recusar
-            requestsContainer.querySelectorAll('.accept-btn').forEach(button => {
-                button.addEventListener('click', () => {
-                    const requestId = button.getAttribute('data-id');
-                    handleRequestAction(requestId, 'aceita');
-                });
-            });
-
-            requestsContainer.querySelectorAll('.reject-btn').forEach(button => {
-                button.addEventListener('click', () => {
-                    const requestId = button.getAttribute('data-id');
-                    openReasonModal(requestId);
-                });
-            });
-
-
-        } else if (response.status === 403) {
-            // Acesso negado: O usuário logado é um paciente, não um psicólogo
-             requestsContainer.innerHTML = '<p class="error-message">Acesso negado. Apenas psicólogos podem visualizar solicitações.</p>';
-        } else {
-            requestsContainer.innerHTML = `<p class="error-message">Erro ao carregar solicitações: ${results.error || response.statusText}</p>`;
-        }
-
-    } catch (error) {
-        console.error('Erro de rede ao carregar solicitações:', error);
-        requestsContainer.innerHTML = '<p class="error-message">Erro de conexão com o servidor. Verifique se o backend está ativo.</p>';
-    }
-}
-
-
-// Lógica principal de roteamento e exibição de seções
 document.addEventListener('DOMContentLoaded', () => {
-    const requestsDropdownToggle = document.getElementById('requests-dropdown-toggle');
-    const requestsDropdown = document.querySelector('.requests-dropdown');
-    const requestsTitle = document.querySelector('.requests-title');
-    
-    // Mapeamento de hash para ID da seção e título
-    const hashToSection = {
-        'solicitacoes': { id: 'requests-content', title: 'Solicitações', loadFunction: loadPendingRequests },
-        'pacientes': { id: 'notes-content', title: 'Pacientes' },
-        'agenda': { id: 'agenda-content', title: 'Agenda' }
-    };
+    const newChatButton = document.querySelector('.new-chat-button');
+    const chatInput = document.querySelector('.chat-input-area input');
+    const sendButton = document.querySelector('.send-button');
+    const chatMessagesContainer = document.querySelector('.chat-messages');
+    const conversationList = document.querySelector('.conversation-list');
+    const BACKEND_URL = 'http://localhost:3000'; // Define a URL base para as requisições
 
-    function handleHashChange() {
-        // Obtém o hash da URL, removendo o '#' inicial. O padrão é 'agenda' se não houver hash.
-        const hash = window.location.hash ? window.location.hash.substring(1) : 'agenda';
-        const sectionData = hashToSection[hash];
+    // Estado da aplicação
+    let currentConversationId = null;
 
-        if (sectionData) {
-            // Oculta todas as seções
-            document.querySelectorAll('.requests-container, .agenda-container, .notes-container').forEach(section => {
-                section.classList.add('hidden-section');
+    // Função para renderizar uma mensagem no chat
+    function renderMessage(remetente, conteudo, dataHora) {
+        const messageDiv = document.createElement('div');
+        messageDiv.classList.add('message', remetente === 'usuario' ? 'sent' : 'received');
+        
+        // CORREÇÃO DE MARKDOWN: Implementa a renderização de Markdown para mensagens da IA
+        let conteudoFormatado = conteudo;
+        
+        // Verifica se a biblioteca 'marked' (carregada via CDN no HTML) está disponível
+        // e se o remetente é a IA
+        if (remetente === 'ia' && typeof marked !== 'undefined') {
+            // Converte o Markdown (conteudo) para HTML
+            // O marked.parse lida com negrito, listas, etc.
+            conteudoFormatado = marked.parse(conteudo);
+        } else {
+            // Para mensagens de usuário, converte quebras de linha em <br> para manter o formato
+            conteudoFormatado = conteudo.replace(/\n/g, '<br>');
+        }
+
+        // Formata a data e a hora
+        const date = new Date(dataHora);
+        const timeString = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+        // Nota: O conteúdo é inserido diretamente, permitindo a formatação HTML do marked.js
+        messageDiv.innerHTML = `
+            <div class="content">${conteudoFormatado}</div> 
+            <span class="message-time">${timeString}</span>
+        `;
+        
+        chatMessagesContainer.appendChild(messageDiv);
+        chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight; // Scrolla para a última mensagem
+    }
+
+    // Função para carregar e renderizar as conversas na sidebar
+    async function loadConversations() {
+        try {
+            const response = await fetch(`${BACKEND_URL}/ia/conversas`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}` // CORRIGIDO
+                }
             });
 
-            // Exibe a seção correspondente ao hash
-            const targetSection = document.getElementById(sectionData.id);
-            if (targetSection) {
-                targetSection.classList.remove('hidden-section');
+            if (response.ok) {
+                const conversations = await response.json();
+                renderConversationList(conversations);
+                // Carrega a conversa mais recente por padrão
+                if (conversations.length > 0) {
+                    loadConversationMessages(conversations[0].id_conversa);
+                } else {
+                    // Se não houver conversas, limpa a tela de mensagens
+                    chatMessagesContainer.innerHTML = ''; 
+                }
+            } else {
+                console.error('Erro ao carregar conversas:', response.statusText);
             }
+        } catch (error) {
+            console.error('Erro de conexão:', error);
+        }
+    }
 
-            // Atualiza o título do header
-            if (requestsTitle) {
-                requestsTitle.textContent = sectionData.title;
+    // Função para renderizar a lista de conversas
+    function renderConversationList(list) {
+        conversationList.innerHTML = '';
+        list.forEach(conv => {
+            const li = document.createElement('li');
+            li.classList.add('conversation-item');
+            // Adiciona a classe 'active' se for a conversa atualmente carregada
+            if (conv.id_conversa === currentConversationId) {
+                li.classList.add('active');
             }
             
-            // Chama a função de carregamento dinâmico se existir
-            if (sectionData.loadFunction) {
-                sectionData.loadFunction();
+            const a = document.createElement('a');
+            a.href = '#';
+            a.textContent = conv.titulo_opcional || `Conversa #${conv.id_conversa}`;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                loadConversationMessages(conv.id_conversa);
+            });
+            li.appendChild(a);
+            conversationList.appendChild(li);
+        });
+    }
+
+    // Função para carregar as mensagens de uma conversa
+    async function loadConversationMessages(id) {
+        currentConversationId = id;
+        chatMessagesContainer.innerHTML = ''; // Limpa o chat
+        try {
+            const response = await fetch(`${BACKEND_URL}/ia/conversas/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}` // CORRIGIDO
+                }
+            });
+
+            if (response.ok) {
+                const messages = await response.json();
+                messages.forEach(msg => renderMessage(msg.remetente, msg.conteudo, msg.data_hora));
+                
+                // Ativa a conversa na sidebar
+                document.querySelectorAll('.conversation-item').forEach(item => item.classList.remove('active'));
+                const activeItem = Array.from(conversationList.querySelectorAll('li')).find(li => {
+                    const link = li.querySelector('a');
+                    return link && link.textContent.includes(id);
+                });
+                if (activeItem) {
+                    activeItem.classList.add('active');
+                }
+            } else {
+                console.error('Erro ao carregar mensagens:', response.statusText);
             }
+        } catch (error) {
+            console.error('Erro de conexão:', error);
         }
     }
 
-    // Configuração inicial do dropdown
-    if (requestsDropdownToggle && requestsDropdown) {
-        requestsDropdownToggle.addEventListener('click', (event) => {
-            event.stopPropagation();
-            requestsDropdown.classList.toggle('show');
-        });
+    // Função para enviar a mensagem para o servidor
+    async function sendMessage(mensagem) {
+        if (!currentConversationId) {
+            alert('Por favor, inicie uma nova conversa.');
+            return;
+        }
 
-        document.addEventListener('click', (event) => {
-            if (!requestsDropdown.contains(event.target) && !requestsDropdownToggle.contains(event.target)) {
-                requestsDropdown.classList.remove('show');
+        renderMessage('usuario', mensagem, new Date());
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/ia/chat`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}` // CORRIGIDO
+                },
+                body: JSON.stringify({
+                    id_conversa: currentConversationId,
+                    mensagem_usuario: mensagem
+                })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                renderMessage('ia', data.resposta, new Date());
+            } else {
+                console.error('Erro ao enviar mensagem:', response.statusText);
+                alert('Erro ao processar a resposta da IA.');
             }
-        });
+        } catch (error) {
+            console.error('Erro na requisição:', error);
+            alert('Erro de conexão com o servidor.');
+        }
     }
 
-    // Gerencia o fechamento do modal de motivo de recusa
-    const reasonModalContainer = document.getElementById('reason-modal-container');
-    const closeModalButton = document.getElementById('close-reason-modal-btn');
-    const cancelReasonButton = document.getElementById('cancel-reason-btn');
-    const submitReasonButton = document.getElementById('submit-reason-btn'); // Novo seletor
+    // Evento de clique no botão de enviar
+    sendButton.addEventListener('click', () => {
+        const mensagem = chatInput.value.trim();
+        if (mensagem) {
+            sendMessage(mensagem);
+            chatInput.value = '';
+        }
+    });
 
-    if (reasonModalContainer) {
-        closeModalButton.addEventListener('click', closeReasonModal);
-        cancelReasonButton.addEventListener('click', closeReasonModal);
-        // Adiciona o listener de submit ao botão do modal
-        if (submitReasonButton) {
-            const form = document.getElementById('reason-form');
-            if (form) {
-                 submitReasonButton.addEventListener('click', (e) => {
-                    // Evita que o botão submit acione o evento sem o formulário ser configurado.
-                    e.preventDefault(); 
-                    form.dispatchEvent(new Event('submit'));
-                 });
+    // Evento de tecla 'Enter' no input
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) { // Garante que Shift+Enter funcione para quebra de linha
+            e.preventDefault(); 
+            const mensagem = chatInput.value.trim();
+            if (mensagem) {
+                sendMessage(mensagem);
+                chatInput.value = '';
             }
         }
-    
-        reasonModalContainer.addEventListener('click', (e) => {
-            if (e.target.id === 'reason-modal-container') {
-                closeReasonModal();
-            }
-        });
-    }
-    
-    // Evento para quando o hash da URL muda.
-    window.addEventListener('hashchange', handleHashChange);
+    });
 
-    // Chama a função de manipulação do hash na carga inicial da página
-    handleHashChange();
+    // Função para iniciar uma nova conversa
+    newChatButton.addEventListener('click', async () => {
+        try {
+            const response = await fetch(`${BACKEND_URL}/ia/conversas`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${localStorage.getItem('jwt')}` // CORRIGIDO
+                },
+                body: JSON.stringify({ titulo_opcional: 'Nova Conversa' })
+            });
+
+            if (response.ok) {
+                const newConversation = await response.json();
+                // Assumindo que a resposta retorna o id correto para loadConversationMessages
+                // Note que o id pode estar em 'id' ou 'id_conversa' dependendo do backend
+                const newId = newConversation.id || newConversation.id_conversa;
+                alert('Nova conversa iniciada!');
+                await loadConversations(); // Recarrega a lista para mostrar a nova conversa
+                loadConversationMessages(newId);
+            } else {
+                console.error('Erro ao iniciar nova conversa:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Erro na requisição:', error);
+        }
+    });
+
+    // Chama a função para carregar as conversas quando a página carregar
+    loadConversations();
 });

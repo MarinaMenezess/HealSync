@@ -89,11 +89,12 @@ app.post('/register-profile', async (req, res) => {
     
     // 3. Salvar o perfil no MySQL (usando firebaseUid)
     connection.query(
-        // Adicionado 'is_active_for_posting' com valor padrão 1
-        'INSERT INTO usuario (firebase_uid, nome, email, data_nascimento, genero, is_psicologo, especialidade, contato, cfp, cpf, is_active_for_posting) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)', 
-        [firebaseUid, nome, userEmail, data_nascimento, genero, 0, especialidade, contato, cfp, cpf], 
+        // CFP e CPF Adicionados
+        'INSERT INTO usuario (firebase_uid, nome, email, data_nascimento, genero, is_psicologo, especialidade, contato, cfp, cpf) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [firebaseUid, nome, userEmail, data_nascimento, genero, 0, especialidade, contato, cfp, cpf], // is_psicologo = 0 (false)
         (err, result) => {
             if (err) {
+                // Erro comum aqui é DUPLICATE ENTRY se o usuário já estiver cadastrado no MySQL
                 if (err.code === 'ER_DUP_ENTRY') {
                      return res.status(409).json({ error: 'Perfil de usuário já cadastrado.' });
                 }
@@ -138,17 +139,17 @@ app.post('/register', async (req, res) => {
             
             // 3. Inserir o novo usuário no MySQL (is_psicologo = 0 por padrão).
             const insertQuery = `
-                INSERT INTO usuario (firebase_uid, nome, email, is_psicologo, cfp, cpf, is_active_for_posting) 
-                VALUES (?, ?, ?, ?, ?, ?, 1)
+                INSERT INTO usuario (firebase_uid, nome, email, is_psicologo, cfp, cpf) 
+                VALUES (?, ?, ?, ?, ?, ?)
             `;
             
             const queryParams = [
                 firebaseUid, 
                 userName, 
                 userEmail, 
-                0,    
-                null, 
-                null,  
+                0,    // Valor para is_psicologo (0 = false)
+                null, // Valor para cfp (null)
+                null  // Valor para cpf (null)
             ];
 
             connection.query(insertQuery, queryParams, (insertErr, insertResult) => {
@@ -200,15 +201,15 @@ app.get('/psychologists', (req, res) => {
 });
 
 // =========================================================================
-// ROTA PARA OBTER POSTS PÚBLICOS PARA A TIMELINE (GET /posts)
+// ROTA PARA OBTER POSTS PÚBLICOS PARA A TIMELINE (GET /posts) - ADICIONADA
 // =========================================================================
 app.get('/posts', (req, res) => {
-    // Retorna apenas posts públicos que NÃO FORAM DENUNCIADOS
+    // Retorna todos os posts marcados como públicos, juntamente com o nome do usuário.
     const query = `
-        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, rp.id_usuario AS id_autor, rp.is_denounced, u.nome AS nome_usuario
+        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, u.nome AS nome_usuario
         FROM registro_progresso rp
         JOIN usuario u ON rp.id_usuario = u.id_usuario
-        WHERE rp.is_public = 1 AND rp.is_denounced = 0
+        WHERE rp.is_public = 1
         ORDER BY rp.data DESC;
     `;
 
@@ -222,65 +223,7 @@ app.get('/posts', (req, res) => {
 });
 
 // =========================================================================
-// ROTA PARA BUSCAR DETALHES DE UM POST ESPECÍFICO (GET /posts/:id) - NOVO/FINAL
-// =========================================================================
-app.get('/posts/:id', (req, res) => {
-    const registroId = parseInt(req.params.id, 10);
-
-    if (isNaN(registroId)) {
-        return res.status(400).json({ error: 'ID do registro inválido.' });
-    }
-
-    // Busca o post e os dados do autor (garante que não traz posts de usuários inativos para a visualização)
-    const query = `
-        SELECT 
-            rp.id_registro, rp.data, rp.emocao, rp.descricao, rp.is_denounced,
-            u.id_usuario AS id_autor, u.nome AS nome_usuario
-        FROM registro_progresso rp
-        JOIN usuario u ON rp.id_usuario = u.id_usuario
-        WHERE rp.id_registro = ? AND rp.is_public = 1 AND rp.is_denounced = 0;
-    `;
-
-    connection.query(query, [registroId], (err, results) => {
-        if (err) {
-            console.error('Erro ao buscar post:', err.message);
-            return res.status(500).json({ error: 'Erro interno ao buscar post.' });
-        }
-        if (results.length === 0) {
-            return res.status(404).json({ mensagem: 'Post não encontrado, não é público ou foi denunciado.' });
-        }
-        res.json(results[0]);
-    });
-});
-
-
-// =========================================================================
-// ROTA PARA BUSCAR COMENTÁRIOS DE UM POST (GET /posts/:id/comentarios) - FINAL
-// =========================================================================
-app.get('/posts/:id/comentarios', (req, res) => {
-    const registroId = parseInt(req.params.id, 10);
-
-    const query = `
-        SELECT 
-            c.id_comentario, c.conteudo, c.data_hora, 
-            u.id_usuario AS id_usuario, u.nome AS nome_usuario
-        FROM comentario c
-        JOIN usuario u ON c.id_usuario = u.id_usuario
-        WHERE c.id_registro = ?
-        ORDER BY c.data_hora ASC;
-    `;
-
-    connection.query(query, [registroId], (err, results) => {
-        if (err) {
-            console.error('Erro ao buscar comentários:', err.message);
-            return res.status(500).json({ error: 'Erro interno ao buscar comentários.' });
-        }
-        res.json(results);
-    });
-});
-
-// =========================================================================
-// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
+// NOVO: ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
 // =========================================================================
 app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
@@ -317,69 +260,6 @@ app.get('/users/:id', (req, res) => {
 });
 // =========================================================================
 
-// =========================================================================
-// ROTA PARA OBTER DETALHES BÁSICOS DE PERFIL PÚBLICO POR ID (para profile2.html)
-// Protegida por authMiddleware para garantir que o usuário está logado.
-// =========================================================================
-app.get('/profile-data/:id', authMiddleware, (req, res) => {
-    const userId = req.params.id;
-    
-    // Busca o nome e se o usuário é um psicólogo (is_psicologo)
-    const query = 'SELECT nome, is_psicologo FROM usuario WHERE id_usuario = ?';
-
-    connection.query(query, [userId], (err, results) => {
-        if (err) {
-            console.error('Erro ao buscar perfil de usuário:', err.message);
-            return res.status(500).json({ error: 'Erro no servidor ao buscar perfil.' });
-        }
-        
-        if (results.length === 0) {
-            return res.status(404).json({ error: 'Perfil não encontrado.' });
-        }
-        
-        const user = results[0];
-        
-        // Retorna apenas dados públicos. O email é sempre privado, seguindo a regra de segurança.
-        res.json({
-            id_usuario: userId,
-            nome: user.nome,
-            is_psicologo: user.is_psicologo,
-            // A informação de e-mail é tratada como privada
-            email: '' 
-        });
-    });
-});
-
-// =========================================================================
-// ROTA PARA OBTER POSTS PÚBLICOS DE UM USUÁRIO ESPECÍFICO
-// Protegida por authMiddleware.
-// =========================================================================
-app.get('/users/:id/public-posts', authMiddleware, (req, res) => {
-    const userId = parseInt(req.params.id, 10);
-
-    if (isNaN(userId)) {
-        return res.status(400).json({ error: 'ID do usuário inválido.' });
-    }
-
-    // Retorna apenas posts públicos que NÃO FORAM DENUNCIADOS, e que pertencem ao usuário ID
-    const query = `
-        SELECT id_registro, data, descricao
-        FROM registro_progresso
-        WHERE id_usuario = ? AND is_public = 1 AND is_denounced = 0
-        ORDER BY data DESC;
-    `;
-
-    connection.query(query, [userId], (err, results) => {
-        if (err) {
-            console.error('Erro ao buscar posts públicos do usuário:', err.message);
-            return res.status(500).json({ error: 'Erro interno ao buscar posts do usuário.' });
-        }
-        res.json(results);
-    });
-});
-
-// =========================================================================
-
 
 // Rota de login agora verifica o token do Firebase e retorna o JWT local
 app.post('/login', async (req, res) => {
@@ -402,7 +282,6 @@ app.post('/login', async (req, res) => {
     }
 
     // 2. Buscar o usuário no MySQL usando o firebase_uid
-    // SELECT * retorna a coluna is_active_for_posting
     connection.query('SELECT * FROM usuario WHERE firebase_uid = ?', [firebaseUid], (err, results) => {
         if (err) {
             console.error('Erro ao consultar o banco de dados:', err.message);
@@ -417,10 +296,9 @@ app.post('/login', async (req, res) => {
         const user = results[0];
         
         // 3. Gerar e retornar o JWT local para uso nas rotas protegidas
-        // A CHAVE DO JWT LOCAL É 'jwt' para consistência com o frontend.
         const token = jwt.sign({ id: user.id_usuario, is_psicologo: user.is_psicologo }, JWT_SECRET, { expiresIn: '1d' });
         
-        // Retorna o objeto user, que inclui is_active_for_posting
+        // Remover firebase_uid e qualquer campo sensível antes de enviar ao frontend
         const { firebase_uid, ...userWithoutPrivateFields } = user;
         
         res.json({ token, user: userWithoutPrivateFields });
@@ -867,7 +745,7 @@ app.get('/consultas/:id', authMiddleware, (req, res) => {
             u_paciente.nome AS nome_paciente,
             u_psicologo.nome AS nome_psicologo
         FROM solicitacao_consulta sc
-        JOIN usuario u_paciente ON sc.id_paciente = u_paciente.id_usuario
+        JOIN usuario u_paciente ON sc.id_paciente = u.id_usuario
         JOIN usuario u_psicologo ON sc.id_psicologo = u_psicologo.id_usuario
         WHERE sc.id_solicitacao = ? 
           AND (sc.id_psicologo = ? OR sc.id_paciente = ?)
@@ -1063,53 +941,6 @@ app.get('/consultas/pacientes/:id/historico', authMiddleware, (req, res) => {
 });
 
 // =========================================================================
-// NOVO: ROTA PARA DENUNCIAR/INATIVAR PERFIL DE OUTRO USUÁRIO (MODERAÇÃO)
-// A rota inativa o usuário (is_active_for_posting = 0) e registra a denúncia.
-// O denunciante deve estar logado (authMiddleware).
-// =========================================================================
-app.post('/users/:id/denounce-deactivate', authMiddleware, (req, res) => {
-    const denouncedUserId = parseInt(req.params.id, 10);
-    const reporterUserId = req.userId;
-    const { motivo } = req.body; 
-
-    if (isNaN(denouncedUserId)) {
-        return res.status(400).json({ error: 'ID do usuário denunciado inválido.' });
-    }
-    
-    if (!motivo || motivo.length < 10) {
-        return res.status(400).json({ error: 'O motivo da denúncia é obrigatório e deve ter pelo menos 10 caracteres.' });
-    }
-    
-    if (denouncedUserId === reporterUserId) {
-        return res.status(403).json({ error: 'Você não pode denunciar o seu próprio perfil.' });
-    }
-
-    // Ação 1: Inativar a conta do usuário denunciado para postagens/comentários
-    const deactivateQuery = 'UPDATE usuario SET is_active_for_posting = 0 WHERE id_usuario = ? AND is_active_for_posting = 1';
-    
-    connection.query(deactivateQuery, [denouncedUserId], (err, deactivateResult) => {
-        if (err) {
-            console.error('Erro ao inativar usuário:', err.message);
-            return res.status(500).json({ error: 'Erro interno ao inativar a conta.' });
-        }
-        
-        let message = `Usuário (ID: ${denouncedUserId}) foi inativado para postagens.`;
-        if (deactivateResult.affectedRows === 0) {
-            message = `Usuário (ID: ${denouncedUserId}) já estava inativo ou não encontrado.`;
-        }
-        
-        // Ação 2 (Simulada): Registro da denúncia (necessitaria de uma tabela 'denuncia')
-        console.log(`[DENÚNCIA REGISTRADA] Usuário ${denouncedUserId} denunciado por ${reporterUserId}. Motivo: ${motivo}`);
-
-
-        res.json({ 
-            mensagem: 'Denúncia registrada com sucesso. ' + message
-        });
-    });
-});
-
-
-// =========================================================================
 // ROTA PARA OBTER ANOTAÇÕES GERAIS DE UM PACIENTE (PARA HISTÓRICO NO PRONTUÁRIO)
 // =========================================================================
 app.get('/anotacoes/paciente/:id_paciente', authMiddleware, (req, res) => {
@@ -1162,14 +993,14 @@ app.get('/anotacoes/paciente/:id_paciente', authMiddleware, (req, res) => {
 
 
 // =========================================================================
-// ROTA PARA OBTER REGISTROS DE PROGRESSO DO USUÁRIO (CORRIGIDA)
+// ROTA PARA OBTER REGISTROS DE PROGRESSO DO USUÁRIO (MODIFICADA)
 // =========================================================================
 app.get('/registros', authMiddleware, (req, res) => {
     const userId = req.userId;
 
-    // Busca todos os registros de progresso do usuário logado, incluindo is_public e is_denounced
+    // Busca todos os registros de progresso do usuário logado, incluindo is_public
     const query = `
-        SELECT id_registro, data, emocao, descricao, is_public, is_denounced
+        SELECT id_registro, data, emocao, descricao, is_public 
         FROM registro_progresso
         WHERE id_usuario = ?
         ORDER BY data DESC;
@@ -1187,7 +1018,7 @@ app.get('/registros', authMiddleware, (req, res) => {
 // =========================================================================
 
 // =========================================================================
-// ROTA PARA PUBLICAR UM REGISTRO (PUT /registros/:id/publish)
+// ROTA PARA PUBLICAR UM REGISTRO (PUT /registros/:id/publish) - ADICIONADA
 // =========================================================================
 app.put('/registros/:id/publish', authMiddleware, (req, res) => {
     const registroId = parseInt(req.params.id, 10);
@@ -1197,154 +1028,47 @@ app.put('/registros/:id/publish', authMiddleware, (req, res) => {
         return res.status(400).json({ error: 'ID do registro inválido.' });
     }
 
-    // 1. Verificação de status (Bloqueia publicação se inativo)
-    connection.query('SELECT is_active_for_posting FROM usuario WHERE id_usuario = ?', [req.userId], (checkErr, checkResults) => {
-        if (checkErr) return res.status(500).json({ error: checkErr.message });
-        
-        if (checkResults.length === 0 || checkResults[0].is_active_for_posting === 0) {
-            return res.status(403).json({ error: 'Sua conta foi inativada para postagens e comentários devido a denúncias.' });
-        }
-    
-        // Define is_public como 1 (TRUE) e garante que não está denunciado (is_denounced = 0)
-        const query = 'UPDATE registro_progresso SET is_public = 1, is_denounced = 0 WHERE id_registro = ? AND id_usuario = ?';
-
-        connection.query(query, [registroId, userId], (err, result) => {
-            if (err) {
-                console.error('Erro ao publicar registro:', err.message);
-                return res.status(500).json({ error: 'Erro interno ao publicar o registro.' });
-            }
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ mensagem: 'Registro não encontrado ou você não tem permissão para publicá-lo.' });
-            }
-
-            res.json({ mensagem: 'Registro publicado com sucesso.' });
-        });
-    });
-});
-
-// =========================================================================
-// ROTA PARA ARQUIVAR UM REGISTRO (PUT /registros/:id/archive)
-// =========================================================================
-app.put('/registros/:id/archive', authMiddleware, (req, res) => {
-    const registroId = parseInt(req.params.id, 10);
-    const userId = req.userId; // ID do usuário logado
-
-    if (isNaN(registroId)) {
-        return res.status(400).json({ error: 'ID do registro inválido.' });
-    }
-
-    // Define is_public como 0 (FALSE)
-    const query = 'UPDATE registro_progresso SET is_public = 0 WHERE id_registro = ? AND id_usuario = ?';
+    // Define is_public como 1 (TRUE) para o registro do usuário logado
+    const query = 'UPDATE registro_progresso SET is_public = 1 WHERE id_registro = ? AND id_usuario = ?';
 
     connection.query(query, [registroId, userId], (err, result) => {
         if (err) {
-            console.error('Erro ao arquivar registro:', err.message);
-            return res.status(500).json({ error: 'Erro interno ao arquivar o registro.' });
+            console.error('Erro ao publicar registro:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao publicar o registro.' });
         }
 
         if (result.affectedRows === 0) {
-            return res.status(404).json({ mensagem: 'Registro não encontrado ou você não tem permissão para arquivá-lo.' });
+            return res.status(404).json({ mensagem: 'Registro não encontrado ou você não tem permissão para publicá-lo.' });
         }
 
-        res.json({ mensagem: 'Registro arquivado com sucesso.' });
-    });
-});
-
-// =========================================================================
-// ROTA PARA DENUNCIAR UM REGISTRO (POST /registros/:id/denounce) - FINAL
-// Implementa a contagem de denúncias e inativação da conta.
-// =========================================================================
-app.post('/registros/:id/denounce', authMiddleware, (req, res) => {
-    const registroId = parseInt(req.params.id, 10);
-    const LIMIT_DENUNCIAS = 3; 
-
-    if (isNaN(registroId)) {
-        return res.status(400).json({ error: 'ID do registro inválido.' });
-    }
-
-    // 1. Encontrar o autor do post e verificar se já foi denunciado
-    connection.query('SELECT id_usuario FROM registro_progresso WHERE id_registro = ? AND is_denounced = 0', [registroId], (err, results) => {
-        if (err) return res.status(500).json({ error: err.message });
-        if (results.length === 0) {
-             return res.status(404).json({ mensagem: 'Registro não encontrado ou já foi denunciado.' });
-        }
-        
-        const autorId = results[0].id_usuario;
-
-        // 2. Marcar como denunciado (is_denounced = 1) e arquivar (is_public = 0)
-        const updateQuery = 'UPDATE registro_progresso SET is_denounced = 1, is_public = 0 WHERE id_registro = ?';
-
-        connection.query(updateQuery, [registroId], (updateErr, updateResult) => {
-            if (updateErr) return res.status(500).json({ error: updateErr.message });
-
-            // 3. Contar as denúncias ativas do autor
-            const countQuery = 'SELECT COUNT(*) AS total_denuncias FROM registro_progresso WHERE id_usuario = ? AND is_denounced = 1';
-            connection.query(countQuery, [autorId], (countErr, countResults) => {
-                if (countErr) return res.status(500).json({ error: countErr.message });
-
-                const totalDenuncias = countResults[0].total_denuncias;
-                let mensagem = 'Registro denunciado e arquivado com sucesso.';
-                
-                // 4. Se a contagem for 3 ou mais, inativar a conta para postagens
-                if (totalDenuncias >= LIMIT_DENUNCIAS) {
-                    const inactivateQuery = 'UPDATE usuario SET is_active_for_posting = 0 WHERE id_usuario = ? AND is_active_for_posting = 1';
-                    connection.query(inactivateQuery, [autorId], (inactivateErr, inactivateResult) => {
-                        if (inactivateErr) {
-                             console.error('Erro ao inativar usuário:', inactivateErr.message);
-                             return res.status(500).json({ error: 'Erro interno ao inativar conta do usuário.' });
-                        }
-                        if (inactivateResult.affectedRows > 0) {
-                            mensagem += ` O usuário (ID: ${autorId}) atingiu ${totalDenuncias} denúncias e foi inativado para postagens e comentários.`;
-                        }
-                        res.json({ mensagem });
-                    });
-                } else {
-                    res.json({ mensagem });
-                }
-            });
-        });
+        res.json({ mensagem: 'Registro publicado com sucesso.' });
     });
 });
 
 
-// ---------- REGISTROS (PERMITE CRIAÇÃO, MAS BLOQUEIA EDIÇÃO/PUBLICAÇÃO) ----------
+// ---------- REGISTROS (MODIFICADA para incluir is_public=0 por padrão) ----------
 app.post('/registros', authMiddleware, (req, res) => {
-    // CORREÇÃO: REMOVIDO BLOQUEIO DE is_active_for_posting, permitindo a criação.
-    const { data, emocao, descricao } = req.body;
-    // Adicionado is_public e is_denounced no INSERT
-    connection.query(
-        'INSERT INTO registro_progresso (id_usuario, data, emocao, descricao, is_public, is_denounced) VALUES (?, ?, ?, ?, 0, 0)', 
-        [req.userId, data, emocao, descricao],
-        (err, result) => {
-            if (err) return res.status(500).json({ error: err.message });
-            res.status(201).json({ id: result.insertId });
-        }
-    );
+  const { data, emocao, descricao } = req.body;
+  connection.query(
+    'INSERT INTO registro_progresso (id_usuario, data, emocao, descricao, is_public) VALUES (?, ?, ?, ?, 0)', // ADICIONADO: 0 (false) como padrão
+    [req.userId, data, emocao, descricao],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ id: result.insertId });
+    }
+  );
 });
 
 app.put('/registros/:id', authMiddleware, (req, res) => {
   const { emocao, descricao } = req.body;
-  
-  // 1. Verificação de status (Bloqueia edição se inativo)
-  connection.query('SELECT is_active_for_posting FROM usuario WHERE id_usuario = ?', [req.userId], (checkErr, checkResults) => {
-      if (checkErr) return res.status(500).json({ error: checkErr.message });
-      if (checkResults.length === 0 || checkResults[0].is_active_for_posting === 0) {
-          return res.status(403).json({ error: 'Sua conta foi inativada para postagens e comentários devido a denúncias.' });
-      }
-
-      connection.query(
-          'UPDATE registro_progresso SET emocao = ?, descricao = ? WHERE id_registro = ? AND id_usuario = ? AND is_denounced = 0', // Bloqueia edição de denunciados
-          [emocao, descricao, req.params.id, req.userId],
-          (err, result) => {
-              if (err) return res.status(500).json({ error: err.message });
-              if (result.affectedRows === 0) {
-                  return res.status(403).json({ mensagem: 'Registro não encontrado ou não pode ser editado (pode estar denunciado).' });
-              }
-              res.json({ mensagem: 'Registro atualizado com sucesso' });
-          }
-      );
-  });
+  connection.query(
+    'UPDATE registro_progresso SET emocao = ?, descricao = ? WHERE id_registro = ? AND id_usuario = ?',
+    [emocao, descricao, req.params.id, req.userId],
+    (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ mensagem: 'Registro atualizado com sucesso' });
+    }
+  );
 });
 
 app.delete('/registros/:id', authMiddleware, (req, res) => {
@@ -1358,48 +1082,30 @@ app.delete('/registros/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- COMENTÁRIOS (BLOQUEIA CRIAÇÃO SE INATIVO) ----------
+// ---------- COMENTÁRIOS (MANTIDOS) ----------
 
 app.post('/comentarios', authMiddleware, (req, res) => {
-    // 1. Verificação de status (Bloqueia comentários se inativo)
-    connection.query('SELECT is_active_for_posting FROM usuario WHERE id_usuario = ?', [req.userId], (checkErr, checkResults) => {
-        if (checkErr) return res.status(500).json({ error: checkErr.message });
-        if (checkResults.length === 0 || checkResults[0].is_active_for_posting === 0) {
-            return res.status(403).json({ error: 'Sua conta foi inativada para postagens e comentários devido a denúncias.' });
-        }
-
-        // 2. Criação do comentário
-        const { id_registro, conteudo } = req.body;
-        connection.query(
-            'INSERT INTO comentario (id_registro, id_usuario, conteudo) VALUES (?, ?, ?)',
-            [id_registro, req.userId, conteudo],
-            (err, result) => {
-                if (err) return res.status(500).json({ error: err.message });
-                res.status(201).json({ id: result.insertId, mensagem: 'Comentário adicionado com sucesso.' });
-            }
-        );
-    });
+  const { id_registro, conteudo } = req.body;
+  connection.query(
+    'INSERT INTO comentario (id_registro, id_usuario, conteudo) VALUES (?, ?, ?)',
+    [id_registro, req.userId, conteudo],
+    (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.status(201).json({ id: result.insertId });
+    }
+  );
 });
 
 app.put('/comentarios/:id', authMiddleware, (req, res) => {
-    // 1. Verificação de status
-    connection.query('SELECT is_active_for_posting FROM usuario WHERE id_usuario = ?', [req.userId], (checkErr, checkResults) => {
-        if (checkErr) return res.status(500).json({ error: checkErr.message });
-        if (checkResults.length === 0 || checkResults[0].is_active_for_posting === 0) {
-            return res.status(403).json({ error: 'Sua conta foi inativada para postagens e comentários devido a denúncias.' });
-        }
-        
-        // 2. Atualização do comentário
-        const { conteudo } = req.body;
-        connection.query(
-            'UPDATE comentario SET conteudo = ? WHERE id_comentario = ? AND id_usuario = ?',
-            [conteudo, req.params.id, req.userId],
-            (err) => {
-                if (err) return res.status(500).json({ error: err.message });
-                res.json({ mensagem: 'Comentário atualizado com sucesso' });
-            }
-        );
-    });
+  const { conteudo } = req.body;
+  connection.query(
+    'UPDATE comentario SET conteudo = ? WHERE id_comentario = ? AND id_usuario = ?',
+    [conteudo, req.params.id, req.userId],
+    (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ mensagem: 'Comentário atualizado com sucesso' });
+    }
+  );
 });
 
 app.delete('/comentarios/:id', authMiddleware, (req, res) => {

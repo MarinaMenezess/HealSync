@@ -1,9 +1,12 @@
-// ARQUIVO: backend/server.js (CORREÇÃO DE TypeError e ORDEM DO CHAT)
+// ARQUIVO: backend/server.js (COM CONFIGURAÇÃO DO MULTER PARA UPLOAD DE FOTO)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const jwt = require('jsonwebtoken');
+const multer = require('multer'); // NOVO: Importa Multer
+const path = require('path'); // NOVO: Importa Path para manipular caminhos de arquivo
+const fs = require('fs'); // NOVO: Importa FS para remover arquivos
 require('dotenv').config(); // Carrega as variáveis de ambiente
 
 // NOVO: Importa o módulo de automação/scraping (instável)
@@ -25,6 +28,19 @@ const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 const app = express();
 app.use(bodyParser.json());
 
+// CONFIGURAÇÃO PARA SERVIR ARQUIVOS DE UPLOAD (MUITO IMPORTANTE)
+// O path.join garante que o caminho seja correto, independentemente do OS.
+const uploadDir = path.join(__dirname, 'uploads');
+const profilePicturesDir = path.join(uploadDir, 'profile_pictures');
+
+// Garante que o diretório de uploads existe
+if (!fs.existsSync(profilePicturesDir)) {
+    fs.mkdirSync(profilePicturesDir, { recursive: true });
+}
+
+// Serve a pasta 'uploads' estaticamente, acessível via /uploads
+app.use('/uploads', express.static(uploadDir)); 
+
 app.use(cors({ origin: 'http://127.0.0.1:5501' }));
 
 const JWT_SECRET = 'chave_secreta';
@@ -44,7 +60,7 @@ const authMiddleware = (req, res, next) => {
   }
 };
 
-// Conteúdo da instrução de sistema expandido para incluir informações sobre a plataforma HealSync
+// Conteúdo da instrução de sistema expandido
 const systemInstruction = `
     Você é o HealSync AI, um agente de **suporte psicológico e bem-estar** para a plataforma HealSync.
     Sua principal função é oferecer um espaço seguro e de escuta ativa, validando os sentimentos do usuário e promovendo a auto-reflexão.
@@ -60,6 +76,36 @@ const systemInstruction = `
     - Consultas: Pacientes podem solicitar agendamentos de sessões. Psicólogos usam a área de consultas para gerenciar solicitações.
     - Área do Psicólogo (Prontuário/Ficha): Permite ao psicólogo visualizar prontuários de pacientes, histórico de consultas e adicionar anotações de sessão (ficha).
 `;
+
+// ---------- CONFIGURAÇÃO DO MULTER PARA UPLOAD DE FOTO DE PERFIL ----------
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        // Salva na pasta 'uploads/profile_pictures'
+        cb(null, profilePicturesDir); 
+    },
+    filename: function (req, file, cb) {
+        // Nome do arquivo: user-[ID_DO_USUARIO]-[timestamp].[extensão]
+        const ext = path.extname(file.originalname);
+        cb(null, `user-${req.userId}-${Date.now()}${ext}`);
+    }
+});
+
+// Filtro para aceitar apenas imagens
+const fileFilter = (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+    } else {
+        cb(new Error('Apenas arquivos de imagem (JPG/PNG) são permitidos!'), false);
+    }
+};
+
+const upload = multer({ 
+    storage: storage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Limite de 5MB
+    fileFilter: fileFilter
+});
+// --------------------------------------------------------------------------
+
 
 // ---------- AUTENTICAÇÃO COM FIREBASE ----------
 
@@ -196,7 +242,8 @@ app.post('/register', async (req, res) => {
 // ROTA PARA OBTER PSICÓLOGOS APROVADOS (Listagem da página)
 app.get('/psychologists', (req, res) => {
     const searchTerm = req.query.search;
-    let query = 'SELECT id_usuario, nome, email, especialidade, contato, avaliacao FROM usuario WHERE is_psicologo = 1';
+    // ADICIONADO: foto_perfil_url na consulta
+    let query = 'SELECT id_usuario, nome, email, especialidade, contato, avaliacao, foto_perfil_url FROM usuario WHERE is_psicologo = 1';
     const params = [];
 
     if (searchTerm) {
@@ -218,7 +265,7 @@ app.get('/psychologists', (req, res) => {
 });
 
 // =========================================================================
-// ROTA PARA OBTER POSTS PÚBLICOS PARA A TIMELINE (GET /posts) - ADICIONADA
+// ROTA PARA OBTER POSTS PÚBLICOS PARA A TIMELINE (GET /posts)
 // =========================================================================
 app.get('/posts', (req, res) => {
     // Retorna todos os posts marcados como públicos, juntamente com o nome do usuário.
@@ -228,7 +275,7 @@ app.get('/posts', (req, res) => {
         JOIN usuario u ON rp.id_usuario = u.id_usuario
         WHERE rp.is_public = 1
         ORDER BY rp.data DESC
-    `; // Removido ponto e vírgula
+    `; 
 
     connection.query(query, (err, results) => {
         if (err) {
@@ -240,7 +287,7 @@ app.get('/posts', (req, res) => {
 });
 
 // =========================================================================
-// NOVO: ROTA PARA OBTER DETALHES DE UM POST ESPECÍFICO (GET /posts/:id) - CORRIGIDA
+// ROTA PARA OBTER DETALHES DE UM POST ESPECÍFICO (GET /posts/:id)
 // =========================================================================
 app.get('/posts/:id', (req, res) => {
     const postId = parseInt(req.params.id, 10); // Adicionada conversão para INT
@@ -254,7 +301,7 @@ app.get('/posts/:id', (req, res) => {
         FROM registro_progresso rp
         JOIN usuario u ON rp.id_usuario = u.id_usuario
         WHERE rp.id_registro = ? AND rp.is_public = 1
-    `; // Removido ponto e vírgula
+    `; 
 
     connection.query(query, [postId], (err, results) => {
         if (err) {
@@ -271,7 +318,7 @@ app.get('/posts/:id', (req, res) => {
 });
 
 // =========================================================================
-// NOVO: ROTA PARA OBTER COMENTÁRIOS DE UM POST (GET /posts/:id/comentarios) - CORRIGIDA
+// ROTA PARA OBTER COMENTÁRIOS DE UM POST (GET /posts/:id/comentarios)
 // =========================================================================
 app.get('/posts/:id/comentarios', (req, res) => {
     const postId = parseInt(req.params.id, 10); // Adicionada conversão para INT
@@ -284,7 +331,7 @@ app.get('/posts/:id/comentarios', (req, res) => {
         JOIN usuario u ON c.id_usuario = u.id_usuario
         WHERE c.id_registro = ?
         ORDER BY c.data_hora ASC
-    `; // Removido ponto e vírgula
+    `; 
 
     connection.query(query, [postId], (err, results) => {
         if (err) {
@@ -297,12 +344,13 @@ app.get('/posts/:id/comentarios', (req, res) => {
 });
 
 // =========================================================================
-// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html)
+// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html) - MODIFICADA
 // =========================================================================
 app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
     
-    const query = 'SELECT nome, email, especialidade, contato, avaliacao, is_psicologo, cfp FROM usuario WHERE id_usuario = ?';
+    // ADICIONADO: foto_perfil_url na consulta
+    const query = 'SELECT nome, email, especialidade, contato, avaliacao, is_psicologo, cfp, foto_perfil_url FROM usuario WHERE id_usuario = ?';
 
     connection.query(query, [userId], (err, results) => {
         if (err) {
@@ -325,6 +373,8 @@ app.get('/users/:id', (req, res) => {
         delete user.is_psicologo;
         delete user.cfp; // O CFP não deve ser público
         delete user.email; // O email não deve ser público
+
+        // A foto de perfil não é removida, pois é uma informação pública.
 
         // Adicionando uma biografia fictícia (assumindo que o campo 'bio' não existe no schema)
         user.bio = 'Profissional com vasta experiência na área de saúde mental. Dedicado a fornecer suporte e orientação para o desenvolvimento pessoal e emocional.'; 
@@ -356,6 +406,7 @@ app.post('/login', async (req, res) => {
     }
 
     // 2. Buscar o usuário no MySQL usando o firebase_uid
+    // O SELECT * inclui foto_perfil_url
     connection.query('SELECT * FROM usuario WHERE firebase_uid = ?', [firebaseUid], (err, results) => {
         if (err) {
             console.error('Erro ao consultar o banco de dados:', err.message);
@@ -378,6 +429,121 @@ app.post('/login', async (req, res) => {
         res.json({ token, user: userWithoutPrivateFields });
     });
 });
+
+
+// =========================================================================
+// NOVA ROTA: UPLOAD E ATUALIZAÇÃO DA FOTO DE PERFIL COM MULTER
+// Rota substitui a antiga rota PUT /users/profile-picture.
+// =========================================================================
+app.post('/users/profile-picture-upload', authMiddleware, (req, res) => {
+    
+    // Usa o middleware de upload configurado, esperando um campo chamado 'profile_picture'
+    upload.single('profile_picture')(req, res, async (err) => {
+        if (err instanceof multer.MulterError) {
+            return res.status(400).json({ error: 'Erro de upload do Multer: ' + err.message });
+        } else if (err) {
+            return res.status(400).json({ error: 'Erro no processamento do arquivo: ' + err.message });
+        }
+        
+        // 1. Verifica se o arquivo foi enviado
+        if (!req.file) {
+            // Se não houver arquivo, mas houver a flag 'clear', remove a foto.
+            if (req.body.clear === 'true') {
+                try {
+                     // 1.1. Buscar a URL antiga para remover o arquivo físico
+                    const [oldUrlResult] = await new Promise((resolve, reject) => {
+                        connection.query('SELECT foto_perfil_url FROM usuario WHERE id_usuario = ?', [req.userId], (err, results) => {
+                            if (err) return reject(err);
+                            resolve(results);
+                        });
+                    });
+
+                    if (oldUrlResult && oldUrlResult[0] && oldUrlResult[0].foto_perfil_url) {
+                        const oldPath = oldUrlResult[0].foto_perfil_url.replace(`http://localhost:3000/uploads`, uploadDir);
+                        // Tenta remover o arquivo antigo (ignora erros se o arquivo não existir)
+                        fs.unlink(oldPath, (e) => { 
+                            if (e && e.code !== 'ENOENT') console.error("Erro ao deletar arquivo antigo:", e); 
+                        });
+                    }
+
+                    // 1.2. Remover a URL do DB
+                    await new Promise((resolve, reject) => {
+                        connection.query(
+                            'UPDATE usuario SET foto_perfil_url = NULL WHERE id_usuario = ?',
+                            [req.userId],
+                            (err, result) => {
+                                if (err) return reject(err);
+                                resolve(result);
+                            }
+                        );
+                    });
+                    
+                    return res.json({ mensagem: 'Foto de perfil removida com sucesso.', foto_perfil_url: null });
+
+                } catch (dbError) {
+                    console.error('Erro ao remover foto de perfil:', dbError.message);
+                    return res.status(500).json({ error: 'Erro ao remover foto no banco de dados.' });
+                }
+            }
+            return res.status(400).json({ error: 'Nenhum arquivo de imagem enviado.' });
+        }
+        
+        // 2. Arquivo enviado. Remove o arquivo antigo primeiro (boa prática).
+        try {
+             const [oldUrlResult] = await new Promise((resolve, reject) => {
+                connection.query('SELECT foto_perfil_url FROM usuario WHERE id_usuario = ?', [req.userId], (err, results) => {
+                    if (err) return reject(err);
+                    resolve(results);
+                });
+            });
+
+            if (oldUrlResult && oldUrlResult[0] && oldUrlResult[0].foto_perfil_url) {
+                // A URL é http://localhost:3000/uploads/profile_pictures/...
+                // O caminho no disco é [__dirname]/uploads/profile_pictures/...
+                const oldPath = oldUrlResult[0].foto_perfil_url.replace(`http://localhost:3000/uploads`, uploadDir);
+                // Tenta remover o arquivo antigo (ignora erros se o arquivo não existir)
+                 fs.unlink(oldPath, (e) => { 
+                    if (e && e.code !== 'ENOENT') console.error("Erro ao deletar arquivo antigo:", e); 
+                });
+            }
+
+        } catch (error) {
+            console.error('Aviso: Falha ao deletar arquivo antigo. O upload continua:', error.message);
+            // Continua mesmo se falhar a remoção do arquivo antigo
+        }
+        
+        // 3. Constrói a URL de acesso público 
+        const filePath = `/uploads/profile_pictures/${req.file.filename}`;
+        const publicUrl = `http://localhost:3000${filePath}`; 
+
+        // 4. Salvar o caminho/URL no banco de dados
+        try {
+            await new Promise((resolve, reject) => {
+                connection.query(
+                    'UPDATE usuario SET foto_perfil_url = ? WHERE id_usuario = ?',
+                    [publicUrl, req.userId],
+                    (err, result) => {
+                        if (err) return reject(err);
+                        resolve(result);
+                    }
+                );
+            });
+            
+            res.json({ mensagem: 'Foto de perfil atualizada com sucesso.', foto_perfil_url: publicUrl });
+
+        } catch (dbError) {
+            console.error('Erro ao atualizar a foto de perfil:', dbError.message);
+            // Remove o arquivo recém-salvo em caso de falha no DB
+            fs.unlink(req.file.path, (e) => { 
+                if(e) console.error("Erro ao deletar arquivo após falha no DB:", e); 
+            });
+
+            res.status(500).json({ error: 'Erro ao salvar o caminho da foto no banco de dados.' });
+        }
+    });
+});
+// =========================================================================
+
 
 // ---------- SOLICITAÇÃO DE PERFIL PSICÓLOGO ----------
 
@@ -544,7 +710,6 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
         });
 
         // 2. Recuperar o histórico completo da conversa do banco de dados
-        // Note: 'historico' agora inclui a mensagem que acabamos de salvar
         const [historico] = await new Promise((resolve, reject) => {
             connection.query(
                 'SELECT remetente, conteudo FROM ia_mensagem WHERE id_conversa = ? ORDER BY data_hora ASC',
@@ -558,8 +723,6 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
         
         // 3. Lógica para gerar e atualizar o título da conversa na primeira mensagem do USUÁRIO
         let novoTitulo = null;
-        // Se a primeira mensagem do histórico é a da IA e a segunda é a do usuário.
-        // Contamos apenas as mensagens do usuário. Se for 1, é a primeira dele.
         const userMessages = historico.filter(msg => msg.remetente === 'usuario');
         const isFirstUserMessage = userMessages.length === 1; 
 
@@ -568,7 +731,6 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             
             // Chamada da IA para gerar o título (generateContent simples)
             const titleResult = await model.generateContent(titlePrompt);
-            // CORREÇÃO: Chama .text() para obter o conteúdo como string antes de trim()
             const tituloGerado = titleResult.text().trim().replace(/['"“”]/g, ''); 
 
             // Atualiza o banco de dados
@@ -588,62 +750,19 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
         }
 
         // 4. Formatar o histórico para a API do Gemini
-        
-        // ERRO DE ORDEM CORRIGIDO: A API espera que o histórico comece com o USUÁRIO. 
-        // Como a primeira mensagem do DB é a saudação da IA, pulamos ela e garantimos que o
-        // histórico para a API comece com a primeira mensagem do usuário.
-        // O histórico DEVE incluir todos os turnos completos antes do turno atual do usuário.
-        
-        // O histórico para a API DEVE ser: [Saudação IA, 1ª Mensagem Usuário, 1ª Resposta IA, ...]
-        // Se isFirstUserMessage == true, o histórico no DB é [IA, Usuário] e a API espera [Usuário]. 
-        // Mas como a API Gemini agora permite que o modelo responda à primeira mensagem,
-        // E como já salvamos a 1ª mensagem do usuário (passo 1), o histórico real que a API
-        // DEVE receber é APENAS o histórico de mensagens trocadas ANTES da mensagem ATUAL do usuário (que acabamos de salvar).
-
-        // No nosso caso, o histórico no DB é: [IA-Saudação, Usuário-1ª Msg]
-        // Se for a primeira mensagem do usuário (isFirstUserMessage=true):
-        //   - historyForGemini: [IA-Saudação]
-        //   - formattedHistory: [IA-Saudação, Usuário-1ª Msg] -> Isso causa o erro 'got model'
-        
-        // A SOLUÇÃO é: Remover o turno da IA e o primeiro turno do usuário para que o chat com a API comece com o 2º turno do usuário.
-        
-        // Novo histórico: remove a saudação da IA. A API agora receberá [Usuário, IA, Usuário, ...]
-        // Mas a primeira mensagem a ser enviada é a que acabamos de salvar.
-        // Já que a saudação da IA é a primeira entrada no histórico, o corte deve ser:
-        const historyExcludingIAMessageAndCurrent = historico.slice(1, -1);
-        
-        const formattedHistory = historyExcludingIAMessageAndCurrent.map(msg => ({
-            role: msg.remetente === 'usuario' ? 'user' : 'model',
-            parts: [{ text: msg.conteudo }]
-        }));
-
-        // Adiciona a mensagem do usuário que acabamos de salvar (ela será o primeiro turno user/model)
-        const currentMessagePart = historico[historico.length - 1]; // É a mensagem do usuário recém-salva
-
-        // 5. Inicia o chat com o histórico ANTES da primeira mensagem do usuário, se houver
-        // Para a 1ª mensagem do usuário, o histórico deve ser vazio.
         let chatHistory = [];
         let messageToSend = mensagem_usuario;
 
         if (historico.length > 2) {
-            // Se houver mais de 2 mensagens (IA-Saudação, Usuário-1ª, IA-1ª, etc)
-            // O histórico deve ser (Usuário-1ª, IA-1ª, Usuário-2ª, IA-2ª...) - excluímos a IA-Saudação
             chatHistory = historico.slice(1, -1).map(msg => ({
                 role: msg.remetente === 'usuario' ? 'user' : 'model',
                 parts: [{ text: msg.conteudo }]
             }));
-        } else {
-            // Se houver apenas a saudação da IA e a 1ª mensagem do usuário,
-            // enviamos APENAS a 1ª mensagem do usuário para a IA (o histórico é nulo)
-            // E a IA já sabe o contexto pela systemInstruction.
-            // Para isso, definimos o histórico como vazio e enviamos a mensagem.
-            // A API permite que o primeiro conteúdo tenha role 'user' se não houver histórico.
         }
 
         const chat = model.startChat({
-            history: chatHistory, // Histórico sem a saudação da IA, e sem a mensagem atual do usuário
+            history: chatHistory, 
             config: {
-                 // Usa a instrução do sistema expandida
                  systemInstruction: systemInstruction, 
                  generationConfig: {
                     maxOutputTokens: 100,
@@ -651,11 +770,11 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             },
         });
         
-        // 6. Enviar a mensagem atual do usuário para o modelo Gemini
+        // 5. Enviar a mensagem atual do usuário para o modelo Gemini
         const result = await chat.sendMessage(messageToSend); 
         const respostaIA = result.response.text().trim(); // Chama .text()
 
-        // 7. Salvar a resposta da IA no banco de dados
+        // 6. Salvar a resposta da IA no banco de dados
         await new Promise((resolve, reject) => {
             connection.query(
                 'INSERT INTO ia_mensagem (id_conversa, remetente, conteudo, data_hora) VALUES (?, ?, ?, NOW())',
@@ -667,7 +786,7 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             );
         });
         
-        // 8. Retorna a resposta da IA e o novo título (se gerado)
+        // 7. Retorna a resposta da IA e o novo título (se gerado)
         res.json({ resposta: respostaIA, novo_titulo: novoTitulo, mensagem: 'Mensagem e resposta salvas com sucesso.' });
 
     } catch (error) {
@@ -682,8 +801,8 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
 // =========================================================================
 app.post('/api/agenda/agendar', authMiddleware, (req, res) => { 
     // 1. Apenas pacientes podem enviar solicitações
-    if (!req.is_psicologo) {
-        return res.status(403).json({ error: 'Apenas pacientes podem enviar solicitações de agendamento.' });
+    if (req.is_psicologo) {
+        return res.status(403).json({ error: 'Acesso negado. Psicólogos devem gerenciar sessões através da área de consultas.' });
     }
 
     // 2. Extrai dados do payload (do frontend atualizado)
@@ -716,7 +835,7 @@ app.post('/api/agenda/agendar', authMiddleware, (req, res) => {
 });
 
 // =========================================================================
-// ROTA PARA CARREGAR EVENTOS NO CALENDÁRIO (CORRIGIDA E ATUALIZADA)
+// ROTA PARA CARREGAR EVENTOS NO CALENDÁRIO 
 // =========================================================================
 app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
     const userId = req.userId;
@@ -772,7 +891,7 @@ app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
 
 // ---------- CONSULTAS (Solicitações) ----------
 
-// Rota POST /consultas ORIGINAL, agora descontinuada para forçar o uso de /api/agenda/agendar.
+// Rota POST /consultas ORIGINAL, agora descontinuada
 app.post('/consultas', authMiddleware, (req, res) => {
     return res.status(400).json({ error: 'Rota de agendamento POST /consultas descontinuada. Use /api/agenda/agendar para agendamentos completos com título/motivo.' });
 });
@@ -883,12 +1002,12 @@ app.post('/consultas/:id/session-note', authMiddleware, (req, res) => {
         VALUES (?, ?, ?, CURDATE(), ?)
     `;
     
-    connection.query(query, [id_psicologo, id_paciente, id_consulta, conteudo], (err, result) => {
-        if (err) {
-            if (err.code === 'ER_DUP_ENTRY') {
+    connection.query(query, [id_psicologo, id_paciente, id_consulta, conteudo], (resultErr, result) => {
+        if (resultErr) {
+            if (resultErr.code === 'ER_DUP_ENTRY') {
                 return res.status(409).json({ error: 'Já existe uma anotação para esta consulta. Use PUT para atualizar.' });
             }
-            console.error('Erro ao criar anotação de sessão:', err.message);
+            console.error('Erro ao criar anotação de sessão:', resultErr.message);
             return res.status(500).json({ error: 'Erro interno ao criar anotação.' });
         }
         res.status(201).json({ mensagem: 'Anotação criada com sucesso.', id_anotacao: result.insertId });
@@ -1203,7 +1322,7 @@ app.get('/anotacoes/paciente/:id_paciente', authMiddleware, (req, res) => {
 
 
 // =========================================================================
-// ROTA PARA OBTER REGISTROS DE PROGRESSO DO USUÁRIO (MODIFICADA)
+// ROTA PARA OBTER REGISTROS DE PROGRESSO DO USUÁRIO 
 // =========================================================================
 app.get('/registros', authMiddleware, (req, res) => {
     const userId = req.userId;
@@ -1228,7 +1347,7 @@ app.get('/registros', authMiddleware, (req, res) => {
 // =========================================================================
 
 // =========================================================================
-// ROTA PARA PUBLICAR UM REGISTRO (PUT /registros/:id/publish) - ADICIONADA
+// ROTA PARA PUBLICAR UM REGISTRO (PUT /registros/:id/publish) 
 // =========================================================================
 app.put('/registros/:id/publish', authMiddleware, (req, res) => {
     const registroId = parseInt(req.params.id, 10);

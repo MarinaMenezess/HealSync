@@ -1,68 +1,190 @@
-const API_URL = 'http://localhost:3000'; // URL base definida no backend/server.js
+// ARQUIVO: frontend/profile.js (AJUSTE PARA CLIQUE NA IMAGEM E SUBMISSÃO ÚNICA)
+const API_URL = 'http://localhost:3000'; 
+const defaultAvatarUrl = '../assets/user-default.svg';
+
+// --- Funções Auxiliares para UX ---
+function showLoading(element) {
+    if (!element) return;
+    element.disabled = true;
+    element.setAttribute('data-original-text', element.textContent);
+    element.textContent = 'Aguarde...';
+}
+
+function hideLoading(element) {
+    if (!element) return;
+    element.disabled = false;
+    element.textContent = element.getAttribute('data-original-text') || 'Salvar';
+}
+
+function getToken() {
+    return localStorage.getItem('jwt');
+}
+
+function formatDateForDisplay(dateString) {
+    if (!dateString) return 'N/A';
+    const parts = dateString.substring(0, 10).split('-'); 
+    if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`; 
+    }
+    return dateString;
+}
+
+// =========================================================================
+// Lógica de Exibição do Menu de Opções da Foto
+// =========================================================================
+
+/**
+ * Exibe o menu de opções da foto (Alterar/Adicionar/Remover) baseado na foto atual.
+ */
+function handleAvatarClick(e) {
+    e.preventDefault(); 
+    e.stopPropagation(); // Impede que o clique se propague para o documento
+    
+    const menu = document.getElementById('photo-options-menu');
+    const optionChange = document.getElementById('option-change');
+    const optionRemove = document.getElementById('option-remove');
+    const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+    
+    // Verifica se a imagem exibida é a URL padrão
+    const isDefaultAvatar = profileAvatarEdit.src.includes(defaultAvatarUrl);
+
+    // 1. Ajusta o texto e a visibilidade das opções
+    if (isDefaultAvatar) {
+        optionChange.textContent = 'Adicionar Foto de Perfil';
+        optionRemove.style.display = 'none'; // Esconde remover se for avatar padrão
+    } else {
+        optionChange.textContent = 'Alterar Foto de Perfil';
+        optionRemove.style.display = 'block'; // Mostra remover se houver foto
+    }
+
+    // 2. Posiciona e exibe o menu
+    const rect = profileAvatarEdit.getBoundingClientRect();
+    // Posiciona o menu no centro do avatar (usando fixed/absolute para fácil posicionamento)
+    menu.style.position = 'fixed';
+    menu.style.top = `${rect.top + rect.height / 2}px`;
+    menu.style.left = `${rect.left + rect.width / 2}px`;
+    menu.style.transform = 'translate(-50%, -50%)'; 
+    menu.style.display = 'block';
+}
+
+/**
+ * Esconde o menu de opções da foto ao clicar fora.
+ */
+function hidePhotoOptions(e) {
+    const menu = document.getElementById('photo-options-menu');
+    const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+    
+    // Esconde o menu se estiver visível e o clique não foi no menu nem no avatar de edição
+    if (menu && menu.style.display === 'block' && e.target !== profileAvatarEdit && !menu.contains(e.target)) {
+        menu.style.display = 'none';
+    }
+}
+// =========================================================================
+
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Inicializa o listener para a solicitação de perfil de psicólogo
+    // --- Referências de Elementos ---
+    const profileEditForm = document.getElementById('profile-edit-form');
+    const profilePictureFile = document.getElementById('profile-picture-file'); 
+    const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+    const removePictureButton = document.getElementById('remove-picture-btn'); // Link de remoção não é mais necessário, mas o ID é usado abaixo para compatibilidade.
+    const optionChange = document.getElementById('option-change');
+    const optionRemove = document.getElementById('option-remove');
+    
+    // Inicializa listeners de perfil (carregamento, logout, etc.)
     const requestButton = document.getElementById('btn-request-psychologist');
     if (requestButton) {
         requestButton.addEventListener('click', handlePsychologistRequest);
     }
-    
-    // Inicializa o listener para o botão de toggle da solicitação de psicólogo
     const toggleButton = document.getElementById('btn-toggle-psychologist-request');
     if (toggleButton) {
         toggleButton.addEventListener('click', togglePsychologistRequestForm);
     }
-    
-    // 2. Adiciona listener para o botão de Logout 
     const logoutButton = document.querySelector('.logout-btn');
     if (logoutButton) {
         logoutButton.addEventListener('click', handleLogout);
     }
     
-    // Adiciona listener para o botão de Editar Perfil
+    // **Ajuste:** Botão principal de edição e ícone (engrenagem)
+    const toggleEditBtn = document.getElementById('toggle-edit-btn');
+    if (toggleEditBtn) {
+        toggleEditBtn.addEventListener('click', handleEditProfile);
+    }
+
     const editButton = document.querySelector('.edit-btn');
     if (editButton) {
         editButton.addEventListener('click', handleEditProfile);
     }
-    
-    // NOVO: Adiciona listener para o botão Cancelar (dentro do formulário de edição)
+
     const cancelButton = document.querySelector('.cancel-edit-btn');
     if (cancelButton) {
-        // Alterna o modo de edição para fechar sem salvar
         cancelButton.addEventListener('click', (e) => {
             e.preventDefault(); 
             toggleEditMode(false);
         });
     }
     
-    // NOVO: Adiciona listener para o envio do formulário (Para salvar os dados)
-    const editForm = document.getElementById('profile-edit-form');
-    if (editForm) {
-        editForm.addEventListener('submit', handleSaveProfile);
+    // Adiciona listener para SUBMIT do formulário (Salva dados gerais + foto, se houver)
+    if (profileEditForm) {
+        profileEditForm.addEventListener('submit', handleSaveProfile);
+    }
+    
+    // **NOVO:** Interações do Avatar (Menu)
+    if (profileAvatarEdit) {
+        profileAvatarEdit.addEventListener('click', handleAvatarClick);
+    }
+    // Oculta o menu ao clicar fora
+    document.addEventListener('click', hidePhotoOptions);
+
+    // **NOVO:** Lógica dos itens do menu
+    if (optionChange) {
+        optionChange.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('photo-options-menu').style.display = 'none';
+            if(profilePictureFile) profilePictureFile.click(); // Dispara o input de arquivo
+        });
     }
 
-    // 3. Tenta carregar os dados do perfil ao carregar a página
+    if (optionRemove) {
+        optionRemove.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('photo-options-menu').style.display = 'none';
+            if (confirm('Tem certeza que deseja remover sua foto de perfil?')) {
+                // Chama a função de upload com a flag de remoção
+                saveProfilePicture(true); 
+            }
+        });
+    }
+    
+    // **NOVO:** Adiciona preview da imagem ao selecionar um arquivo
+    if (profilePictureFile) {
+        profilePictureFile.addEventListener('change', function() {
+            if (this.files && this.files[0] && profileAvatarEdit) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    profileAvatarEdit.src = e.target.result;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+
     loadUserProfile();
 });
 
 function handleLogout() {
-    localStorage.removeItem('jwt'); // Remove o token
-    localStorage.removeItem('user'); // Remove os dados do usuário, se houver
-    localStorage.removeItem('token'); // Remove a chave antiga para limpeza
-    window.location.href = 'login.html'; // Redireciona para a página de login
+    localStorage.removeItem('jwt'); 
+    localStorage.removeItem('user'); 
+    localStorage.removeItem('token'); 
+    window.location.href = 'login.html'; 
 }
 
 /**
  * Função utilitária para alternar entre o modo de visualização e edição (incluindo botões).
- * Garante que a seção de edição substitua a de visualização no mesmo local.
- * @param {boolean|null} shouldShowEdit - true para mostrar edição, false para mostrar visualização, null para alternar.
  */
 function toggleEditMode(shouldShowEdit = null) {
-    // Conteúdo Principal: Visualização vs. Formulário
     const viewDiv = document.getElementById('profile-view');
     const editFormDiv = document.getElementById('profile-edit-form');
-    
-    // Botões de Ação: Editar/Sair vs. Salvar/Cancelar
     const viewButtons = document.getElementById('profile-actions-view');
     const editButtons = document.getElementById('profile-actions-edit');
 
@@ -71,22 +193,19 @@ function toggleEditMode(shouldShowEdit = null) {
         return;
     }
     
-    // Lógica para decidir se deve mostrar o modo de edição
-    const isEditModeActive = shouldShowEdit === true || (shouldShowEdit === null && editFormDiv.style.display === 'none');
+    const isEditModeActive = shouldShowEdit === true || (shouldShowEdit === null && viewDiv.style.display !== 'none');
 
     if (isEditModeActive) {
-        // MODO DE EDIÇÃO ATIVO
         viewDiv.style.display = 'none';
         editFormDiv.style.display = 'block';
         
         viewButtons.style.display = 'none';
-        editButtons.style.display = 'flex'; // Exibe botões Salvar/Cancelar
+        editButtons.style.display = 'flex'; 
     } else {
-        // MODO DE VISUALIZAÇÃO ATIVO
         viewDiv.style.display = 'block';
         editFormDiv.style.display = 'none';
         
-        viewButtons.style.display = 'flex'; // Exibe botões Editar/Sair
+        viewButtons.style.display = 'flex'; 
         editButtons.style.display = 'none';
     }
 }
@@ -96,33 +215,38 @@ function toggleEditMode(shouldShowEdit = null) {
  * Função para manipular o clique no botão Editar Perfil.
  * Pré-preenche o formulário e exibe o modo de edição.
  */
-function handleEditProfile() {
-    // 1. Alterna para o modo de Edição (exibe o formulário)
+function handleEditProfile(e) {
+    e.preventDefault(); 
+    
     toggleEditMode(true);
     
-    // 2. Pré-preenche os campos do formulário
     const userJson = localStorage.getItem('user');
     if (userJson) {
         try {
             const user = JSON.parse(userJson);
             
-            // Pré-preenche campos básicos
             const editNameInput = document.getElementById('edit-name');
             const editEmailInput = document.getElementById('edit-email');
             
             if (editNameInput) editNameInput.value = user.nome || '';
             if (editEmailInput) editEmailInput.value = user.email || '';
             
-            // Pré-preenche campos da grid de informações (Assumindo que estão no objeto user)
             const editPhoneInput = document.getElementById('edit-phone');
             const editDobInput = document.getElementById('edit-dob');
             const editGenderInput = document.getElementById('edit-gender');
             const editCityInput = document.getElementById('edit-city');
 
-            if (editPhoneInput) editPhoneInput.value = user.telefone || '';
-            if (editDobInput) editDobInput.value = user.data_nascimento || ''; 
+            if (editPhoneInput) editPhoneInput.value = user.contato || ''; 
+            if (editDobInput) editDobInput.value = user.data_nascimento ? user.data_nascimento.substring(0, 10) : ''; 
             if (editGenderInput) editGenderInput.value = user.genero || 'Prefiro não dizer';
-            if (editCityInput) editCityInput.value = user.cidade || '';
+            if (editCityInput) editCityInput.value = user.cidade || ''; 
+
+            const profileAvatarView = document.getElementById('profile-avatar-view');
+            const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+            const profilePictureFile = document.getElementById('profile-picture-file');
+            
+            if(profileAvatarEdit && profileAvatarView) profileAvatarEdit.src = profileAvatarView.src;
+            if(profilePictureFile) profilePictureFile.value = ''; 
             
         } catch (e) {
             console.error('Erro ao analisar os dados do usuário para edição:', e);
@@ -131,44 +255,134 @@ function handleEditProfile() {
     }
 }
 
+
 /**
- * Função para salvar as alterações do perfil (PUT request).
+ * Envia o arquivo para o servidor ou envia um sinal para remover a foto.
+ * @param {boolean} isRemoval - Indica se a ação é de remoção da foto.
+ * @returns {Promise<string|null>} URL da nova foto ou null se removida/falha.
+ */
+async function saveProfilePicture(isRemoval = false) {
+    const token = getToken();
+
+    if (!token) {
+        alert('Erro de autenticação: Token JWT ausente.');
+        return null;
+    }
+
+    const profilePictureFile = document.getElementById('profile-picture-file');
+    let file = profilePictureFile ? profilePictureFile.files[0] : null;
+    
+    if (!isRemoval && (!file || file.size === 0)) {
+        return null; 
+    }
+
+    const formData = new FormData();
+    
+    if (!isRemoval) {
+        formData.append('profile_picture', file);
+    } else {
+        formData.append('clear', 'true');
+    }
+    
+    let button = isRemoval ? document.getElementById('option-remove') : null;
+    if (button) showLoading(button);
+
+    try {
+        const response = await fetch(`${API_URL}/users/profile-picture-upload`, {
+            method: 'POST', 
+            headers: {
+                'Authorization': `Bearer ${token}` 
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            const newUrl = result.foto_perfil_url; 
+            
+            const finalAvatarUrl = newUrl || defaultAvatarUrl;
+            const profileAvatarView = document.getElementById('profile-avatar-view');
+            const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+            const headerUserAvatar = document.getElementById('header-user-avatar');
+
+            if(profileAvatarView) profileAvatarView.src = finalAvatarUrl;
+            if(profileAvatarEdit) profileAvatarEdit.src = finalAvatarUrl;
+            if(headerUserAvatar) headerUserAvatar.src = finalAvatarUrl;
+            
+            if(profilePictureFile) profilePictureFile.value = '';
+
+            const user = JSON.parse(localStorage.getItem('user'));
+            user.foto_perfil_url = newUrl;
+            localStorage.setItem('user', JSON.stringify(user));
+            
+            if (isRemoval) alert(result.mensagem);
+
+            return newUrl;
+
+        } else {
+            console.error(`Falha no upload: ${result.error || response.statusText}`);
+            alert(`Falha ao processar a foto: ${result.error || 'Erro desconhecido.'}`);
+            return null;
+        }
+
+    } catch (error) {
+        console.error('Erro de rede/upload:', error);
+        alert('Erro de conexão com o servidor ao fazer upload da foto.');
+        return null;
+    } finally {
+        if (button) hideLoading(button);
+    }
+}
+
+
+/**
+ * Função principal para salvar as alterações do formulário (dados gerais + foto, se alterada).
  */
 async function handleSaveProfile(e) {
     e.preventDefault();
     
-    const token = localStorage.getItem('jwt');
-    const name = document.getElementById('edit-name').value.trim();
-    const email = document.getElementById('edit-email').value.trim();
-    
-    // Coletando dados da grid de edição
-    const phone = document.getElementById('edit-phone') ? document.getElementById('edit-phone').value.trim() : null;
-    const dob = document.getElementById('edit-dob') ? document.getElementById('edit-dob').value.trim() : null;
-    const gender = document.getElementById('edit-gender') ? document.getElementById('edit-gender').value.trim() : null;
-    const city = document.getElementById('edit-city') ? document.getElementById('edit-city').value.trim() : null;
+    const token = getToken();
+    const saveButton = document.querySelector('#profile-actions-edit .save-btn');
     
     if (!token) {
         alert('Você não está autenticado. Faça login novamente.');
         return;
     }
 
-    if (!name || !email) {
-        alert('Nome e Email são campos obrigatórios.');
-        return;
-    }
-    
-    // Objeto com os dados a serem enviados para o backend
-    const updatedData = {
-        nome: name,
-        email: email,
-        telefone: phone,
-        data_nascimento: dob,
-        genero: gender,
-        cidade: city,
-    };
+    showLoading(saveButton);
     
     try {
-        const response = await fetch(`${API_URL}/users/profile`, {
+        const profilePictureFile = document.getElementById('profile-picture-file');
+        const fileSelected = profilePictureFile && profilePictureFile.files.length > 0;
+
+        // 1. Processa a Foto (se um novo arquivo foi selecionado)
+        if (fileSelected) {
+            const photoUploadResult = await saveProfilePicture(false); 
+            if (photoUploadResult === null) {
+                hideLoading(saveButton);
+                return; 
+            }
+        }
+        
+        // 2. Coletar e Salvar Dados Gerais
+        const name = document.getElementById('edit-name').value.trim();
+        const phone = document.getElementById('edit-phone') ? document.getElementById('edit-phone').value.trim() : null;
+        const dob = document.getElementById('edit-dob') ? document.getElementById('edit-dob').value.trim() : null;
+        const gender = document.getElementById('edit-gender') ? document.getElementById('edit-gender').value.trim() : null;
+        const city = document.getElementById('edit-city') ? document.getElementById('edit-city').value.trim() : null;
+        
+        const updatedData = {
+            nome: name,
+            contato: phone,
+            data_nascimento: dob,
+            genero: gender,
+            cidade: city,
+        };
+        
+        const GENERAL_PROFILE_UPDATE_URL = `${API_URL}/users/profile`; 
+        
+        const response = await fetch(GENERAL_PROFILE_UPDATE_URL, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
@@ -180,22 +394,18 @@ async function handleSaveProfile(e) {
         const result = await response.json();
 
         if (response.ok) {
-            // ATUALIZA O localStorage com os novos dados
-            localStorage.setItem('user', JSON.stringify(result.user));
-            
-            // Recarrega o perfil na tela para exibir os novos dados
-            loadUserProfile();
-            
-            // Volta para o modo de visualização
+            await loadUserProfile(); 
             toggleEditMode(false);
             
             alert('Perfil atualizado com sucesso!');
         } else {
-            alert('Falha ao salvar o perfil: ' + (result.error || 'Erro desconhecido.'));
+            alert('Falha ao salvar os dados gerais do perfil: ' + (result.error || 'Erro desconhecido.'));
         }
     } catch (error) {
-        console.error('Erro de rede ao salvar perfil:', error);
+        console.error('Erro geral ao salvar perfil:', error);
         alert('Erro de conexão ou servidor ao salvar perfil.');
+    } finally {
+        hideLoading(saveButton);
     }
 }
 
@@ -217,67 +427,16 @@ function togglePsychologistRequestForm() {
 }
 
 /**
- * Função responsável por carregar os dados do usuário e atualizar a interface.
- */
-function loadUserProfile() {
-    const userJson = localStorage.getItem('user');
-    const token = localStorage.getItem('jwt');
-    
-    // Elementos de Visualização Básica
-    const profileNameElement = document.querySelector('.profile-name');
-    const profileEmailElement = document.querySelector('.profile-email');
-
-    // Elementos de Visualização da Grid
-    const viewPhoneElement = document.getElementById('view-phone');
-    const viewDobElement = document.getElementById('view-dob');
-    const viewGenderElement = document.getElementById('view-gender');
-    const viewCityElement = document.getElementById('view-city');
-
-    if (!token) {
-        // Redireciona se não estiver logado
-        window.location.href = 'login.html';
-        return;
-    }
-    
-    if (userJson) {
-        try {
-            const user = JSON.parse(userJson);
-            
-            // Atualiza campos básicos
-            if (profileNameElement) profileNameElement.textContent = user.nome || 'Usuário Desconhecido';
-            if (profileEmailElement) profileEmailElement.textContent = user.email || 'email@desconhecido.com';
-
-            // Atualiza campos da grid com valores do usuário ou placeholders
-            if (viewPhoneElement) viewPhoneElement.textContent = user.telefone || '(XX) XXXXX-XXXX';
-            if (viewDobElement) viewDobElement.textContent = user.data_nascimento || 'DD/MM/AAAA';
-            if (viewGenderElement) viewGenderElement.textContent = user.genero || 'Prefiro não dizer';
-            if (viewCityElement) viewCityElement.textContent = user.cidade || 'Minha Cidade';
-
-            // Esconde o botão de solicitação de psicólogo se o usuário já for um psicólogo
-            if (user.is_psicologo) {
-                const requestSection = document.getElementById('psychologist-request-section');
-                if (requestSection) {
-                    requestSection.innerHTML = '<h2>Perfil de Psicólogo Ativo</h2><p>Seu perfil de psicólogo está ativo. Você pode editar seus dados de especialidade através do botão "Editar Perfil".</p>';
-                }
-            }
-        } catch (e) {
-            console.error('Erro ao analisar os dados do usuário no localStorage:', e);
-        }
-    }
-}
-
-/**
  * Função responsável por enviar a solicitação de alteração de perfil para psicólogo
  */
 function handlePsychologistRequest() {
-    const token = localStorage.getItem('jwt');
+    const token = getToken();
     const especialidadeInput = document.getElementById('especialidade-input');
     const cfpInput = document.getElementById('cfp-input'); 
-    const cpfInput = document.getElementById('cpf-input'); // NOVO: Campo CPF
+    const cpfInput = document.getElementById('cpf-input'); 
     const contatoInput = document.getElementById('contato-input');
     const statusMessage = document.getElementById('psychologist-request-status');
     
-    // Limpa a mensagem de status anterior
     statusMessage.textContent = '';
     statusMessage.style.color = 'green';
     
@@ -289,38 +448,33 @@ function handlePsychologistRequest() {
 
     const especialidade = especialidadeInput ? especialidadeInput.value.trim() : '';
     const cfp = cfpInput ? cfpInput.value.trim() : '';
-    const cpf = cpfInput ? cpfInput.value.trim() : ''; // Coleta o CPF
+    const cpf = cpfInput ? cpfInput.value.trim() : ''; 
     const contato = contatoInput ? contatoInput.value.trim() : '';
 
-    if (!especialidade || !cfp || !cpf || !contato) { // CPF Adicionado à validação de campos obrigatórios
+    if (!especialidade || !cfp || !cpf || !contato) { 
         statusMessage.textContent = 'Especialidade, CFP, CPF e Contato são obrigatórios para a solicitação.';
         statusMessage.style.color = 'red';
         return;
     }
     
-    // Alerta de automação e latência
     statusMessage.textContent = 'Iniciando validação automática do CFP/CPF. Isso pode levar alguns segundos e pode falhar devido a bloqueios anti-bot.';
     
     fetch(`${API_URL}/users/psychologist-details`, {
         method: 'PUT',
         headers: {
             'Content-Type': 'application/json',
-            // Usa o token de autenticação JWT local (necessário para o authMiddleware)
             'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify({ especialidade, cfp, cpf, contato }) // CFP e CPF Adicionados ao body
+        body: JSON.stringify({ especialidade, cfp, cpf, contato }) 
     })
     .then(response => response.json().then(data => {
         if (!response.ok) {
-            // Lógica para erros de backend (incluindo falha na automação)
             throw new Error(data.error || 'Erro desconhecido ao processar a solicitação.');
         }
         
-        // Exibe a mensagem de sucesso ou de falha da automação com a nota de revisão manual
         statusMessage.textContent = data.mensagem;
         statusMessage.style.color = 'green';
         
-        // Limpa os campos após o sucesso
         especialidadeInput.value = '';
         cfpInput.value = ''; 
         cpfInput.value = '';
@@ -328,9 +482,99 @@ function handlePsychologistRequest() {
 
     }))
     .catch(error => {
-        // Trata erros de rede ou erros lançados acima
         statusMessage.textContent = `Falha na solicitação: ${error.message}`;
         statusMessage.style.color = 'red';
         console.error('Erro na solicitação de perfil de psicólogo:', error);
     });
+}
+
+/**
+ * Função responsável por carregar os dados do usuário do backend (ou localStorage) 
+ * e atualizar a interface.
+ */
+async function loadUserProfile() {
+    const userJson = localStorage.getItem('user');
+    const token = getToken();
+    
+    const profileNameElement = document.querySelector('.profile-name');
+    const profileEmailElement = document.querySelector('.profile-email');
+    const viewPhoneElement = document.getElementById('view-phone');
+    const viewDobElement = document.getElementById('view-dob');
+    const viewGenderElement = document.getElementById('view-gender');
+    const viewCityElement = document.getElementById('view-city');
+    
+    const profileAvatarView = document.getElementById('profile-avatar-view');
+    const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+    const headerUserAvatar = document.getElementById('header-user-avatar');
+    
+    const editName = document.getElementById('edit-name');
+    const editEmail = document.getElementById('edit-email'); 
+    const editPhone = document.getElementById('edit-phone');
+    const editDob = document.getElementById('edit-dob');
+    const editGender = document.getElementById('edit-gender');
+    const editCity = document.getElementById('edit-city');
+    
+    let profileData = null;
+
+    if (!token) {
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    const user = userJson ? JSON.parse(userJson) : null;
+    if (!user) return;
+
+
+    try {
+        const response = await fetch(`${API_URL}/users/${user.id_usuario}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+            let serverData = await response.json();
+            
+            profileData = { ...user, ...serverData }; 
+            
+            localStorage.setItem('user', JSON.stringify(profileData));
+        } else {
+            profileData = user;
+        }
+
+    } catch (e) {
+        console.warn('Erro ao buscar dados do servidor, usando dados locais.', e);
+        profileData = user; 
+    }
+    
+    // --- ATUALIZAÇÃO DA INTERFACE ---
+    
+    // 1. Atualiza AVATARES
+    const finalAvatarUrl = profileData.foto_perfil_url || defaultAvatarUrl;
+    if(profileAvatarView) profileAvatarView.src = finalAvatarUrl;
+    if(profileAvatarEdit) profileAvatarEdit.src = finalAvatarUrl;
+    if(headerUserAvatar) headerUserAvatar.src = finalAvatarUrl;
+    
+    // 2. Atualiza DADOS DE VISUALIZAÇÃO
+    if (profileNameElement) profileNameElement.textContent = profileData.nome || 'Usuário Desconhecido';
+    if (profileEmailElement) profileEmailElement.textContent = profileData.email || 'email@desconhecido.com';
+
+    if (viewPhoneElement) viewPhoneElement.textContent = profileData.contato || '(XX) XXXXX-XXXX';
+    if (viewDobElement) viewDobElement.textContent = formatDateForDisplay(profileData.data_nascimento);
+    if (viewGenderElement) viewGenderElement.textContent = profileData.genero || 'Prefiro não dizer';
+    if (viewCityElement) viewCityElement.textContent = profileData.cidade || 'Minha Cidade'; 
+
+    // 3. ATUALIZA DADOS DE EDIÇÃO (Input Values)
+    if (editName) editName.value = profileData.nome || '';
+    if (editEmail) editEmail.value = profileData.email || 'Não Editável'; 
+    if (editPhone) editPhone.value = profileData.contato || '';
+    if (editDob) editDob.value = profileData.data_nascimento ? profileData.data_nascimento.substring(0, 10) : ''; 
+    if (editGender) editGender.value = profileData.genero || 'Prefiro não dizer';
+    if (editCity) editCity.value = profileData.cidade || 'Minha Cidade';
+    
+    // 4. Esconde o botão de solicitação de psicólogo se o usuário já for um psicólogo
+    if (profileData.is_psicologo) {
+        const requestSection = document.getElementById('psychologist-request-section');
+        if (requestSection) {
+            requestSection.innerHTML = '<h2>Perfil de Psicólogo Ativo</h2><p>Seu perfil de psicólogo está ativo. Você pode editar seus dados de especialidade e contato através do botão "Editar Perfil".</p>';
+        }
+    }
 }

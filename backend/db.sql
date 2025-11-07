@@ -16,7 +16,8 @@ contato VARCHAR(255),
 cfp VARCHAR(45), 
 cpf VARCHAR(14), 
 avaliacao DECIMAL(2,1),
-is_active_for_posting BOOLEAN DEFAULT TRUE
+is_active_for_posting BOOLEAN DEFAULT TRUE,
+foto_perfil_url VARCHAR(2048) NULL
 );
 
 -- Tabela: ia_conversa

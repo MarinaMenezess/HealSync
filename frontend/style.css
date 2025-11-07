@@ -716,7 +716,8 @@ h1{
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 10%;
+  height: 100%; /* Garante que a sidebar respeite a altura do pai */
+  /* CORREÇÃO: Removendo 'gap' para usar margens explicitamente nos filhos */
   text-align: left;
 }
 
@@ -746,6 +747,8 @@ h1{
   justify-content: center;
   align-items: center;
   position: relative;
+  /* CORREÇÃO: Adicionando margem inferior para espaçamento */
+  margin-bottom: 15px;
 }
 
 .new-chat-button:hover {
@@ -758,17 +761,23 @@ h1{
   font-size: 1rem;
   font-weight: 700;
   color: #333333;
-  margin-bottom: 10px;
+  /* CORREÇÃO: Garantindo que o título não tenha margem de crescimento */
+  margin-bottom: 0px;
 }
 
 .conversation-list {
   list-style-type: none;
   padding: 0;
   margin: 0;
+  /* CORREÇÃO: Adicionando margin-top para criar espaço abaixo do sidebar-heading */
+  margin-top: 10px; 
   display: flex;
   flex-direction: column;
   gap: 5px;
-  overflow-y: auto;
+  flex-grow: 1; /* Permite que a lista cresça e ocupe o espaço disponível */
+  overflow-y: auto; /* Adiciona o scroll vertical quando necessário */
+  overflow-x: hidden;
+  min-height: 0; /* CORREÇÃO CRÍTICA: Necessário para permitir o encolhimento em flex containers */
 }
 
 .conversation-item a {
@@ -1485,8 +1494,11 @@ main > svg {
 
 /* Modifique a classe .profile-card para torná-lo fixo */
 .profile2-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 25px;
-    padding: 20px;
+    padding: 20px 30px 20px; 
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     position: fixed; /* Fixa o card na tela */
     top: 25vh; /* Posiciona abaixo do header */

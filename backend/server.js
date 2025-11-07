@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (COMPLETO E ATUALIZADO)
+// ARQUIVO: backend/server.js (CORREÇÃO DE TypeError e ORDEM DO CHAT)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -43,6 +43,23 @@ const authMiddleware = (req, res, next) => {
     res.status(401).json({ error: 'Token inválido' });
   }
 };
+
+// Conteúdo da instrução de sistema expandido para incluir informações sobre a plataforma HealSync
+const systemInstruction = `
+    Você é o HealSync AI, um agente de **suporte psicológico e bem-estar** para a plataforma HealSync.
+    Sua principal função é oferecer um espaço seguro e de escuta ativa, validando os sentimentos do usuário e promovendo a auto-reflexão.
+    Forneça estratégias básicas de coping (como exercícios de respiração ou sugestões de registro de emoções).
+    Em todas as interações: **Seja extremamente empático, evite fazer diagnósticos, e reforce a importância de procurar um profissional (psicólogo) verificado na plataforma HealSync para acompanhamento formal quando apropriado.**
+    Além disso, responda a perguntas sobre o uso da plataforma.
+    
+    Informações sobre a plataforma HealSync:
+    - Objetivo: Conecta pacientes a psicólogos verificados e oferece ferramentas de auto-monitoramento.
+    - Diário/Registros: Permite registrar emoções, pensamentos e progresso diário. Os registros podem ser marcados como 'públicos' ou 'privados'.
+    - Timeline: Exibe apenas os 'Registros de Progresso' que foram marcados como públicos pelos usuários.
+    - Psicólogos: Possui um recurso para buscar e agendar consultas com psicólogos, cujos perfis são verificados (CFP/CPF).
+    - Consultas: Pacientes podem solicitar agendamentos de sessões. Psicólogos usam a área de consultas para gerenciar solicitações.
+    - Área do Psicólogo (Prontuário/Ficha): Permite ao psicólogo visualizar prontuários de pacientes, histórico de consultas e adicionar anotações de sessão (ficha).
+`;
 
 // ---------- AUTENTICAÇÃO COM FIREBASE ----------
 
@@ -433,17 +450,75 @@ app.get('/ia/conversas/:id', authMiddleware, (req, res) => {
     );
 });
 
-app.post('/ia/conversas', authMiddleware, (req, res) => {
+// Rota POST para iniciar uma nova conversa (Corrigida e Funcional)
+app.post('/ia/conversas', authMiddleware, async (req, res) => {
   const { titulo_opcional } = req.body;
-  connection.query(
-    // Inicia com um título padrão 'Nova Conversa' (ou o que for enviado), que será atualizado na primeira mensagem.
-    'INSERT INTO ia_conversa (id_usuario, data_inicio, titulo_opcional) VALUES (?, NOW(), ?)',
-    [req.userId, titulo_opcional],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+  let newConversationId;
+
+  try {
+      // 1. Cria a nova conversa no banco de dados (Ajustado para lidar com o retorno do INSERT)
+      const result = await new Promise((resolve, reject) => {
+        connection.query(
+          // Inicia com um título padrão 'Nova Conversa' (ou o que for enviado)
+          'INSERT INTO ia_conversa (id_usuario, data_inicio, titulo_opcional) VALUES (?, NOW(), ?)',
+          [req.userId, titulo_opcional],
+          (err, result) => {
+            if (err) return reject(err);
+            resolve(result); // Resolve com o objeto de resultado completo (incluindo insertId)
+          }
+        );
+      });
+      newConversationId = result.insertId;
+
+      // Se não houver ID de conversa, algo deu muito errado no DB
+      if (!newConversationId) {
+           throw new Error("Falha ao obter ID da nova conversa.");
+      }
+
+      // 2. Gera a mensagem de boas-vindas da IA
+      const welcomePrompt = 'Gere uma saudação curta e amigável, apresentando-se como o HealSync AI, um assistente de suporte psicológico. Mencione que está aqui para oferecer um espaço de escuta e apoio. Não inclua Markdown para títulos.';
+      
+      // Usa startChat com histórico vazio para aplicar systemInstruction
+      const chat = model.startChat({
+        history: [], // Começa sem histórico
+        config: { 
+            systemInstruction: systemInstruction, 
+            generationConfig: {
+               maxOutputTokens: 100,
+            }
+        }
+      });
+      
+      // Envia o prompt de boas-vindas como a primeira mensagem (string simples)
+      const welcomeResult = await chat.sendMessage(welcomePrompt);
+      // CORREÇÃO: Chama .text() para obter o conteúdo como string antes de trim()
+      const welcomeMessage = welcomeResult.response.text().trim(); 
+
+      // 3. Salva a mensagem de boas-vindas da IA como a primeira mensagem
+      if (welcomeMessage) {
+          await new Promise((resolve, reject) => {
+            connection.query(
+              'INSERT INTO ia_mensagem (id_conversa, remetente, conteudo, data_hora) VALUES (?, ?, ?, NOW())',
+              [newConversationId, 'ia', welcomeMessage],
+              (err) => {
+                if (err) return reject(err);
+                resolve();
+              }
+            );
+          });
+      }
+
+      res.status(201).json({ id: newConversationId, mensagem: 'Conversa iniciada com mensagem de boas-vindas da IA.' });
+
+  } catch (error) {
+      console.error('Erro ao iniciar nova conversa com IA:', error);
+      // Retorna 500 se o DB falhar na primeira query, ou 201 se o DB funcionar mas a IA falhar.
+      if (!newConversationId) { 
+        return res.status(500).json({ error: 'Erro ao criar a conversa no banco de dados. ' + error.message });
+      }
+      // Se a conversa foi criada, mas a mensagem da IA falhou, avisa mas retorna o ID da conversa.
+      res.status(201).json({ id: newConversationId, mensagem: 'Conversa iniciada, mas a mensagem de boas-vindas da IA falhou: ' + error.message });
+  }
 });
 
 // ---------- CHAT COM IA (ATUALIZADO) ----------
@@ -481,17 +556,20 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             );
         });
         
-        // 3. (NOVO) Lógica para gerar e atualizar o título da conversa na primeira mensagem
+        // 3. Lógica para gerar e atualizar o título da conversa na primeira mensagem do USUÁRIO
         let novoTitulo = null;
-        // Se o histórico tem apenas 1 mensagem, é a primeira mensagem do usuário nesta conversa
-        const isFirstMessage = historico.length === 1; 
+        // Se a primeira mensagem do histórico é a da IA e a segunda é a do usuário.
+        // Contamos apenas as mensagens do usuário. Se for 1, é a primeira dele.
+        const userMessages = historico.filter(msg => msg.remetente === 'usuario');
+        const isFirstUserMessage = userMessages.length === 1; 
 
-        if (isFirstMessage) {
+        if (isFirstUserMessage) {
             const titlePrompt = `Gere um título conciso (máximo 7 palavras) para uma conversa de chat com base na primeira mensagem do usuário: "${mensagem_usuario}". Retorne apenas o título, sem introduções, aspas ou formatação Markdown.`;
             
-            // Chamada da IA para gerar o título
+            // Chamada da IA para gerar o título (generateContent simples)
             const titleResult = await model.generateContent(titlePrompt);
-            const tituloGerado = titleResult.response.text().trim().replace(/['"“”]/g, ''); // Remove aspas
+            // CORREÇÃO: Chama .text() para obter o conteúdo como string antes de trim()
+            const tituloGerado = titleResult.text().trim().replace(/['"“”]/g, ''); 
 
             // Atualiza o banco de dados
             if (tituloGerado) {
@@ -510,38 +588,60 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
         }
 
         // 4. Formatar o histórico para a API do Gemini
-        // O histórico para a API deve ser tudo ANTES da mensagem atual do usuário
-        const historyForGemini = historico.slice(0, -1); 
         
-        const formattedHistory = historyForGemini.map(msg => ({
+        // ERRO DE ORDEM CORRIGIDO: A API espera que o histórico comece com o USUÁRIO. 
+        // Como a primeira mensagem do DB é a saudação da IA, pulamos ela e garantimos que o
+        // histórico para a API comece com a primeira mensagem do usuário.
+        // O histórico DEVE incluir todos os turnos completos antes do turno atual do usuário.
+        
+        // O histórico para a API DEVE ser: [Saudação IA, 1ª Mensagem Usuário, 1ª Resposta IA, ...]
+        // Se isFirstUserMessage == true, o histórico no DB é [IA, Usuário] e a API espera [Usuário]. 
+        // Mas como a API Gemini agora permite que o modelo responda à primeira mensagem,
+        // E como já salvamos a 1ª mensagem do usuário (passo 1), o histórico real que a API
+        // DEVE receber é APENAS o histórico de mensagens trocadas ANTES da mensagem ATUAL do usuário (que acabamos de salvar).
+
+        // No nosso caso, o histórico no DB é: [IA-Saudação, Usuário-1ª Msg]
+        // Se for a primeira mensagem do usuário (isFirstUserMessage=true):
+        //   - historyForGemini: [IA-Saudação]
+        //   - formattedHistory: [IA-Saudação, Usuário-1ª Msg] -> Isso causa o erro 'got model'
+        
+        // A SOLUÇÃO é: Remover o turno da IA e o primeiro turno do usuário para que o chat com a API comece com o 2º turno do usuário.
+        
+        // Novo histórico: remove a saudação da IA. A API agora receberá [Usuário, IA, Usuário, ...]
+        // Mas a primeira mensagem a ser enviada é a que acabamos de salvar.
+        // Já que a saudação da IA é a primeira entrada no histórico, o corte deve ser:
+        const historyExcludingIAMessageAndCurrent = historico.slice(1, -1);
+        
+        const formattedHistory = historyExcludingIAMessageAndCurrent.map(msg => ({
             role: msg.remetente === 'usuario' ? 'user' : 'model',
             parts: [{ text: msg.conteudo }]
         }));
 
-        // Conteúdo da instrução de sistema expandido para incluir informações sobre a plataforma HealSync
-        const systemInstruction = `
-            Você é o HealSync AI, um assistente de saúde mental de apoio para a plataforma HealSync.
-            Sua função é responder a perguntas gerais sobre bem-estar e também fornecer informações específicas sobre como usar a plataforma.
-            Seja empático, não faça diagnósticos e encoraje o usuário a buscar ajuda profissional quando necessário.
-            
-            Informações sobre a plataforma HealSync:
-            - Objetivo: Conecta pacientes a psicólogos verificados e oferece ferramentas de auto-monitoramento.
-            - Diário/Registros: Permite registrar emoções, pensamentos e progresso diário. Os registros podem ser marcados como 'públicos' ou 'privados'.
-            - Timeline: Exibe apenas os 'Registros de Progresso' que foram marcados como públicos pelos usuários.
-            - Psicólogos: Possui um recurso para buscar e agendar consultas com psicólogos, cujos perfis são verificados (CFP/CPF).
-            - Consultas: Pacientes podem solicitar agendamentos de sessões. Psicólogos usam a área de consultas para gerenciar solicitações.
-            - Área do Psicólogo (Prontuário/Ficha): Permite ao psicólogo visualizar prontuários de pacientes, histórico de consultas e adicionar anotações de sessão (ficha).
-        `;
+        // Adiciona a mensagem do usuário que acabamos de salvar (ela será o primeiro turno user/model)
+        const currentMessagePart = historico[historico.length - 1]; // É a mensagem do usuário recém-salva
 
-        // Adiciona a mensagem do usuário para enviar à API
-        formattedHistory.push({
-            role: 'user',
-            parts: [{ text: mensagem_usuario }]
-        });
-        
-        // 5. Inicia o chat com o histórico (sem a mensagem atual) e configurações
+        // 5. Inicia o chat com o histórico ANTES da primeira mensagem do usuário, se houver
+        // Para a 1ª mensagem do usuário, o histórico deve ser vazio.
+        let chatHistory = [];
+        let messageToSend = mensagem_usuario;
+
+        if (historico.length > 2) {
+            // Se houver mais de 2 mensagens (IA-Saudação, Usuário-1ª, IA-1ª, etc)
+            // O histórico deve ser (Usuário-1ª, IA-1ª, Usuário-2ª, IA-2ª...) - excluímos a IA-Saudação
+            chatHistory = historico.slice(1, -1).map(msg => ({
+                role: msg.remetente === 'usuario' ? 'user' : 'model',
+                parts: [{ text: msg.conteudo }]
+            }));
+        } else {
+            // Se houver apenas a saudação da IA e a 1ª mensagem do usuário,
+            // enviamos APENAS a 1ª mensagem do usuário para a IA (o histórico é nulo)
+            // E a IA já sabe o contexto pela systemInstruction.
+            // Para isso, definimos o histórico como vazio e enviamos a mensagem.
+            // A API permite que o primeiro conteúdo tenha role 'user' se não houver histórico.
+        }
+
         const chat = model.startChat({
-            history: formattedHistory,
+            history: chatHistory, // Histórico sem a saudação da IA, e sem a mensagem atual do usuário
             config: {
                  // Usa a instrução do sistema expandida
                  systemInstruction: systemInstruction, 
@@ -551,9 +651,9 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             },
         });
         
-        // 6. Enviar SÓ a mensagem atual do usuário para o modelo Gemini
-        const result = await chat.sendMessage(mensagem_usuario);
-        const respostaIA = result.response.text();
+        // 6. Enviar a mensagem atual do usuário para o modelo Gemini
+        const result = await chat.sendMessage(messageToSend); 
+        const respostaIA = result.response.text().trim(); // Chama .text()
 
         // 7. Salvar a resposta da IA no banco de dados
         await new Promise((resolve, reject) => {

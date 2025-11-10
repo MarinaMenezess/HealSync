@@ -51,7 +51,7 @@
         <div class="profile-header">
           <img src="../assets/user-default.svg" id="profile-avatar-view" alt="User Avatar" class="profile-avatar">
           <a href="#" class="profile-settings" id="toggle-edit-btn">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-gear-wide" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" id="edit-pp-icon" width="20" height="20" fill="currentColor" class="bi bi-gear-wide" viewBox="0 0 16 16">
                             <path d="M8.932.727c-.243-.97-1.62-.97-1.864 0l-.071.286a.96.96 0 0 1-1.622.434l-.205-.211c-.695-.719-1.888-.03-1.613.931l.08.284a.96.96 0 0 1-1.186 1.187l-.284-.081c-.96-.275-1.65.918-.931 1.613l.211.205a.96.96 0 0 1-.434 1.622l-.286.071c-.97.243-.97 1.62 0 1.864l.286.071a.96.96 0 0 1 .434 1.622l-.211.205c-.719.695-.03 1.888.931 1.613l.284-.08a.96.96 0 0 1 1.187 1.187l-.081.283c-.275.96.918 1.65 1.613.931l.205-.211a.96.96 0 0 1 1.622.434l.071.286c.243.97 1.62.97 1.864 0l.071-.286a.96.96 0 0 1 1.622-.434l.205.211c.695.719 1.888.03 1.613-.931l-.08-.284a.96.96 0 0 1 1.187-1.187l.283.081c.96.275 1.65-.918.931-1.613l-.211-.205a.96.96 0 0 1 .434-1.622l-.286-.071c.97-.243.97-1.62 0-1.864l-.286-.071a.96.96 0 0 1-.434-1.622l.211-.205c.719-.695.03-1.888-.931-1.613l-.205.211a.96.96 0 0 1-1.622-.434zM8 12.997a4.998 4.998 0 1 1 0-9.995 4.998 4.998 0 0 1 0 9.996z"/>
                         </svg>
                     </a>
@@ -82,13 +82,22 @@
             
       <form id="profile-edit-form" style="display: none;">
         <div class="profile-header" style="position: relative;"> 
-                              <img 
-                        src="../assets/user-default.svg" 
-                        id="profile-avatar-edit" 
-                        alt="User Avatar" 
-                        class="profile-avatar"
-                        style="cursor: pointer;"
-                    >
+                    <div id="avatar-edit-container" style="position: relative; display: inline-block;">
+                        <img 
+                            src="../assets/user-default.svg" 
+                            id="profile-avatar-edit" 
+                            alt="User Avatar" 
+                            class="profile-avatar"
+                            style="cursor: pointer;"
+                        >
+                        <div id="edit-photo-overlay" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 50%; background: rgba(0, 0, 0, 0.5); display: none; justify-content: center; align-items: center; cursor: pointer;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="white" viewBox="0 0 16 16">
+                                <path d="M12.5 16h-9c-2.485 0-4.5-2.015-4.5-4.5V4.5c0-2.485 2.015-4.5 4.5-4.5h9c2.485 0 4.5 2.015 4.5 4.5v7c0 2.485-2.015 4.5-4.5 4.5zm-9-15c-1.933 0-3.5 1.567-3.5 3.5v7c0 1.933 1.567 3.5 3.5 3.5h9c1.933 0 3.5-1.567 3.5-3.5v-7c0-1.933-1.567-3.5-3.5-3.5z"/>
+                                <path d="M12.5 5.5c-1.38 0-2.5 1.12-2.5 2.5s1.12 2.5 2.5 2.5 2.5-1.12 2.5-2.5-1.12-2.5-2.5-2.5zM12.5 9.5c-0.828 0-1.5-0.672-1.5-1.5s0.672-1.5 1.5-1.5 1.5 0.672 1.5 1.5-0.672 1.5-1.5 1.5z"/>
+                                <path d="M5.5 3.5h5c0.276 0 0.5 0.224 0.5 0.5s-0.224 0.5-0.5 0.5h-5c-0.276 0-0.5-0.224-0.5-0.5s0.224-0.5 0.5-0.5zM3.5 11.5h1c0.276 0 0.5 0.224 0.5 0.5s-0.224 0.5-0.5 0.5h-1c-0.276 0-0.5-0.224-0.5-0.5s0.224-0.5 0.5-0.5zM3.5 8.5h1c0.276 0 0.5 0.224 0.5 0.5s-0.224 0.5-0.5 0.5h-1c-0.276 0-0.5-0.224-0.5-0.5s0.224-0.5 0.5-0.5zM3.5 5.5h1c0.276 0 0.5 0.224 0.5 0.5s-0.224 0.5-0.5 0.5h-1c-0.276 0-0.5-0.224-0.5-0.5s0.224-0.5 0.5-0.5z"/>
+                            </svg>
+                        </div>
+                    </div>
           
                     <div id="photo-options-menu" style="display: none; position: absolute; background: white; border: 1px solid #ccc; box-shadow: 0 4px 8px rgba(0,0,0,0.1); padding: 15px; z-index: 1000; border-radius: 8px; min-width: 200px; text-align: left;">
                         <a href="#" id="option-change" class="d-block mb-2 menu-item-link" style="text-decoration: none; color: var(--cor-principal);"></a>

@@ -1,6 +1,6 @@
-// ARQUIVO: frontend/profile.js (AJUSTE PARA CLIQUE NA IMAGEM E SUBMISSÃO ÚNICA)
+// ARQUIVO: frontend/profile.js (FINAL - Corrigido para 404 Graceful e Lógica de Edição)
 const API_URL = 'http://localhost:3000'; 
-const defaultAvatarUrl = '../assets/user-default.svg';
+const defaultAvatarUrl = '../assets/user-default.svg'; 
 
 // --- Funções Auxiliares para UX ---
 function showLoading(element) {
@@ -34,16 +34,28 @@ function formatDateForDisplay(dateString) {
 // =========================================================================
 
 /**
- * Exibe o menu de opções da foto (Alterar/Adicionar/Remover) baseado na foto atual.
+ * Exibe/Oculta o menu de opções da foto.
  */
-function handleAvatarClick(e) {
-    e.preventDefault(); 
-    e.stopPropagation(); // Impede que o clique se propague para o documento
+function togglePhotoOptionsMenu(e) {
+    e.preventDefault();
+    e.stopPropagation(); 
     
     const menu = document.getElementById('photo-options-menu');
     const optionChange = document.getElementById('option-change');
     const optionRemove = document.getElementById('option-remove');
     const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+    
+    if (!menu || !profileAvatarEdit || !optionChange || !optionRemove) {
+        return;
+    }
+
+    // Se estiver visível, esconde e sai
+    if (menu.style.display === 'block') {
+        menu.style.display = 'none';
+        return;
+    }
+
+    // --- Abrir Menu ---
     
     // Verifica se a imagem exibida é a URL padrão
     const isDefaultAvatar = profileAvatarEdit.src.includes(defaultAvatarUrl);
@@ -51,19 +63,20 @@ function handleAvatarClick(e) {
     // 1. Ajusta o texto e a visibilidade das opções
     if (isDefaultAvatar) {
         optionChange.textContent = 'Adicionar Foto de Perfil';
-        optionRemove.style.display = 'none'; // Esconde remover se for avatar padrão
+        optionRemove.style.display = 'none'; // Esconde remover
     } else {
         optionChange.textContent = 'Alterar Foto de Perfil';
-        optionRemove.style.display = 'block'; // Mostra remover se houver foto
+        optionRemove.style.display = 'block'; // Mostra remover
     }
 
     // 2. Posiciona e exibe o menu
     const rect = profileAvatarEdit.getBoundingClientRect();
-    // Posiciona o menu no centro do avatar (usando fixed/absolute para fácil posicionamento)
-    menu.style.position = 'fixed';
-    menu.style.top = `${rect.top + rect.height / 2}px`;
-    menu.style.left = `${rect.left + rect.width / 2}px`;
-    menu.style.transform = 'translate(-50%, -50%)'; 
+    const parentRect = profileAvatarEdit.parentElement.getBoundingClientRect();
+
+    menu.style.position = 'absolute';
+    menu.style.top = `${rect.bottom - parentRect.top}px`;
+    menu.style.left = `${rect.right - parentRect.left}px`;
+    menu.style.transform = 'translate(-100%, 0)'; 
     menu.style.display = 'block';
 }
 
@@ -74,7 +87,6 @@ function hidePhotoOptions(e) {
     const menu = document.getElementById('photo-options-menu');
     const profileAvatarEdit = document.getElementById('profile-avatar-edit');
     
-    // Esconde o menu se estiver visível e o clique não foi no menu nem no avatar de edição
     if (menu && menu.style.display === 'block' && e.target !== profileAvatarEdit && !menu.contains(e.target)) {
         menu.style.display = 'none';
     }
@@ -87,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const profileEditForm = document.getElementById('profile-edit-form');
     const profilePictureFile = document.getElementById('profile-picture-file'); 
     const profileAvatarEdit = document.getElementById('profile-avatar-edit');
-    const removePictureButton = document.getElementById('remove-picture-btn'); // Link de remoção não é mais necessário, mas o ID é usado abaixo para compatibilidade.
     const optionChange = document.getElementById('option-change');
     const optionRemove = document.getElementById('option-remove');
     
@@ -105,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutButton.addEventListener('click', handleLogout);
     }
     
-    // **Ajuste:** Botão principal de edição e ícone (engrenagem)
+    // Botão principal de edição e ícone (engrenagem)
     const toggleEditBtn = document.getElementById('toggle-edit-btn');
     if (toggleEditBtn) {
         toggleEditBtn.addEventListener('click', handleEditProfile);
@@ -129,14 +140,15 @@ document.addEventListener('DOMContentLoaded', () => {
         profileEditForm.addEventListener('submit', handleSaveProfile);
     }
     
-    // **NOVO:** Interações do Avatar (Menu)
+    // **CORREÇÃO:** Toggles o menu ao clicar na imagem
     if (profileAvatarEdit) {
-        profileAvatarEdit.addEventListener('click', handleAvatarClick);
+        profileAvatarEdit.addEventListener('click', togglePhotoOptionsMenu);
     }
-    // Oculta o menu ao clicar fora
+    
+    // Oculta o menu ao clicar fora do menu ou da imagem
     document.addEventListener('click', hidePhotoOptions);
 
-    // **NOVO:** Lógica dos itens do menu
+    // Lógica dos itens do menu (agora funcional)
     if (optionChange) {
         optionChange.addEventListener('click', (e) => {
             e.preventDefault();
@@ -150,13 +162,12 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             document.getElementById('photo-options-menu').style.display = 'none';
             if (confirm('Tem certeza que deseja remover sua foto de perfil?')) {
-                // Chama a função de upload com a flag de remoção
                 saveProfilePicture(true); 
             }
         });
     }
     
-    // **NOVO:** Adiciona preview da imagem ao selecionar um arquivo
+    // Adiciona preview da imagem ao selecionar um arquivo
     if (profilePictureFile) {
         profilePictureFile.addEventListener('change', function() {
             if (this.files && this.files[0] && profileAvatarEdit) {
@@ -187,6 +198,7 @@ function toggleEditMode(shouldShowEdit = null) {
     const editFormDiv = document.getElementById('profile-edit-form');
     const viewButtons = document.getElementById('profile-actions-view');
     const editButtons = document.getElementById('profile-actions-edit');
+    const menu = document.getElementById('photo-options-menu'); // Referência ao menu de foto
 
     if (!viewDiv || !editFormDiv || !viewButtons || !editButtons) {
         console.error("Elementos necessários para o toggle de edição não encontrados no DOM.");
@@ -208,6 +220,11 @@ function toggleEditMode(shouldShowEdit = null) {
         viewButtons.style.display = 'flex'; 
         editButtons.style.display = 'none';
     }
+
+    // Se estiver saindo do modo de edição, esconde o menu de foto
+    if (menu && isEditModeActive === false) {
+        menu.style.display = 'none';
+    }
 }
 
 
@@ -218,6 +235,7 @@ function toggleEditMode(shouldShowEdit = null) {
 function handleEditProfile(e) {
     e.preventDefault(); 
     
+    // 1. ATIVA O MODO DE EDIÇÃO (EXIBE O FORMULÁRIO)
     toggleEditMode(true);
     
     const userJson = localStorage.getItem('user');
@@ -332,6 +350,7 @@ async function saveProfilePicture(isRemoval = false) {
         return null;
     } finally {
         if (button) hideLoading(button);
+        if (isRemoval) loadUserProfile(); 
     }
 }
 
@@ -507,13 +526,6 @@ async function loadUserProfile() {
     const profileAvatarEdit = document.getElementById('profile-avatar-edit');
     const headerUserAvatar = document.getElementById('header-user-avatar');
     
-    const editName = document.getElementById('edit-name');
-    const editEmail = document.getElementById('edit-email'); 
-    const editPhone = document.getElementById('edit-phone');
-    const editDob = document.getElementById('edit-dob');
-    const editGender = document.getElementById('edit-gender');
-    const editCity = document.getElementById('edit-city');
-    
     let profileData = null;
 
     if (!token) {
@@ -562,7 +574,14 @@ async function loadUserProfile() {
     if (viewGenderElement) viewGenderElement.textContent = profileData.genero || 'Prefiro não dizer';
     if (viewCityElement) viewCityElement.textContent = profileData.cidade || 'Minha Cidade'; 
 
-    // 3. ATUALIZA DADOS DE EDIÇÃO (Input Values)
+    // 3. ATUALIZA DADOS DE EDIÇÃO (Input Values - apenas se os inputs existirem)
+    const editName = document.getElementById('edit-name');
+    const editEmail = document.getElementById('edit-email'); 
+    const editPhone = document.getElementById('edit-phone');
+    const editDob = document.getElementById('edit-dob');
+    const editGender = document.getElementById('edit-gender');
+    const editCity = document.getElementById('edit-city');
+    
     if (editName) editName.value = profileData.nome || '';
     if (editEmail) editEmail.value = profileData.email || 'Não Editável'; 
     if (editPhone) editPhone.value = profileData.contato || '';

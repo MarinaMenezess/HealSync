@@ -1,7 +1,6 @@
-// marinamenezess/healsync/HealSync-8ad206e020d766a7f9316c305e30cea2c9eaf9c4/frontend/index.js (MODIFICADO)
+// ARQUIVO: frontend/index.js (FINAL E CORRIGIDO)
 
-const BACKEND_URL = 'http://localhost:3000';
-const DEFAULT_AVATAR_URL = '../assets/user-default.svg'; // Definindo o default para posts
+// As variáveis BACKEND_URL e DEFAULT_AVATAR_URL são definidas em script.js
 
 // Função auxiliar para obter o ID do usuário logado do localStorage
 function getLoggedInUserId() {
@@ -9,7 +8,6 @@ function getLoggedInUserId() {
     if (userJson) {
         try {
             const userData = JSON.parse(userJson);
-            // Pega o ID e o força a ser um Number.
             const userId = Number(userData.id_usuario); 
             
             if (!isNaN(userId) && userId > 0) {
@@ -145,7 +143,7 @@ function renderPostCard(post) {
     const isAuthor = currentUserId !== null && currentUserId === postAuthorId;
     const isDenounced = post.is_denounced == 1 || post.is_denounced === true; 
     
-    // NOVO: Define a URL do avatar com fallback para a URL default
+    // NOVO: Define a URL do avatar com fallback para a URL default (do script.js)
     const avatarUrl = post.foto_perfil_url || DEFAULT_AVATAR_URL;
 
 
@@ -226,7 +224,6 @@ function renderPostCard(post) {
 // Função principal para buscar e exibir os posts públicos
 async function loadPublicPosts() {
     const timelineContainer = document.querySelector('.timeline-container');
-    // ... (restante da lógica de loadPublicPosts)
     
     // Limpa o conteúdo estático atual (se existir)
     const staticContent = timelineContainer.querySelector('.post-card:not([data-register-id])');

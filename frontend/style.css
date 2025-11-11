@@ -1569,7 +1569,8 @@ main > svg {
 .notification-icon {
   position: relative;
   display: flex; /* Adicionado para permitir o alinhamento de itens */
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   cursor: pointer;
 }
 
@@ -1591,6 +1592,16 @@ main > svg {
   display: block; /* Classe para mostrar o dropdown com JavaScript */
 }
 
+.notification-content{
+  width: 100%;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.notification-time{
+  font-size: 15px;
+}
+
 .dropdown-header {
   padding: 10px 15px;
   border-bottom: 1px solid #e0e0e0;
@@ -1609,7 +1620,7 @@ main > svg {
 }
 
 .notification-item {
-  display: block;
+  display: flex;
   padding: 15px;
   text-decoration: none;
   color: #3b3b3b;

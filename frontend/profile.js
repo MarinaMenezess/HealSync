@@ -1,4 +1,4 @@
-// ARQUIVO: frontend/profile.js (FINAL - Corrigido para 404 Graceful e Lógica de Edição)
+// ARQUIVO: frontend/profile.js (FINAL - Corrigido para Chamar loadProfilePicture)
 const API_URL = 'http://localhost:3000'; 
 const defaultAvatarUrl = '../assets/user-default.svg'; 
 
@@ -328,17 +328,20 @@ async function saveProfilePicture(isRemoval = false) {
             const finalAvatarUrl = newUrl || defaultAvatarUrl;
             const profileAvatarView = document.getElementById('profile-avatar-view');
             const profileAvatarEdit = document.getElementById('profile-avatar-edit');
-            const headerUserAvatar = document.getElementById('header-user-avatar');
 
             if(profileAvatarView) profileAvatarView.src = finalAvatarUrl;
             if(profileAvatarEdit) profileAvatarEdit.src = finalAvatarUrl;
-            if(headerUserAvatar) headerUserAvatar.src = finalAvatarUrl;
             
             if(profilePictureFile) profilePictureFile.value = '';
 
             const user = JSON.parse(localStorage.getItem('user'));
             user.foto_perfil_url = newUrl;
             localStorage.setItem('user', JSON.stringify(user));
+            
+            // NOVO: Chama a função global (em script.js) para atualizar o cabeçalho
+            if (typeof loadProfilePicture === 'function') {
+                loadProfilePicture(); 
+            }
             
             if (isRemoval) alert(result.mensagem);
 
@@ -388,15 +391,16 @@ async function handleSaveProfile(e) {
 
         // 1. Processa a Foto (se um novo arquivo foi selecionado)
         if (fileSelected) {
+            // A função saveProfilePicture agora chama loadProfilePicture() globalmente
             const photoUploadResult = await saveProfilePicture(false); 
-            // Se o upload falhar, saveProfilePicture já tratou o erro e retornou null.
+            // Se o upload falhar, saveProfilePicture já tratou o erro e escondeu o loading.
             if (photoUploadResult === null) {
-                // A função saveProfilePicture já esconde o loading se falhar
                 return; 
             }
         }
         
         // 2. Coletar e Salvar Dados Gerais
+        // ATENÇÃO: O campo 'cidade' é mantido no payload, mas o backend o ignora se o DB não tiver a coluna.
         const name = document.getElementById('edit-name').value.trim();
         const phone = document.getElementById('edit-phone') ? document.getElementById('edit-phone').value.trim() : null;
         const dob = document.getElementById('edit-dob') ? document.getElementById('edit-dob').value.trim() : null;
@@ -408,7 +412,7 @@ async function handleSaveProfile(e) {
             contato: phone,
             data_nascimento: dob,
             genero: gender,
-            cidade: city,
+            cidade: city, 
         };
         
         const GENERAL_PROFILE_UPDATE_URL = `${API_URL}/users/profile`; 
@@ -425,9 +429,14 @@ async function handleSaveProfile(e) {
         const result = await response.json();
 
         if (response.ok) {
-            await loadUserProfile(); 
+            await loadUserProfile(); // Recarrega o perfil local com os dados do servidor
             toggleEditMode(false);
             
+            // NOVO: Chama a função global para atualizar o cabeçalho após salvar os dados gerais
+            if (typeof loadProfilePicture === 'function') {
+                loadProfilePicture(); 
+            }
+
             alert('Perfil atualizado com sucesso!');
         } else {
             alert('Falha ao salvar os dados gerais do perfil: ' + (result.error || 'Erro desconhecido.'));
@@ -536,7 +545,7 @@ async function loadUserProfile() {
     
     const profileAvatarView = document.getElementById('profile-avatar-view');
     const profileAvatarEdit = document.getElementById('profile-avatar-edit');
-    const headerUserAvatar = document.getElementById('header-user-avatar');
+    // REMOVIDA A REFERÊNCIA AO AVATAR DO HEADER
     
     let profileData = null;
 
@@ -574,11 +583,11 @@ async function loadUserProfile() {
     
     // --- ATUALIZAÇÃO DA INTERFACE ---
     
-    // 1. Atualiza AVATARES
+    // 1. Atualiza AVATARES (Apenas os locais no profile.html)
     const finalAvatarUrl = profileData.foto_perfil_url || defaultAvatarUrl;
     if(profileAvatarView) profileAvatarView.src = finalAvatarUrl;
     if(profileAvatarEdit) profileAvatarEdit.src = finalAvatarUrl;
-    if(headerUserAvatar) headerUserAvatar.src = finalAvatarUrl;
+    // O HEADER É ATUALIZADO PELO script.js
     
     // 2. Atualiza DADOS DE VISUALIZAÇÃO
     if (profileNameElement) profileNameElement.textContent = profileData.nome || 'Usuário Desconhecido';
@@ -603,6 +612,11 @@ async function loadUserProfile() {
     if (editDob) editDob.value = profileData.data_nascimento ? profileData.data_nascimento.substring(0, 10) : ''; 
     if (editGender) editGender.value = profileData.genero || 'Prefiro não dizer';
     if (editCity) editCity.value = profileData.cidade || 'Minha Cidade';
+    
+    // NOVO: Chama a função global para garantir que o cabeçalho seja atualizado
+    if (typeof loadProfilePicture === 'function') {
+        loadProfilePicture();
+    }
     
     // 4. Esconde o botão de solicitação de psicólogo se o usuário já for um psicólogo
     if (profileData.is_psicologo) {

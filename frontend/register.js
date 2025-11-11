@@ -1,7 +1,5 @@
 // ARQUIVO: frontend/register.js (LÓGICA DE VISUALIZAÇÃO DE POST E COMENTÁRIOS)
 
-const BACKEND_URL = 'http://localhost:3000';
-
 function getRegisterIdFromUrl() {
     const params = new URLSearchParams(window.location.search);
     return parseInt(params.get('id'), 10);

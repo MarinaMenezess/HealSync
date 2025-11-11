@@ -98,6 +98,21 @@ FOREIGN KEY (id_psicologo) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
 FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 );
 
+-- Adicionado ao seu arquivo db.sql
+CREATE TABLE notificacao (
+    id_notificacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_usuario_destino INT NOT NULL, -- O usuário que deve receber a notificação (autor do post)
+    id_registro INT NOT NULL,        -- O post que recebeu a curtida/comentário
+    id_usuario_origem INT,           -- O usuário que curtiu/comentou
+    tipo ENUM('curtida', 'comentario') NOT NULL,
+    conteudo VARCHAR(255) NOT NULL,  -- Mensagem da notificação (Ex: "curtiu seu post")
+    data_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+    lida BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (id_usuario_destino) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_registro) REFERENCES registro_progresso(id_registro) ON DELETE CASCADE,
+    FOREIGN KEY (id_usuario_origem) REFERENCES usuario(id_usuario) ON DELETE SET NULL
+);
+
 -- COMANDOS AUXILIARES: DROP DATABASE e UPDATE MANTIDOS
 DROP DATABASE healsyncdb;
 SELECT * FROM solicitacao_consulta;

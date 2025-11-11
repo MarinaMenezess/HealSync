@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (MODIFICADO)
+// ARQUIVO: backend/server.js (CORRIGIDO E COM NOTIFICAÇÕES)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -106,6 +106,48 @@ const upload = multer({
 });
 // --------------------------------------------------------------------------
 
+// =========================================================================
+// FUNÇÕES AUXILIARES DE NOTIFICAÇÃO (NOVAS)
+// =========================================================================
+
+/**
+ * Busca o ID do autor de um post.
+ * @param {number} id_registro - ID do registro de progresso.
+ * @returns {Promise<number|null>} ID do autor ou null.
+ */
+function getPostAuthorId(id_registro) {
+    return new Promise((resolve, reject) => {
+        connection.query(
+            'SELECT id_usuario FROM registro_progresso WHERE id_registro = ?',
+            [id_registro],
+            (err, results) => {
+                if (err) return reject(err);
+                if (results.length === 0) return resolve(null);
+                resolve(results[0].id_usuario);
+            }
+        );
+    });
+}
+
+/**
+ * Insere uma notificação no banco de dados.
+ */
+function insertNotification(id_usuario_destino, id_registro, id_usuario_origem, tipo, conteudo) {
+    return new Promise((resolve, reject) => {
+        // Não envia notificação para o próprio autor do post
+        if (id_usuario_destino === id_usuario_origem) return resolve(null); 
+        
+        connection.query(
+            'INSERT INTO notificacao (id_usuario_destino, id_registro, id_usuario_origem, tipo, conteudo, data_hora) VALUES (?, ?, ?, ?, ?, NOW())',
+            [id_usuario_destino, id_registro, id_usuario_origem, tipo, conteudo],
+            (err, result) => {
+                if (err) return reject(err);
+                resolve(result.insertId);
+            }
+        );
+    });
+}
+// =========================================================================
 
 // ---------- AUTENTICAÇÃO COM FIREBASE ----------
 
@@ -1544,18 +1586,42 @@ app.delete('/registros/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- COMENTÁRIOS (MANTIDOS) ----------
+// ---------- COMENTÁRIOS (COM LÓGICA DE NOTIFICAÇÃO) ----------
 
-app.post('/comentarios', authMiddleware, (req, res) => {
+app.post('/comentarios', authMiddleware, async (req, res) => {
   const { id_registro, conteudo } = req.body;
-  connection.query(
-    'INSERT INTO comentario (id_registro, id_usuario, conteudo) VALUES (?, ?, ?)',
-    [id_registro, req.userId, conteudo],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+  const id_usuario_origem = req.userId;
+
+  try {
+      const insertResult = await new Promise((resolve, reject) => {
+          connection.query(
+              'INSERT INTO comentario (id_registro, id_usuario, conteudo) VALUES (?, ?, ?)',
+              [id_registro, id_usuario_origem, conteudo],
+              (err, result) => {
+                  if (err) return reject(err);
+                  resolve(result);
+              }
+          );
+      });
+      
+      // --- Lógica de Notificação ---
+      const id_usuario_destino = await getPostAuthorId(id_registro);
+      if (id_usuario_destino) {
+          await insertNotification(
+              id_usuario_destino,
+              id_registro,
+              id_usuario_origem,
+              'comentario',
+              'novo comentário no seu post!'
+          );
+      }
+      // --- Fim Lógica de Notificação ---
+
+      res.status(201).json({ id: insertResult.insertId });
+  } catch (err) {
+      console.error('Erro em POST /comentarios:', err.message);
+      return res.status(500).json({ error: err.message });
+  }
 });
 
 app.put('/comentarios/:id', authMiddleware, (req, res) => {
@@ -1581,18 +1647,46 @@ app.delete('/comentarios/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- CURTIDAS (MANTIDAS) ----------
+// ---------- CURTIDAS (COM LÓGICA DE NOTIFICAÇÃO) ----------
 
-app.post('/curtidas', authMiddleware, (req, res) => {
+app.post('/curtidas', authMiddleware, async (req, res) => {
   const { id_registro } = req.body;
-  connection.query(
-    'INSERT INTO curtida (id_registro, id_usuario) VALUES (?, ?)',
-    [id_registro, req.userId],
-    (err, result) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.status(201).json({ id: result.insertId });
-    }
-  );
+  const id_usuario_origem = req.userId;
+
+  try {
+      const insertResult = await new Promise((resolve, reject) => {
+          connection.query(
+              'INSERT INTO curtida (id_registro, id_usuario) VALUES (?, ?)',
+              [id_registro, id_usuario_origem],
+              (err, result) => {
+                  if (err) return reject(err);
+                  resolve(result);
+              }
+          );
+      });
+      
+      // --- Lógica de Notificação ---
+      const id_usuario_destino = await getPostAuthorId(id_registro);
+      if (id_usuario_destino) {
+          await insertNotification(
+              id_usuario_destino,
+              id_registro,
+              id_usuario_origem,
+              'curtida',
+              'curtiu o seu post!'
+          );
+      }
+      // --- Fim Lógica de Notificação ---
+
+      res.status(201).json({ id: insertResult.insertId });
+  } catch (err) {
+      console.error('Erro em POST /curtidas:', err.message);
+      // ER_DUP_ENTRY é normal aqui se o usuário já curtiu
+      if (err.code === 'ER_DUP_ENTRY') {
+         return res.status(409).json({ error: 'Você já curtiu este registro.' });
+      }
+      return res.status(500).json({ error: err.message });
+  }
 });
 
 app.delete('/curtidas/:id', authMiddleware, (req, res) => {
@@ -1604,6 +1698,57 @@ app.delete('/curtidas/:id', authMiddleware, (req, res) => {
       res.json({ mensagem: 'Curtida removida com sucesso' });
     }
   );
+});
+
+// ---------- ROTAS DE NOTIFICAÇÃO (NOVAS) ----------
+
+// =========================================================================
+// ROTA: OBTÉM NOTIFICAÇÕES NÃO LIDAS DO USUÁRIO LOGADO
+// =========================================================================
+app.get('/notifications', authMiddleware, (req, res) => {
+    const userId = req.userId;
+
+    const query = `
+        SELECT 
+            n.id_notificacao,
+            n.tipo,
+            n.conteudo,
+            n.data_hora,
+            n.id_registro,
+            u.nome AS nome_origem,
+            u.foto_perfil_url
+        FROM notificacao n
+        LEFT JOIN usuario u ON n.id_usuario_origem = u.id_usuario
+        WHERE n.id_usuario_destino = ? AND n.lida = FALSE
+        ORDER BY n.data_hora DESC
+        LIMIT 10
+    `;
+
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar notificações:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao buscar notificações.' });
+        }
+        
+        res.json(results);
+    });
+});
+
+// =========================================================================
+// ROTA: MARCA NOTIFICAÇÕES COMO LIDAS
+// =========================================================================
+app.put('/notifications/mark-read', authMiddleware, (req, res) => {
+    const userId = req.userId;
+
+    const query = 'UPDATE notificacao SET lida = TRUE WHERE id_usuario_destino = ? AND lida = FALSE';
+
+    connection.query(query, [userId], (err, result) => {
+        if (err) {
+            console.error('Erro ao marcar notificações como lidas:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao atualizar notificações.' });
+        }
+        res.json({ mensagem: `${result.affectedRows} notificações marcadas como lidas.` });
+    });
 });
 
 // ---------- ANOTAÇÕES DE PACIENTE (MANTIDAS para anotações GERAIS/antigas) ----------

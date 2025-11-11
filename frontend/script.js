@@ -1,5 +1,11 @@
-// ARQUIVO: frontend/script.js (COMPLETO E ATUALIZADO PARA BLOQUEIO)
+// ARQUIVO: frontend/script.js (FINAL COM NOTIFICAÇÕES E AVATAR GLOBAL)
 
+const BACKEND_URL = 'http://localhost:3000'; 
+const DEFAULT_AVATAR_URL = '../assets/user-default.svg'; 
+
+/**
+ * Abre o modal de Novo Registro. Esta função é global.
+ */
 function openModal() {
     // CORREÇÃO: VERIFICAÇÃO DE STATUS DE CONTA ATIVA NO OPEN MODAL
     const userJson = localStorage.getItem('user');
@@ -15,6 +21,11 @@ function openModal() {
         } catch (e) {
             console.error('Erro ao ler status do usuário:', e);
         }
+    }
+    
+    if (!is_active_for_posting) {
+        alert('Sua conta foi temporariamente inativada para novas postagens e comentários devido a violações das diretrizes. Entre em contato com o suporte.');
+        return;
     }
 
     // Cria o container principal do modal
@@ -114,23 +125,18 @@ function openModal() {
 
         const descricao = document.getElementById('descricao-textarea').value;
         
-        // --- INÍCIO DA CORREÇÃO E FORMATAÇÃO DE DATA E HORA ---
         const now = new Date();
         const isoString = now.toISOString(); 
 
-        // Extrai a data no formato YYYY-MM-DD (UTC date part)
         const data = isoString.split('T')[0]; 
-        
-        // Extrai a hora no formato HH:MM:SS (UTC time part)
         const hora = isoString.split('T')[1].substring(0, 8); 
-        // --- FIM DA CORREÇÃO E FORMATAÇÃO DE DATA E HORA ---
         
         const token = localStorage.getItem('jwt');
 
         if (!token) {
             alert('Você precisa estar logado para criar um registro.');
             closeModal();
-            window.location.href = 'login.html'; // Redireciona para a página de login
+            window.location.href = 'login.html'; 
             return;
         }
 
@@ -138,11 +144,11 @@ function openModal() {
             data: data,
             emocao: selectedEmotion,
             descricao: descricao,
-            hora: hora, // Adicionando o campo de hora
+            hora: hora, 
         };
 
         try {
-            const response = await fetch('http://localhost:3000/registros', {
+            const response = await fetch(`${BACKEND_URL}/registros`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -156,10 +162,8 @@ function openModal() {
                 console.log('Registro criado com sucesso:', result);
                 alert('Registro salvo com sucesso!');
                 closeModal();
-                // Recarrega a página para exibir o novo registro
                 window.location.reload(); 
             } else if (response.status === 403) { 
-                 // Trata a inativação vinda do servidor
                  const error = await response.json();
                  alert(error.error);
                  closeModal();
@@ -175,34 +179,171 @@ function openModal() {
     });
 }
 
-// =========================================================================
-// NOVO: Função para carregar e exibir a foto de perfil no cabeçalho
-// =========================================================================
+/**
+ * Função auxiliar para obter o ID do usuário logado do localStorage
+ */
+function getLoggedInUserId() {
+    const userJson = localStorage.getItem('user');
+    if (userJson) {
+        try {
+            const userData = JSON.parse(userJson);
+            const userId = Number(userData.id_usuario); 
+            
+            if (!isNaN(userId) && userId > 0) {
+                return userId;
+            }
+        } catch (e) {
+            console.error("Erro ao parsear usuário do localStorage:", e);
+        }
+    }
+    return null;
+}
+
+/**
+ * Função auxiliar para formatar a data como "há X tempo"
+ */
+function formatTimeAgo(dateString) {
+    if (!dateString) return "Data inválida";
+    const now = new Date();
+    const past = new Date(dateString.replace(' ', 'T')); 
+    if (isNaN(past)) return "Data inválida";
+    
+    const diffInSeconds = Math.floor((now - past) / 1000);
+
+    if (diffInSeconds < 60) {
+        return "há poucos segundos";
+    } else if (diffInSeconds < 3600) {
+        const minutes = Math.floor(diffInSeconds / 60);
+        return `há ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    } else if (diffInSeconds < 86400) {
+        const hours = Math.floor(diffInSeconds / 3600);
+        return `há ${hours} hora${hours > 1 ? 's' : ''}`;
+    } else {
+        const days = Math.floor(diffInSeconds / 86400);
+        return `há ${days} dia${days > 1 ? 's' : ''}`;
+    }
+}
+
+/**
+ * Carrega e exibe a foto de perfil no cabeçalho de todas as páginas.
+ */
 function loadProfilePicture() {
     const userJson = localStorage.getItem('user');
+    const defaultAvatarUrl = '../assets/user-default.svg'; 
+
     if (!userJson) return;
 
     try {
         const userData = JSON.parse(userJson);
         const photoUrl = userData.foto_perfil_url;
         
-        // Procura a imagem de perfil no cabeçalho.
-        // O seletor 'header #info a img' é baseado na estrutura do index.html
         const avatarImg = document.querySelector('header #info a img');
 
-        if (avatarImg && photoUrl) {
-            // Se houver uma URL, usa-a.
-            avatarImg.src = photoUrl;
+        if (avatarImg) {
+            const finalAvatarUrl = photoUrl || defaultAvatarUrl;
+            avatarImg.src = finalAvatarUrl;
             avatarImg.alt = `Foto de Perfil de ${userData.nome || 'Usuário'}`;
-        } else if (avatarImg) {
-            // Garante que o default é usado se o campo foto_perfil_url for NULL ou vazio
-            avatarImg.src = "../assets/user-default.svg";
-            avatarImg.alt = "User Avatar";
         }
     } catch (e) {
         console.error("Erro ao carregar foto de perfil:", e);
     }
 }
+
+// =========================================================================
+// Funções de Notificação (Incluídas para resolver o ReferenceError)
+// =========================================================================
+
+/**
+ * Marca todas as notificações não lidas como lidas no backend.
+ */
+async function markNotificationsAsRead() {
+    const token = localStorage.getItem('jwt');
+    if (!token) return;
+
+    try {
+        await fetch(`${BACKEND_URL}/notifications/mark-read`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+    } catch (e) {
+        console.error("Erro ao marcar notificações como lidas:", e);
+    }
+}
+
+/**
+ * Busca e exibe notificações não lidas e atualiza a badge.
+ */
+async function loadNotifications() {
+    const token = localStorage.getItem('jwt');
+    const notificationList = document.querySelector('.notification-list');
+    const notificationBadge = document.getElementById('notification-badge');
+
+    if (!token || !notificationList || !notificationBadge) return;
+    
+    notificationList.innerHTML = '<div style="padding: 10px; text-align: center;">Carregando...</div>';
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/notifications`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const notifications = await response.json();
+
+        if (response.ok && Array.isArray(notifications)) {
+            // 1. Atualiza o contador (badge)
+            notificationBadge.textContent = notifications.length;
+            notificationBadge.style.display = notifications.length > 0 ? 'block' : 'none';
+
+            // 2. Renderiza a lista de notificações
+            if (notifications.length === 0) {
+                 notificationList.innerHTML = '<div style="padding: 10px; text-align: center; color: #aaa;">Nenhuma notificação nova.</div>';
+                 return;
+            }
+
+            const menuContent = notifications.map(n => {
+                const postLink = `./register.html?id=${n.id_registro}`;
+                const time = formatTimeAgo(n.data_hora);
+                
+                const senderName = n.nome_origem || 'Usuário Deletado';
+                let message = '';
+
+                if (n.tipo === 'comentario') {
+                   message = `comentou no seu post!`;
+                } else if (n.tipo === 'curtida') {
+                   message = `curtiu o seu post!`;
+                } else {
+                   message = n.conteudo; 
+                }
+
+                const avatarUrl = n.foto_perfil_url || DEFAULT_AVATAR_URL;
+
+
+                return `
+                    <a href="${postLink}" class="notification-item" onclick="event.stopPropagation(); window.location.href='${postLink}';">
+                        <img src="${avatarUrl}" alt="Avatar" class="notification-avatar">
+                        <div class="notification-content">
+                            <span class="notification-message"><strong>${senderName}</strong> ${message}</span>
+                            <span class="notification-time">${time}</span>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+
+            notificationList.innerHTML = `
+                ${menuContent}
+                <a href="./notifications.html" class="view-all-btn">Ver todas as notificações</a>
+            `;
+
+        } else {
+            console.error('Falha ao carregar notificações:', notifications.error);
+            notificationList.innerHTML = '<div style="padding: 10px; text-align: center; color: red;">Erro ao carregar notificações.</div>';
+        }
+    } catch (error) {
+        console.error('Erro de rede ao buscar notificações:', error);
+        notificationList.innerHTML = '<div style="padding: 10px; text-align: center; color: red;">Erro de conexão com o servidor.</div>';
+    }
+}
+// =========================================================================
 
 
 // =========================================================================
@@ -210,11 +351,9 @@ function loadProfilePicture() {
 // =========================================================================
 function updateNavigationForUserRole() {
     const userJson = localStorage.getItem('user');
-    // Renomeado para link2 para maior clareza, mas mantém o ID antigo como fallback.
     const link2 = document.getElementById('nav-link-2') || document.getElementById('nav-dynamic-link'); 
     const link3 = document.getElementById('nav-link-3'); 
 
-    // Verifica se o usuário está logado e se os elementos de navegação existem no DOM
     if (!userJson || !link2 || !link3) {
         return;
     }
@@ -223,40 +362,30 @@ function updateNavigationForUserRole() {
         const user = JSON.parse(userJson);
         const currentPath = window.location.pathname;
         
-        // --- NAVEGAÇÃO PARA PSICÓLOGOS: Início | Consultas | Pacientes ---
         if (user.is_psicologo) {
-            // Link 2: Consultas
             link2.setAttribute('href', './consultas.html');
             link2.textContent = 'Consultas'; 
 
-            // Link 3: Pacientes (Exclusivo para Psicólogos)
             link3.setAttribute('href', './pacientes.html');
             link3.textContent = 'Pacientes';
             
-            // --- LÓGICA DE REDIRECIONAMENTO PARA PSICÓLOGOS ---
-            // Impede acesso às páginas de paciente e redireciona para a principal do psicólogo
             if (currentPath.includes('registers.html')) {
-                 window.location.replace('./consultas.html'); // Redirecionamento 1 (Diário)
+                 window.location.replace('./consultas.html');
             } else if (currentPath.includes('chat.html')) {
-                window.location.replace('./pacientes.html'); // Redirecionamento 2 (Chat IA)
+                window.location.replace('./pacientes.html');
             }
 
-        // --- NAVEGAÇÃO PARA USUÁRIOS COMUNS (PACIENTES): Início | Diário | Chat IA ---
         } else {
-            // Link 2: Diário
             link2.setAttribute('href', './registers.html');
             link2.textContent = 'Diário';
 
-            // Link 3: Chat IA (Exclusivo para Comuns)
             link3.setAttribute('href', './chat.html');
             link3.textContent = 'Chat IA';
             
-            // --- LÓGICA DE REDIRECIONAMENTO PARA PACIENTES ---
-            // Impede acesso às páginas de psicólogo e redireciona para a principal do paciente
             if (currentPath.includes('consultas.html')) {
-                 window.location.replace('./registers.html'); // Redirecionamento 1 (Consultas)
+                 window.location.replace('./registers.html');
             } else if (currentPath.includes('pacientes.html')) {
-                 window.location.replace('./chat.html'); // Redirecionamento 2 (Pacientes)
+                 window.location.replace('./chat.html');
             }
         }
     } catch (e) {
@@ -265,13 +394,16 @@ function updateNavigationForUserRole() {
 }
 
 
-// Lógica do dropdown de notificação (mantida do seu código original)
+// Lógica do dropdown de notificação (MODIFICADA PARA USAR A NOVA FUNÇÃO)
 document.addEventListener('DOMContentLoaded', () => {
     // Chama a nova função de ajuste de navegação ao carregar a página
     updateNavigationForUserRole();
 
     // NOVO: Chama a função para carregar a foto de perfil
     loadProfilePicture();
+    
+    // NOVO: Chamada inicial para carregar notificações ao carregar a página
+    loadNotifications();
 
     let dropdownToggle = document.getElementById('dropdownToggle');
     let dropdownMenu = document.getElementById('dropdownMenu');
@@ -280,6 +412,22 @@ document.addEventListener('DOMContentLoaded', () => {
         // Função para mostrar/esconder o dropdown
         function toggleDropdown() {
             dropdownMenu.classList.toggle('active');
+            
+            // Se o menu está sendo ABERTO
+            if (dropdownMenu.classList.contains('active')) {
+                // Marca as notificações como lidas no DB
+                const notificationBadge = document.getElementById('notification-badge');
+                if (notificationBadge && notificationBadge.textContent > 0) {
+                    markNotificationsAsRead();
+                }
+                // Recarrega a lista para mostrar a mudança
+                loadNotifications();
+            } else {
+                // Se o menu está sendo FECHADO
+                // Garante que a badge desapareça/seja zerada (se a marcação como lida foi bem-sucedida)
+                const notificationBadge = document.getElementById('notification-badge');
+                if (notificationBadge) notificationBadge.style.display = 'none';
+            }
         }
 
         // Função para esconder o dropdown
@@ -288,16 +436,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         dropdownToggle.addEventListener('click', (event) => {
-            event.preventDefault(); // Impede a navegação
-            event.stopPropagation(); // Impede o clique de ser propagado para o documento
+            event.preventDefault(); 
+            event.stopPropagation(); 
             toggleDropdown();
-        });
-
-        // Ocultar o dropdown quando um item é clicado (opcional)
-        dropdownMenu.querySelectorAll('.notification-item, .view-all-btn').forEach((item) => {
-            item.addEventListener('click', () => {
-                hideDropdown();
-            });
         });
 
         // Ocultar o dropdown quando clicar fora dele

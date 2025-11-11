@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (CORRIGIDO E COM NOTIFICAÇÕES)
+// ARQUIVO: backend/server.js (FINAL COM TODAS AS CORREÇÕES E CONTAGEM)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -107,7 +107,7 @@ const upload = multer({
 // --------------------------------------------------------------------------
 
 // =========================================================================
-// FUNÇÕES AUXILIARES DE NOTIFICAÇÃO (NOVAS)
+// FUNÇÕES AUXILIARES DE NOTIFICAÇÃO
 // =========================================================================
 
 /**
@@ -310,12 +310,24 @@ app.get('/psychologists', (req, res) => {
 // ROTA PARA OBTER POSTS PÚBLICOS PARA A TIMELINE (GET /posts) - CORRIGIDO
 // =========================================================================
 app.get('/posts', (req, res) => {
-    // CORREÇÃO: Adicionada a coluna u.foto_perfil_url para que o frontend possa exibir o avatar.
+    // CORREÇÃO: Adicionado LEFT JOIN e COUNT para incluir o número de curtidas e comentários
     const query = `
-        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, u.nome AS nome_usuario, rp.id_usuario AS id_autor, u.foto_perfil_url
+        SELECT 
+            rp.id_registro, 
+            rp.data, 
+            rp.emocao, 
+            rp.descricao, 
+            u.nome AS nome_usuario, 
+            rp.id_usuario AS id_autor, 
+            u.foto_perfil_url,
+            COUNT(DISTINCT c.id_comentario) AS num_comentarios,
+            COUNT(DISTINCT cur.id_curtida) AS num_curtidas
         FROM registro_progresso rp
         JOIN usuario u ON rp.id_usuario = u.id_usuario
+        LEFT JOIN comentario c ON rp.id_registro = c.id_registro
+        LEFT JOIN curtida cur ON rp.id_registro = cur.id_registro
         WHERE rp.is_public = 1
+        GROUP BY rp.id_registro
         ORDER BY rp.data DESC
     `; 
 
@@ -1681,7 +1693,7 @@ app.post('/curtidas', authMiddleware, async (req, res) => {
       res.status(201).json({ id: insertResult.insertId });
   } catch (err) {
       console.error('Erro em POST /curtidas:', err.message);
-      // ER_DUP_ENTRY é normal aqui se o usuário já curtiu
+      // O banco de dados impede duplicidade. Se falhar, é porque já curtiu.
       if (err.code === 'ER_DUP_ENTRY') {
          return res.status(409).json({ error: 'Você já curtiu este registro.' });
       }
@@ -1700,7 +1712,7 @@ app.delete('/curtidas/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- ROTAS DE NOTIFICAÇÃO (NOVAS) ----------
+// ---------- ROTAS DE NOTIFICAÇÃO ----------
 
 // =========================================================================
 // ROTA: OBTÉM NOTIFICAÇÕES NÃO LIDAS DO USUÁRIO LOGADO

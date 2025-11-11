@@ -83,8 +83,7 @@ CREATE TABLE curtida (
 id_curtida INT AUTO_INCREMENT PRIMARY KEY,
 id_registro INT NOT NULL,
 id_usuario INT NOT NULL,
-FOREIGN KEY (id_registro) REFERENCES registro_progresso(id_registro) ON DELETE CASCADE,
-FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
+UNIQUE KEY unique_curtida_por_usuario (id_registro, id_usuario)
 );
 
 -- Tabela: anotacao_paciente

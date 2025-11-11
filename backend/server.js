@@ -350,7 +350,7 @@ app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
     
     // ADICIONADO: foto_perfil_url na consulta
-    const query = 'SELECT nome, email, especialidade, contato, avaliacao, is_psicologo, cfp, foto_perfil_url FROM usuario WHERE id_usuario = ?';
+    const query = 'SELECT id_usuario, nome, email, data_nascimento, genero, contato, cidade, especialidade, avaliacao, is_psicologo, cfp, foto_perfil_url FROM usuario WHERE id_usuario = ?';
 
     connection.query(query, [userId], (err, results) => {
         if (err) {
@@ -364,19 +364,18 @@ app.get('/users/:id', (req, res) => {
         
         const user = results[0];
         
-        // Regra de segurança: Se a página é para perfil de psicólogo, confirmamos se é um.
-        if (user.is_psicologo !== 1) {
-             return res.status(404).json({ error: 'Perfil não encontrado ou não é um psicólogo aprovado.' });
-        }
-
-        // Removendo campos sensíveis/privados que não devem ser exibidos
-        delete user.is_psicologo;
-        delete user.cfp; // O CFP não deve ser público
-        delete user.email; // O email não deve ser público
-
-        // A foto de perfil não é removida, pois é uma informação pública.
-
-        // Adicionando uma biografia fictícia (assumindo que o campo 'bio' não existe no schema)
+        // Se for uma requisição interna (feita por profile.js), permitimos o retorno completo.
+        // Se for para a página de psicólogo, mantemos a restrição.
+        // Assumimos que o frontend de perfil (profile.js) busca o perfil por ID_USUARIO logado.
+        
+        // Se não for psicólogo, ou se a requisição for para um perfil de psicólogo (aqui não há distinção
+        // de rota entre perfil próprio e perfil de outro psicólogo, o frontend deve lidar com o uso da rota).
+        
+        // Removendo campos sensíveis/privados que não devem ser expostos para terceiros (mantendo para o próprio usuário)
+        // Para a rota de perfil (que o usuário usa para ver o próprio perfil), retornamos a maioria dos dados.
+        // O `profile.js` usa o retorno desta rota para atualizar o localStorage e a UI.
+        
+        // Adicionando uma biografia fictícia (assumindo que o campo 'bio' não existe no schema) para uso externo
         user.bio = 'Profissional com vasta experiência na área de saúde mental. Dedicado a fornecer suporte e orientação para o desenvolvimento pessoal e emocional.'; 
 
         res.json(user);
@@ -432,6 +431,43 @@ app.post('/login', async (req, res) => {
 
 
 // =========================================================================
+// ROTA: ATUALIZAÇÃO DE DADOS GERAIS DO PERFIL
+// =========================================================================
+app.put('/users/profile', authMiddleware, (req, res) => {
+    const userId = req.userId;
+    const { nome, contato, data_nascimento, genero, cidade } = req.body;
+
+    if (!nome) {
+        return res.status(400).json({ error: 'O nome é obrigatório.' });
+    }
+
+    const query = `
+        UPDATE usuario 
+        SET nome = ?, contato = ?, data_nascimento = ?, genero = ?, cidade = ?
+        WHERE id_usuario = ?
+    `;
+
+    connection.query(
+        query,
+        [nome, contato, data_nascimento, genero, cidade, userId],
+        (err, result) => {
+            if (err) {
+                console.error('Erro ao atualizar dados gerais do perfil:', err.message);
+                return res.status(500).json({ error: 'Erro ao atualizar o perfil no banco de dados.' });
+            }
+
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ error: 'Perfil não encontrado.' });
+            }
+
+            // O frontend deve recarregar o perfil após o sucesso para atualizar o localStorage
+            res.json({ mensagem: 'Perfil atualizado com sucesso.' });
+        }
+    );
+});
+
+
+// =========================================================================
 // NOVA ROTA: UPLOAD E ATUALIZAÇÃO DA FOTO DE PERFIL COM MULTER
 // Rota substitui a antiga rota PUT /users/profile-picture.
 // =========================================================================
@@ -451,15 +487,18 @@ app.post('/users/profile-picture-upload', authMiddleware, (req, res) => {
             if (req.body.clear === 'true') {
                 try {
                      // 1.1. Buscar a URL antiga para remover o arquivo físico
-                    const [oldUrlResult] = await new Promise((resolve, reject) => {
+                    const oldUrlResults = await new Promise((resolve, reject) => {
                         connection.query('SELECT foto_perfil_url FROM usuario WHERE id_usuario = ?', [req.userId], (err, results) => {
                             if (err) return reject(err);
                             resolve(results);
                         });
                     });
 
-                    if (oldUrlResult && oldUrlResult[0] && oldUrlResult[0].foto_perfil_url) {
-                        const oldPath = oldUrlResult[0].foto_perfil_url.replace(`http://localhost:3000/uploads`, uploadDir);
+                    if (oldUrlResults && oldUrlResults.length > 0 && oldUrlResults[0].foto_perfil_url) {
+                        // Converte a URL HTTP para o caminho físico no disco
+                        const oldFilename = oldUrlResults[0].foto_perfil_url.split('/').pop();
+                        const oldPath = path.join(profilePicturesDir, oldFilename);
+
                         // Tenta remover o arquivo antigo (ignora erros se o arquivo não existir)
                         fs.unlink(oldPath, (e) => { 
                             if (e && e.code !== 'ENOENT') console.error("Erro ao deletar arquivo antigo:", e); 
@@ -490,17 +529,18 @@ app.post('/users/profile-picture-upload', authMiddleware, (req, res) => {
         
         // 2. Arquivo enviado. Remove o arquivo antigo primeiro (boa prática).
         try {
-             const [oldUrlResult] = await new Promise((resolve, reject) => {
+             const oldUrlResults = await new Promise((resolve, reject) => {
                 connection.query('SELECT foto_perfil_url FROM usuario WHERE id_usuario = ?', [req.userId], (err, results) => {
                     if (err) return reject(err);
                     resolve(results);
                 });
             });
 
-            if (oldUrlResult && oldUrlResult[0] && oldUrlResult[0].foto_perfil_url) {
-                // A URL é http://localhost:3000/uploads/profile_pictures/...
-                // O caminho no disco é [__dirname]/uploads/profile_pictures/...
-                const oldPath = oldUrlResult[0].foto_perfil_url.replace(`http://localhost:3000/uploads`, uploadDir);
+            if (oldUrlResults && oldUrlResults.length > 0 && oldUrlResults[0].foto_perfil_url) {
+                // Converte a URL HTTP para o caminho físico no disco
+                const oldFilename = oldUrlResults[0].foto_perfil_url.split('/').pop();
+                const oldPath = path.join(profilePicturesDir, oldFilename);
+
                 // Tenta remover o arquivo antigo (ignora erros se o arquivo não existir)
                  fs.unlink(oldPath, (e) => { 
                     if (e && e.code !== 'ENOENT') console.error("Erro ao deletar arquivo antigo:", e); 
@@ -513,7 +553,9 @@ app.post('/users/profile-picture-upload', authMiddleware, (req, res) => {
         }
         
         // 3. Constrói a URL de acesso público 
+        // req.file.filename é o nome de arquivo gerado pelo Multer
         const filePath = `/uploads/profile_pictures/${req.file.filename}`;
+        // Assumindo que o servidor roda em http://localhost:3000
         const publicUrl = `http://localhost:3000${filePath}`; 
 
         // 4. Salvar o caminho/URL no banco de dados

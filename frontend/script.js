@@ -176,7 +176,37 @@ function openModal() {
 }
 
 // =========================================================================
-// NOVO: Função para ajustar a navegação e o acesso com base no perfil
+// NOVO: Função para carregar e exibir a foto de perfil no cabeçalho
+// =========================================================================
+function loadProfilePicture() {
+    const userJson = localStorage.getItem('user');
+    if (!userJson) return;
+
+    try {
+        const userData = JSON.parse(userJson);
+        const photoUrl = userData.foto_perfil_url;
+        
+        // Procura a imagem de perfil no cabeçalho.
+        // O seletor 'header #info a img' é baseado na estrutura do index.html
+        const avatarImg = document.querySelector('header #info a img');
+
+        if (avatarImg && photoUrl) {
+            // Se houver uma URL, usa-a.
+            avatarImg.src = photoUrl;
+            avatarImg.alt = `Foto de Perfil de ${userData.nome || 'Usuário'}`;
+        } else if (avatarImg) {
+            // Garante que o default é usado se o campo foto_perfil_url for NULL ou vazio
+            avatarImg.src = "../assets/user-default.svg";
+            avatarImg.alt = "User Avatar";
+        }
+    } catch (e) {
+        console.error("Erro ao carregar foto de perfil:", e);
+    }
+}
+
+
+// =========================================================================
+// FUNÇÃO: Ajustar a navegação e o acesso com base no perfil
 // =========================================================================
 function updateNavigationForUserRole() {
     const userJson = localStorage.getItem('user');
@@ -239,6 +269,9 @@ function updateNavigationForUserRole() {
 document.addEventListener('DOMContentLoaded', () => {
     // Chama a nova função de ajuste de navegação ao carregar a página
     updateNavigationForUserRole();
+
+    // NOVO: Chama a função para carregar a foto de perfil
+    loadProfilePicture();
 
     let dropdownToggle = document.getElementById('dropdownToggle');
     let dropdownMenu = document.getElementById('dropdownMenu');

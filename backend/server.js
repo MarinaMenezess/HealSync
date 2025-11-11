@@ -270,7 +270,7 @@ app.get('/psychologists', (req, res) => {
 app.get('/posts', (req, res) => {
     // Retorna todos os posts marcados como públicos, juntamente com o nome do usuário.
     const query = `
-        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, u.nome AS nome_usuario
+        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, u.nome AS nome_usuario, rp.id_usuario AS id_autor
         FROM registro_progresso rp
         JOIN usuario u ON rp.id_usuario = u.id_usuario
         WHERE rp.is_public = 1
@@ -344,13 +344,13 @@ app.get('/posts/:id/comentarios', (req, res) => {
 });
 
 // =========================================================================
-// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html) - MODIFICADA
+// ROTA PARA OBTER DETALHES DE PERFIL POR ID (para psy-profile.html) - CORRIGIDA
 // =========================================================================
 app.get('/users/:id', (req, res) => {
     const userId = req.params.id;
     
-    // ADICIONADO: foto_perfil_url na consulta
-    const query = 'SELECT id_usuario, nome, email, data_nascimento, genero, contato, cidade, especialidade, avaliacao, is_psicologo, cfp, foto_perfil_url FROM usuario WHERE id_usuario = ?';
+    // CORREÇÃO: Coluna 'cidade' removida.
+    const query = 'SELECT id_usuario, nome, email, data_nascimento, genero, contato, especialidade, avaliacao, is_psicologo, cfp, foto_perfil_url FROM usuario WHERE id_usuario = ?';
 
     connection.query(query, [userId], (err, results) => {
         if (err) {
@@ -431,27 +431,46 @@ app.post('/login', async (req, res) => {
 
 
 // =========================================================================
-// ROTA: ATUALIZAÇÃO DE DADOS GERAIS DO PERFIL
+// ROTA: ATUALIZAÇÃO DE DADOS GERAIS DO PERFIL - CORRIGIDA FINALMENTE PARA O ENUM
 // =========================================================================
 app.put('/users/profile', authMiddleware, (req, res) => {
     const userId = req.userId;
-    const { nome, contato, data_nascimento, genero, cidade } = req.body;
+    const { nome, contato, data_nascimento, genero } = req.body;
 
     if (!nome) {
         return res.status(400).json({ error: 'O nome é obrigatório.' });
     }
 
-    const query = `
-        UPDATE usuario 
-        SET nome = ?, contato = ?, data_nascimento = ?, genero = ?, cidade = ?
-        WHERE id_usuario = ?
-    `;
+    // === Lógica de Sanitização para ENUM e NULL ===
+    const allowedGenders = ['feminino', 'masculino', 'indefinido'];
+    let cleanGenero = null;
+    
+    if (typeof genero === 'string' && genero.trim() !== '') {
+        const lowerCaseGenero = genero.toLowerCase();
+        if (allowedGenders.includes(lowerCaseGenero)) {
+            cleanGenero = lowerCaseGenero; // Valor válido em minúsculas
+        } else {
+            cleanGenero = null; // Valor inválido
+        }
+    }
+
+    // Sanitiza 'contato' para NULL se for string vazia
+    let cleanContato = (contato && typeof contato === 'string' && contato.trim() !== '') ? contato : null;
+
+    // Sanitiza 'data_nascimento' para NULL se for string vazia
+    let cleanDataNascimento = (data_nascimento && typeof data_nascimento === 'string' && data_nascimento.trim() !== '') ? data_nascimento : null;
+    // ===============================================
+
+    // CORREÇÃO FINAL: Query em uma única linha para garantir a sintaxe correta
+    const query = 'UPDATE usuario SET nome = ?, contato = ?, data_nascimento = ?, genero = ? WHERE id_usuario = ?';
 
     connection.query(
-        query,
-        [nome, contato, data_nascimento, genero, cidade, userId],
+        query, 
+        // Usando os valores sanitizados
+        [nome, cleanContato, cleanDataNascimento, cleanGenero, userId],
         (err, result) => {
             if (err) {
+                // Loga o erro específico para ajudar na depuração
                 console.error('Erro ao atualizar dados gerais do perfil:', err.message);
                 return res.status(500).json({ error: 'Erro ao atualizar o perfil no banco de dados.' });
             }
@@ -1414,6 +1433,78 @@ app.put('/registros/:id/publish', authMiddleware, (req, res) => {
 
         res.json({ mensagem: 'Registro publicado com sucesso.' });
     });
+});
+
+// =========================================================================
+// ROTA PARA ARQUIVAR UM REGISTRO (PUT /registros/:id/archive) - ADICIONADA
+// Necessário para o index.js
+// =========================================================================
+app.put('/registros/:id/archive', authMiddleware, (req, res) => {
+    const registroId = parseInt(req.params.id, 10);
+    const userId = req.userId;
+
+    if (isNaN(registroId)) {
+        return res.status(400).json({ error: 'ID do registro inválido.' });
+    }
+
+    // Define is_public como 0 (FALSE) para o registro do usuário logado
+    const query = 'UPDATE registro_progresso SET is_public = 0 WHERE id_registro = ? AND id_usuario = ?';
+
+    connection.query(query, [registroId, userId], (err, result) => {
+        if (err) {
+            console.error('Erro ao arquivar registro:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao arquivar o registro.' });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ mensagem: 'Registro não encontrado ou você não tem permissão para arquivá-lo.' });
+        }
+
+        res.json({ mensagem: 'Registro arquivado com sucesso (removido da timeline).' });
+    });
+});
+
+// =========================================================================
+// ROTA PARA DENUNCIAR UM REGISTRO (POST /registros/:id/denounce) - ADICIONADA
+// Necessário para o index.js
+// =========================================================================
+app.post('/registros/:id/denounce', authMiddleware, async (req, res) => {
+    const registroId = parseInt(req.params.id, 10);
+
+    if (!req.userId) {
+        return res.status(401).json({ error: 'É necessário estar logado para denunciar.' });
+    }
+
+    if (isNaN(registroId)) {
+        return res.status(400).json({ error: 'ID do registro inválido.' });
+    }
+
+    // 1. Marcar o post como denunciado e tirá-lo da timeline (arquivar)
+    const updateQuery = `
+        UPDATE registro_progresso 
+        SET is_denounced = TRUE, is_public = FALSE 
+        WHERE id_registro = ?
+    `;
+
+    try {
+        const updateResult = await new Promise((resolve, reject) => {
+            connection.query(updateQuery, [registroId], (err, result) => {
+                if (err) return reject(err);
+                resolve(result);
+            });
+        });
+
+        if (updateResult.affectedRows === 0) {
+            return res.status(404).json({ mensagem: 'Registro não encontrado.' });
+        }
+        
+        // Se precisar de lógica de inativação do usuário, ela seria adicionada aqui.
+        res.json({ mensagem: `Registro ID ${registroId} denunciado e removido da timeline com sucesso.` });
+
+    } catch (err) {
+        console.error('Erro ao denunciar registro:', err.message);
+        return res.status(500).json({ error: 'Erro interno ao processar a denúncia.' });
+    }
 });
 
 

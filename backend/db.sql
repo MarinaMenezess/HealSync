@@ -10,6 +10,7 @@ nome VARCHAR(45) NOT NULL,
 email VARCHAR(45) NOT NULL UNIQUE,
 data_nascimento DATE,
 genero enum('feminino','masculino','indefinido'),
+cidade VARCHAR(45) NULL;
 is_psicologo boolean,
 especialidade VARCHAR(45),
 contato VARCHAR(255),

@@ -1315,6 +1315,9 @@ main > svg {
 }
 
 /* --------------- ESTILIZAÇÃO PARA A PÁGINA PROFILE.HTML --------------- */
+.svg{
+  display: none;
+}
 
 .profile-main {
     display: flex;

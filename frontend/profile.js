@@ -1,11 +1,6 @@
-// ARQUIVO: frontend/profile.js (Sem alterações necessárias - já adaptado para botão único)
+// ARQUIVO: frontend/profile.js (FINAL - Corrigido para 404 Graceful e Lógica de Edição)
 const API_URL = 'http://localhost:3000'; 
 const defaultAvatarUrl = '../assets/user-default.svg'; 
-
-// Declarações de elementos DOM para escopo global/módulo (simplificado).
-let profileAvatarEdit;
-let profilePictureFileInput;
-let btnChangePhoto; 
 
 // --- Funções Auxiliares para UX ---
 function showLoading(element) {
@@ -35,44 +30,104 @@ function formatDateForDisplay(dateString) {
 }
 
 // =========================================================================
+// Lógica de Exibição do Menu de Opções da Foto
+// =========================================================================
+
+/**
+ * Exibe/Oculta o menu de opções da foto.
+ */
+function togglePhotoOptionsMenu(e) {
+    e.preventDefault();
+    e.stopPropagation(); 
+    
+    const menu = document.getElementById('photo-options-menu');
+    const optionChange = document.getElementById('option-change');
+    const optionRemove = document.getElementById('option-remove');
+    const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+    
+    if (!menu || !profileAvatarEdit || !optionChange || !optionRemove) {
+        return;
+    }
+
+    // Se estiver visível, esconde e sai
+    if (menu.style.display === 'block') {
+        menu.style.display = 'none';
+        return;
+    }
+
+    // --- Abrir Menu ---
+    
+    // Verifica se a imagem exibida é a URL padrão
+    const isDefaultAvatar = profileAvatarEdit.src.includes(defaultAvatarUrl);
+
+    // 1. Ajusta o texto e a visibilidade das opções
+    if (isDefaultAvatar) {
+        optionChange.textContent = 'Adicionar Foto de Perfil';
+        optionRemove.style.display = 'none'; // Esconde remover
+    } else {
+        optionChange.textContent = 'Alterar Foto de Perfil';
+        optionRemove.style.display = 'block'; // Mostra remover
+    }
+
+    // 2. Posiciona e exibe o menu
+    const rect = profileAvatarEdit.getBoundingClientRect();
+    const parentRect = profileAvatarEdit.parentElement.getBoundingClientRect();
+
+    menu.style.position = 'absolute';
+    menu.style.top = `${rect.bottom - parentRect.top}px`;
+    menu.style.left = `${rect.right - parentRect.left}px`;
+    menu.style.transform = 'translate(-100%, 0)'; 
+    menu.style.display = 'block';
+}
+
+/**
+ * Esconde o menu de opções da foto ao clicar fora.
+ */
+function hidePhotoOptions(e) {
+    const menu = document.getElementById('photo-options-menu');
+    const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+    
+    if (menu && menu.style.display === 'block' && e.target !== profileAvatarEdit && !menu.contains(e.target)) {
+        menu.style.display = 'none';
+    }
+}
+// =========================================================================
 
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- Inicializa Referências de Elementos no DOMContentLoaded ---
+    // --- Referências de Elementos ---
     const profileEditForm = document.getElementById('profile-edit-form');
-    const logoutButton = document.querySelector('.logout-btn');
-    const requestButton = document.getElementById('btn-request-psychologist');
-    const toggleButton = document.getElementById('btn-toggle-psychologist-request');
-    const toggleEditBtn = document.getElementById('toggle-edit-btn');
-    const editButton = document.querySelector('.edit-btn');
-    const cancelButton = document.querySelector('.cancel-edit-btn');
-
-    // Atribui as referências globais/módulo (Elementos da Edição)
-    profileAvatarEdit = document.getElementById('profile-avatar-edit');
-    profilePictureFileInput = document.getElementById('profile-picture-file');
-    btnChangePhoto = document.getElementById('btn-change-photo'); 
-
+    const profilePictureFile = document.getElementById('profile-picture-file'); 
+    const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+    const optionChange = document.getElementById('option-change');
+    const optionRemove = document.getElementById('option-remove');
     
     // Inicializa listeners de perfil (carregamento, logout, etc.)
+    const requestButton = document.getElementById('btn-request-psychologist');
     if (requestButton) {
         requestButton.addEventListener('click', handlePsychologistRequest);
     }
+    const toggleButton = document.getElementById('btn-toggle-psychologist-request');
     if (toggleButton) {
         toggleButton.addEventListener('click', togglePsychologistRequestForm);
     }
+    const logoutButton = document.querySelector('.logout-btn');
     if (logoutButton) {
         logoutButton.addEventListener('click', handleLogout);
     }
     
     // Botão principal de edição e ícone (engrenagem)
+    const toggleEditBtn = document.getElementById('toggle-edit-btn');
     if (toggleEditBtn) {
         toggleEditBtn.addEventListener('click', handleEditProfile);
     }
 
+    const editButton = document.querySelector('.edit-btn');
     if (editButton) {
         editButton.addEventListener('click', handleEditProfile);
     }
 
+    const cancelButton = document.querySelector('.cancel-edit-btn');
     if (cancelButton) {
         cancelButton.addEventListener('click', (e) => {
             e.preventDefault(); 
@@ -85,19 +140,36 @@ document.addEventListener('DOMContentLoaded', () => {
         profileEditForm.addEventListener('submit', handleSaveProfile);
     }
     
-    // Lógica do botão único de foto: Sempre dispara o input file.
-    if (btnChangePhoto) {
-        btnChangePhoto.addEventListener('click', (e) => {
+    // **CORREÇÃO:** Toggles o menu ao clicar na imagem
+    if (profileAvatarEdit) {
+        profileAvatarEdit.addEventListener('click', togglePhotoOptionsMenu);
+    }
+    
+    // Oculta o menu ao clicar fora do menu ou da imagem
+    document.addEventListener('click', hidePhotoOptions);
+
+    // Lógica dos itens do menu (agora funcional)
+    if (optionChange) {
+        optionChange.addEventListener('click', (e) => {
             e.preventDefault();
-            // Simplesmente dispara o clique no input file
-            if(profilePictureFileInput) profilePictureFileInput.click(); 
+            document.getElementById('photo-options-menu').style.display = 'none';
+            if(profilePictureFile) profilePictureFile.click(); // Dispara o input de arquivo
         });
     }
 
+    if (optionRemove) {
+        optionRemove.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('photo-options-menu').style.display = 'none';
+            if (confirm('Tem certeza que deseja remover sua foto de perfil?')) {
+                saveProfilePicture(true); 
+            }
+        });
+    }
     
     // Adiciona preview da imagem ao selecionar um arquivo
-    if (profilePictureFileInput) {
-        profilePictureFileInput.addEventListener('change', function() {
+    if (profilePictureFile) {
+        profilePictureFile.addEventListener('change', function() {
             if (this.files && this.files[0] && profileAvatarEdit) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
@@ -126,7 +198,8 @@ function toggleEditMode(shouldShowEdit = null) {
     const editFormDiv = document.getElementById('profile-edit-form');
     const viewButtons = document.getElementById('profile-actions-view');
     const editButtons = document.getElementById('profile-actions-edit');
-    
+    const menu = document.getElementById('photo-options-menu'); // Referência ao menu de foto
+
     if (!viewDiv || !editFormDiv || !viewButtons || !editButtons) {
         console.error("Elementos necessários para o toggle de edição não encontrados no DOM.");
         return;
@@ -146,6 +219,11 @@ function toggleEditMode(shouldShowEdit = null) {
         
         viewButtons.style.display = 'flex'; 
         editButtons.style.display = 'none';
+    }
+
+    // Se estiver saindo do modo de edição, esconde o menu de foto
+    if (menu && isEditModeActive === false) {
+        menu.style.display = 'none';
     }
 }
 
@@ -182,7 +260,8 @@ function handleEditProfile(e) {
             if (editCityInput) editCityInput.value = user.cidade || ''; 
 
             const profileAvatarView = document.getElementById('profile-avatar-view');
-            const profilePictureFile = profilePictureFileInput; 
+            const profileAvatarEdit = document.getElementById('profile-avatar-edit');
+            const profilePictureFile = document.getElementById('profile-picture-file');
             
             if(profileAvatarEdit && profileAvatarView) profileAvatarEdit.src = profileAvatarView.src;
             if(profilePictureFile) profilePictureFile.value = ''; 
@@ -196,10 +275,11 @@ function handleEditProfile(e) {
 
 
 /**
- * Envia o arquivo para o servidor.
- * @returns {Promise<string|null>} URL da nova foto ou null se falha/nenhum arquivo.
+ * Envia o arquivo para o servidor ou envia um sinal para remover a foto.
+ * @param {boolean} isRemoval - Indica se a ação é de remoção da foto.
+ * @returns {Promise<string|null>} URL da nova foto ou null se removida/falha.
  */
-async function saveProfilePicture() {
+async function saveProfilePicture(isRemoval = false) {
     const token = getToken();
 
     if (!token) {
@@ -207,17 +287,30 @@ async function saveProfilePicture() {
         return null;
     }
 
-    const profilePictureFile = profilePictureFileInput;
+    const profilePictureFile = document.getElementById('profile-picture-file');
     let file = profilePictureFile ? profilePictureFile.files[0] : null;
     
-    // Se não há arquivo, simplesmente sai.
-    if (!file || file.size === 0) {
+    if (!isRemoval && (!file || file.size === 0)) {
         return null; 
     }
 
     const formData = new FormData();
-    formData.append('profile_picture', file);
     
+    if (!isRemoval) {
+        formData.append('profile_picture', file);
+    } else {
+        formData.append('clear', 'true');
+    }
+    
+    let button = isRemoval ? document.getElementById('option-remove') : null;
+    // Se for remoção, usamos o botão de remover. Se for upload, não há um botão "próprio" aqui.
+    if (!isRemoval) {
+        const saveButton = document.querySelector('#profile-actions-edit .save-btn');
+        if (saveButton) showLoading(saveButton);
+    } else if (button) {
+        showLoading(button);
+    }
+
     try {
         const response = await fetch(`${API_URL}/users/profile-picture-upload`, {
             method: 'POST', 
@@ -234,6 +327,7 @@ async function saveProfilePicture() {
             
             const finalAvatarUrl = newUrl || defaultAvatarUrl;
             const profileAvatarView = document.getElementById('profile-avatar-view');
+            const profileAvatarEdit = document.getElementById('profile-avatar-edit');
             const headerUserAvatar = document.getElementById('header-user-avatar');
 
             if(profileAvatarView) profileAvatarView.src = finalAvatarUrl;
@@ -246,6 +340,8 @@ async function saveProfilePicture() {
             user.foto_perfil_url = newUrl;
             localStorage.setItem('user', JSON.stringify(user));
             
+            if (isRemoval) alert(result.mensagem);
+
             return newUrl;
 
         } else {
@@ -258,7 +354,15 @@ async function saveProfilePicture() {
         console.error('Erro de rede/upload:', error);
         alert('Erro de conexão com o servidor ao fazer upload da foto.');
         return null;
-    } 
+    } finally {
+        if (!isRemoval) {
+            const saveButton = document.querySelector('#profile-actions-edit .save-btn');
+            if (saveButton) hideLoading(saveButton);
+        } else if (button) {
+            hideLoading(button);
+        }
+        if (isRemoval) loadUserProfile(); 
+    }
 }
 
 
@@ -279,15 +383,15 @@ async function handleSaveProfile(e) {
     showLoading(saveButton);
     
     try {
-        const profilePictureFile = profilePictureFileInput;
+        const profilePictureFile = document.getElementById('profile-picture-file');
         const fileSelected = profilePictureFile && profilePictureFile.files.length > 0;
 
         // 1. Processa a Foto (se um novo arquivo foi selecionado)
         if (fileSelected) {
-            const photoUploadResult = await saveProfilePicture(); 
-            if (photoUploadResult === null && fileSelected) {
-                // Se falhou o upload da foto, para o processo e esconde o loading
-                hideLoading(saveButton);
+            const photoUploadResult = await saveProfilePicture(false); 
+            // Se o upload falhar, saveProfilePicture já tratou o erro e retornou null.
+            if (photoUploadResult === null) {
+                // A função saveProfilePicture já esconde o loading se falhar
                 return; 
             }
         }
@@ -321,7 +425,6 @@ async function handleSaveProfile(e) {
         const result = await response.json();
 
         if (response.ok) {
-            // Recarrega o perfil para atualizar o localStorage e UI com os dados gerais
             await loadUserProfile(); 
             toggleEditMode(false);
             
@@ -432,6 +535,7 @@ async function loadUserProfile() {
     const viewCityElement = document.getElementById('view-city');
     
     const profileAvatarView = document.getElementById('profile-avatar-view');
+    const profileAvatarEdit = document.getElementById('profile-avatar-edit');
     const headerUserAvatar = document.getElementById('header-user-avatar');
     
     let profileData = null;

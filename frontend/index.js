@@ -1,6 +1,8 @@
-// ARQUIVO: frontend/index.js (FINAL E CORRIGIDO)
+// ARQUIVO: frontend/index.js (FINAL E CORRIGIDO COM CONTAGEM)
 
 // As variáveis BACKEND_URL e DEFAULT_AVATAR_URL são definidas em script.js
+
+// Funções auxiliares (getLoggedInUserId, formatTimeAgo, etc.) devem ser carregadas de script.js
 
 // Função auxiliar para obter o ID do usuário logado do localStorage
 function getLoggedInUserId() {
@@ -42,6 +44,53 @@ function formatTimeAgo(dateString) {
         return `há ${days} dia${days > 1 ? 's' : ''}`;
     }
 }
+
+/**
+ * Lida com o evento de curtir um post, enviando a requisição para o backend.
+ * @param {number} registerId - ID do post.
+ * @param {HTMLElement} buttonElement - O botão que foi clicado.
+ */
+async function handleLike(registerId, buttonElement) {
+    const token = localStorage.getItem('jwt');
+
+    if (!token) {
+        alert('Você precisa estar logado para curtir um registro.');
+        return;
+    }
+    
+    buttonElement.disabled = true; // Desabilita o botão para evitar cliques duplos
+
+    try {
+        const response = await fetch(`${BACKEND_URL}/curtidas`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ id_registro: registerId })
+        });
+        
+        const result = await response.json();
+
+        if (response.ok || response.status === 201) {
+            alert('Post curtido com sucesso! O autor será notificado.');
+            
+            // Recarrega a timeline para exibir a contagem atualizada
+            loadPublicPosts(); 
+        } else if (response.status === 409) {
+            alert('Você já curtiu este post.');
+        } else {
+            alert(`Falha ao curtir post: ${result.error || response.statusText}`);
+        }
+
+    } catch (error) {
+        console.error('Erro de rede ao curtir o post:', error);
+        alert('Erro de conexão com o servidor ao curtir o post.');
+    } finally {
+        buttonElement.disabled = false; // Reabilita o botão após a tentativa
+    }
+}
+
 
 // NOVA FUNÇÃO: Arquivar um post (seta is_public = 0)
 async function archivePost(registerId) {
@@ -143,7 +192,7 @@ function renderPostCard(post) {
     const isAuthor = currentUserId !== null && currentUserId === postAuthorId;
     const isDenounced = post.is_denounced == 1 || post.is_denounced === true; 
     
-    // NOVO: Define a URL do avatar com fallback para a URL default (do script.js)
+    // Define a URL do avatar com fallback para a URL default (do script.js)
     const avatarUrl = post.foto_perfil_url || DEFAULT_AVATAR_URL;
 
 
@@ -205,15 +254,15 @@ function renderPostCard(post) {
           </div>
       </div>
       <div class="post-actions">
-          <button class="like-btn" aria-label="Curtir" onclick="event.stopPropagation(); alert('Curtir post: ${post.id_registro}')">
+          <button class="like-btn" aria-label="Curtir" onclick="event.stopPropagation(); handleLike(${post.id_registro}, this)">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#f1eee4" class="bi bi-heart" viewBox="0 0 16 16">
                   <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/>
-              </svg> <span>0</span>
+              </svg> <span>${post.num_curtidas || 0}</span>
           </button>
           <button class="comment-btn" aria-label="Comentar" onclick="event.stopPropagation(); window.location.href='./register.html?id=${post.id_registro}'">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#f1eee4" class="bi bi-chat" viewBox="0 0 16 16">
                   <path d="M2.678 11.894a1 1 0 0 1 .287.801 11 11 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8 8 0 0 0 8 14c3.996 0 7-2.807 7-6s-3.004-6-7-6-7 2.808-7 6c0 1.468.617 2.83 1.678 3.894m-.493 3.905a22 22 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a10 10 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9 9 0 0 1-2.347-.306c-.52.263-1.639.742-3.468 1.105"/>
-              </svg> <span>0</span>
+              </svg> <span>${post.num_comentarios || 0}</span>
           </button>
       </div>
     `;

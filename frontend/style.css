@@ -1577,9 +1577,10 @@ main > svg {
 .notification-dropdown {
   display: none; /* Esconde por padrão */
   position: absolute;
-  right: 85px;
-  top: 85%;
-  width: 300px;
+  right: 10%;
+  top: 120%;
+  width: 450px;
+  max-height: 350px;
   background-color: #f1eee4;
   border-radius: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);

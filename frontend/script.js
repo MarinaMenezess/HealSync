@@ -85,7 +85,7 @@ function openModal() {
 
     // Adiciona os eventos de fechar o modal
     const closeModalButton = document.getElementById('close-modal-btn');
-    const closeBtnModal = document.getElementById('close-btn-modal');
+    const closeBtnModal = document.getElementById('close-modal-btn');
     
     function closeModal() {
       // Remove o modal do DOM
@@ -250,7 +250,7 @@ function loadProfilePicture() {
 }
 
 // =========================================================================
-// Funções de Notificação (Incluídas para resolver o ReferenceError)
+// Funções de Notificação (Incluídas para exibir no wrapper)
 // =========================================================================
 
 /**
@@ -280,8 +280,14 @@ async function loadNotifications() {
 
     if (!token || !notificationList || !notificationBadge) return;
     
+    // Define o conteúdo inicial/spinner
     notificationList.innerHTML = '<div style="padding: 10px; text-align: center;">Carregando...</div>';
+    notificationBadge.style.display = 'none'; // Esconde a badge enquanto carrega
+    notificationBadge.textContent = ''; // Limpa o conteúdo
 
+    // Estilos da Bolinha Roxa (Ajustado para forçar a visibilidade da bolinha)
+    const DOT_STYLE = "width: 10px !important; height: 10px !important; border-radius: 50% !important; background-color: #9C27B0 !important; padding: 0 !important; font-size: 0 !important;";
+    
     try {
         const response = await fetch(`${BACKEND_URL}/notifications`, {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -290,9 +296,13 @@ async function loadNotifications() {
         const notifications = await response.json();
 
         if (response.ok && Array.isArray(notifications)) {
-            // 1. Atualiza o contador (badge)
-            notificationBadge.textContent = notifications.length;
-            notificationBadge.style.display = notifications.length > 0 ? 'block' : 'none';
+            // 1. Atualiza o contador (badge) para a bolinha roxa
+            if (notifications.length > 0) {
+                 notificationBadge.style.cssText = DOT_STYLE + ' display: block !important;'; 
+            } else {
+                 notificationBadge.style.display = 'none';
+                 notificationBadge.style.cssText = '';
+            }
 
             // 2. Renderiza a lista de notificações
             if (notifications.length === 0) {
@@ -328,11 +338,10 @@ async function loadNotifications() {
                     </a>
                 `;
             }).join('');
+            
+            // Adiciona o cabeçalho e a lista de notificações
+            notificationList.innerHTML = menuContent;
 
-            notificationList.innerHTML = `
-                ${menuContent}
-                <a href="./notifications.html" class="view-all-btn">Ver todas as notificações</a>
-            `;
 
         } else {
             console.error('Falha ao carregar notificações:', notifications.error);
@@ -407,6 +416,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let dropdownToggle = document.getElementById('dropdownToggle');
     let dropdownMenu = document.getElementById('dropdownMenu');
+    let notificationBadge = document.getElementById('notification-badge');
 
     if (dropdownToggle) {
         // Função para mostrar/esconder o dropdown
@@ -417,10 +427,10 @@ document.addEventListener('DOMContentLoaded', () => {
             if (dropdownMenu.classList.contains('active')) {
                 // Marca as notificações como lidas no DB
                 const notificationBadge = document.getElementById('notification-badge');
-                if (notificationBadge && notificationBadge.textContent > 0) {
+                if (notificationBadge && notificationBadge.style.display !== 'none') {
                     markNotificationsAsRead();
                 }
-                // Recarrega a lista para mostrar a mudança
+                // Recarrega a lista para mostrar o conteúdo atualizado (marcado como lido)
                 loadNotifications();
             } else {
                 // Se o menu está sendo FECHADO

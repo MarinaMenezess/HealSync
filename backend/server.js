@@ -1659,45 +1659,77 @@ app.delete('/comentarios/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- CURTIDAS (COM LÓGICA DE NOTIFICAÇÃO) ----------
+// ---------- CURTIDAS (COM LÓGICA DE NOTIFICAÇÃO E AGORA COMO TOGGLE) ----------
 
 app.post('/curtidas', authMiddleware, async (req, res) => {
   const { id_registro } = req.body;
-  const id_usuario_origem = req.userId;
+  const id_usuario = req.userId;
+
+  if (!id_registro) {
+      return res.status(400).json({ error: 'ID do registro é obrigatório.' });
+  }
 
   try {
-      const insertResult = await new Promise((resolve, reject) => {
+      // 1. Verificar se a curtida já existe (lógica de toggle)
+      const [existingLikes] = await new Promise((resolve, reject) => {
           connection.query(
-              'INSERT INTO curtida (id_registro, id_usuario) VALUES (?, ?)',
-              [id_registro, id_usuario_origem],
-              (err, result) => {
+              'SELECT id_curtida FROM curtida WHERE id_registro = ? AND id_usuario = ?',
+              [id_registro, id_usuario],
+              (err, results) => {
                   if (err) return reject(err);
-                  resolve(result);
+                  resolve([results]);
               }
           );
       });
-      
-      // --- Lógica de Notificação ---
-      const id_usuario_destino = await getPostAuthorId(id_registro);
-      if (id_usuario_destino) {
-          await insertNotification(
-              id_usuario_destino,
-              id_registro,
-              id_usuario_origem,
-              'curtida',
-              'curtiu o seu post!'
-          );
-      }
-      // --- Fim Lógica de Notificação ---
 
-      res.status(201).json({ id: insertResult.insertId });
-  } catch (err) {
-      console.error('Erro em POST /curtidas:', err.message);
-      // O banco de dados impede duplicidade. Se falhar, é porque já curtiu.
-      if (err.code === 'ER_DUP_ENTRY') {
-         return res.status(409).json({ error: 'Você já curtiu este registro.' });
+      if (existingLikes.length > 0) {
+          // A curtida existe: Deletar (Unlike)
+          await new Promise((resolve, reject) => {
+              connection.query(
+                  'DELETE FROM curtida WHERE id_curtida = ?',
+                  [existingLikes[0].id_curtida],
+                  (err, result) => {
+                      if (err) return reject(err);
+                      resolve(result);
+                  }
+              );
+          });
+
+          // Resposta para descurtir
+          return res.json({ mensagem: 'Curtida removida com sucesso (Unlike).', acao: 'unlike' });
+      } else {
+          // A curtida não existe: Inserir (Like)
+          const insertResult = await new Promise((resolve, reject) => {
+              connection.query(
+                  'INSERT INTO curtida (id_registro, id_usuario) VALUES (?, ?)',
+                  [id_registro, id_usuario],
+                  (err, result) => {
+                      if (err) return reject(err);
+                      resolve(result);
+                  }
+              );
+          });
+
+          // --- Lógica de Notificação (Mantida) ---
+          const id_usuario_destino = await getPostAuthorId(id_registro);
+          if (id_usuario_destino) {
+              await insertNotification(
+                  id_usuario_destino,
+                  id_registro,
+                  id_usuario,
+                  'curtida',
+                  'curtiu o seu post!'
+              );
+          }
+          // --- Fim Lógica de Notificação ---
+
+          // Resposta para curtir
+          return res.status(201).json({ id: insertResult.insertId, mensagem: 'Curtida adicionada com sucesso (Like).', acao: 'like' });
       }
-      return res.status(500).json({ error: err.message });
+
+  } catch (err) {
+      console.error('Erro em POST /curtidas (Toggle):', err.message);
+      return res.status(500).json({ error: 'Erro interno ao processar a curtida/descurtida.' });
   }
 });
 

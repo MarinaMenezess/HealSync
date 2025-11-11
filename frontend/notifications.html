@@ -31,9 +31,9 @@
                         <h3>Notificações</h3>
                     </div>
                     <div class="notification-list">
-                        <a href="#" class="notification-item">
-                            <p><b>Dr. João</b> enviou uma nova mensagem.</p>
-                            <span>Há 5 minutos</span>
+                        <a href="./notifications.html" class="notification-item">
+                            <p>Carregando notificações...</p>
+                            <span></span>
                         </a>
                     </div>
                     <a href="./notifications.html" class="view-all-btn">Ver todas</a>
@@ -47,24 +47,15 @@
     <main class="notifications-main">
         <h1 class="page-title">Suas Notificações</h1>
         <div class="notifications-container">
-            <div class="notification-card">
-                <p><b>Dr. João</b> enviou uma nova mensagem.</p>
-                <span>Há 5 minutos</span>
+            <div class="action-bar" style="text-align: right; margin-bottom: 20px;">
+                <button id="mark-read-btn" class="secondary-btn small-btn">Marcar todas como lidas</button>
             </div>
-            <div class="notification-card unread">
-                <p>Seu registro de diário foi analisado.</p>
-                <span>Há 1 hora</span>
-            </div>
-            <div class="notification-card">
-                <p>Seu psicólogo confirmou sua consulta.</p>
-                <span>Ontem</span>
-            </div>
-            <div class="notification-card">
-                <p>Lembrete: sua consulta com o <b>Dr. João</b> será amanhã às 10h.</p>
-                <span>2 dias atrás</span>
-            </div>
+            <ul id="notifications-list" class="list-unstyled">
+                <p style="text-align: center; color: #ccc;">Carregando...</p>
+            </ul>
         </div>
     </main>
     <script src="script.js"></script>
+    <script src="notifications.js"></script>
 </body>
 </html>

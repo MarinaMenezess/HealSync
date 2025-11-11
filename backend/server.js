@@ -373,14 +373,20 @@ app.get('/posts/:id', (req, res) => {
 
 // =========================================================================
 // ROTA PARA OBTER COMENTÁRIOS DE UM POST (GET /posts/:id/comentarios)
+// **CORRIGIDA** para funcionar com a tag [Profissional].
 // =========================================================================
 app.get('/posts/:id/comentarios', (req, res) => {
-    const postId = parseInt(req.params.id, 10); // Adicionada conversão para INT
+    const postId = parseInt(req.params.id, 10); 
     if (isNaN(postId)) {
          return res.status(400).json({ error: 'ID de registro inválido.' });
     }
+    // Query SQL sem comentários de JavaScript
     const query = `
-        SELECT c.conteudo, c.data_hora, u.nome AS nome_usuario
+        SELECT 
+            c.conteudo, 
+            c.data_hora, 
+            u.nome AS nome_usuario,
+            u.is_psicologo 
         FROM comentario c
         JOIN usuario u ON c.id_usuario = u.id_usuario
         WHERE c.id_registro = ?
@@ -389,11 +395,30 @@ app.get('/posts/:id/comentarios', (req, res) => {
 
     connection.query(query, [postId], (err, results) => {
         if (err) {
+            // O erro de sintaxe original era retornado aqui. A correção garante que 'u.is_psicologo' seja a última coluna.
             console.error('Erro ao buscar comentários:', err.message);
             return res.status(500).json({ error: 'Erro interno ao buscar comentários.' });
         }
+        
+        // Mapeia os resultados para adicionar a tag [Profissional] ao nome do psicólogo
+        const formattedResults = results.map(comment => {
+            let nome_display = comment.nome_usuario;
+            
+            // Adiciona a tag se o usuário for um psicólogo (is_psicologo = 1)
+            if (comment.is_psicologo === 1) {
+                nome_display += ' [Profissional]';
+            }
+            
+            // Retorna apenas os campos necessários para o frontend, incluindo o nome formatado
+            return {
+                conteudo: comment.conteudo,
+                data_hora: comment.data_hora,
+                nome_usuario: nome_display
+            };
+        });
+
         // Retorna um array de comentários (pode ser vazio)
-        res.json(results);
+        res.json(formattedResults);
     });
 });
 
@@ -1659,77 +1684,45 @@ app.delete('/comentarios/:id', authMiddleware, (req, res) => {
   );
 });
 
-// ---------- CURTIDAS (COM LÓGICA DE NOTIFICAÇÃO E AGORA COMO TOGGLE) ----------
+// ---------- CURTIDAS (COM LÓGICA DE NOTIFICAÇÃO) ----------
 
 app.post('/curtidas', authMiddleware, async (req, res) => {
   const { id_registro } = req.body;
-  const id_usuario = req.userId;
-
-  if (!id_registro) {
-      return res.status(400).json({ error: 'ID do registro é obrigatório.' });
-  }
+  const id_usuario_origem = req.userId;
 
   try {
-      // 1. Verificar se a curtida já existe (lógica de toggle)
-      const [existingLikes] = await new Promise((resolve, reject) => {
+      const insertResult = await new Promise((resolve, reject) => {
           connection.query(
-              'SELECT id_curtida FROM curtida WHERE id_registro = ? AND id_usuario = ?',
-              [id_registro, id_usuario],
-              (err, results) => {
+              'INSERT INTO curtida (id_registro, id_usuario) VALUES (?, ?)',
+              [id_registro, id_usuario_origem],
+              (err, result) => {
                   if (err) return reject(err);
-                  resolve([results]);
+                  resolve(result);
               }
           );
       });
-
-      if (existingLikes.length > 0) {
-          // A curtida existe: Deletar (Unlike)
-          await new Promise((resolve, reject) => {
-              connection.query(
-                  'DELETE FROM curtida WHERE id_curtida = ?',
-                  [existingLikes[0].id_curtida],
-                  (err, result) => {
-                      if (err) return reject(err);
-                      resolve(result);
-                  }
-              );
-          });
-
-          // Resposta para descurtir
-          return res.json({ mensagem: 'Curtida removida com sucesso (Unlike).', acao: 'unlike' });
-      } else {
-          // A curtida não existe: Inserir (Like)
-          const insertResult = await new Promise((resolve, reject) => {
-              connection.query(
-                  'INSERT INTO curtida (id_registro, id_usuario) VALUES (?, ?)',
-                  [id_registro, id_usuario],
-                  (err, result) => {
-                      if (err) return reject(err);
-                      resolve(result);
-                  }
-              );
-          });
-
-          // --- Lógica de Notificação (Mantida) ---
-          const id_usuario_destino = await getPostAuthorId(id_registro);
-          if (id_usuario_destino) {
-              await insertNotification(
-                  id_usuario_destino,
-                  id_registro,
-                  id_usuario,
-                  'curtida',
-                  'curtiu o seu post!'
-              );
-          }
-          // --- Fim Lógica de Notificação ---
-
-          // Resposta para curtir
-          return res.status(201).json({ id: insertResult.insertId, mensagem: 'Curtida adicionada com sucesso (Like).', acao: 'like' });
+      
+      // --- Lógica de Notificação ---
+      const id_usuario_destino = await getPostAuthorId(id_registro);
+      if (id_usuario_destino) {
+          await insertNotification(
+              id_usuario_destino,
+              id_registro,
+              id_usuario_origem,
+              'curtida',
+              'curtiu o seu post!'
+          );
       }
+      // --- Fim Lógica de Notificação ---
 
+      res.status(201).json({ id: insertResult.insertId });
   } catch (err) {
-      console.error('Erro em POST /curtidas (Toggle):', err.message);
-      return res.status(500).json({ error: 'Erro interno ao processar a curtida/descurtida.' });
+      console.error('Erro em POST /curtidas:', err.message);
+      // O banco de dados impede duplicidade. Se falhar, é porque já curtiu.
+      if (err.code === 'ER_DUP_ENTRY') {
+         return res.status(409).json({ error: 'Você já curtiu este registro.' });
+      }
+      return res.status(500).json({ error: err.message });
   }
 });
 
@@ -1747,7 +1740,7 @@ app.delete('/curtidas/:id', authMiddleware, (req, res) => {
 // ---------- ROTAS DE NOTIFICAÇÃO ----------
 
 // =========================================================================
-// ROTA: OBTÉM NOTIFICAÇÕES NÃO LIDAS DO USUÁRIO LOGADO
+// ROTA: OBTÉM NOTIFICAÇÕES DO USUÁRIO LOGADO (TODAS, ORDENADAS POR DATA)
 // =========================================================================
 app.get('/notifications', authMiddleware, (req, res) => {
     const userId = req.userId;
@@ -1763,10 +1756,9 @@ app.get('/notifications', authMiddleware, (req, res) => {
             u.foto_perfil_url
         FROM notificacao n
         LEFT JOIN usuario u ON n.id_usuario_origem = u.id_usuario
-        WHERE n.id_usuario_destino = ? AND n.lida = FALSE
+        WHERE n.id_usuario_destino = ?
         ORDER BY n.data_hora DESC
-        LIMIT 10
-    `;
+    `; // Filtro 'lida = FALSE' e 'LIMIT 10' removidos.
 
     connection.query(query, [userId], (err, results) => {
         if (err) {

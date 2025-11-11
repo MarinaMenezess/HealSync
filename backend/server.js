@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (COM CONFIGURAÇÃO DO MULTER PARA UPLOAD DE FOTO)
+// ARQUIVO: backend/server.js (MODIFICADO)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -265,12 +265,12 @@ app.get('/psychologists', (req, res) => {
 });
 
 // =========================================================================
-// ROTA PARA OBTER POSTS PÚBLICOS PARA A TIMELINE (GET /posts)
+// ROTA PARA OBTER POSTS PÚBLICOS PARA A TIMELINE (GET /posts) - CORRIGIDO
 // =========================================================================
 app.get('/posts', (req, res) => {
-    // Retorna todos os posts marcados como públicos, juntamente com o nome do usuário.
+    // CORREÇÃO: Adicionada a coluna u.foto_perfil_url para que o frontend possa exibir o avatar.
     const query = `
-        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, u.nome AS nome_usuario, rp.id_usuario AS id_autor
+        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, u.nome AS nome_usuario, rp.id_usuario AS id_autor, u.foto_perfil_url
         FROM registro_progresso rp
         JOIN usuario u ON rp.id_usuario = u.id_usuario
         WHERE rp.is_public = 1

@@ -1,6 +1,7 @@
-// marinamenezess/healsync/HealSync-9ef57e052fdd1a81685a13d0ff8535418164231f/frontend/index.js
+// marinamenezess/healsync/HealSync-8ad206e020d766a7f9316c305e30cea2c9eaf9c4/frontend/index.js (MODIFICADO)
 
 const BACKEND_URL = 'http://localhost:3000';
+const DEFAULT_AVATAR_URL = '../assets/user-default.svg'; // Definindo o default para posts
 
 // Função auxiliar para obter o ID do usuário logado do localStorage
 function getLoggedInUserId() {
@@ -143,6 +144,10 @@ function renderPostCard(post) {
     const postAuthorId = Number(post.id_autor || 0);
     const isAuthor = currentUserId !== null && currentUserId === postAuthorId;
     const isDenounced = post.is_denounced == 1 || post.is_denounced === true; 
+    
+    // NOVO: Define a URL do avatar com fallback para a URL default
+    const avatarUrl = post.foto_perfil_url || DEFAULT_AVATAR_URL;
+
 
     // REDIRECIONAMENTO AO CLICAR NO CARD:
     postElement.addEventListener('click', () => {
@@ -185,7 +190,7 @@ function renderPostCard(post) {
       <div class="post-header-wrapper">
           <a href="profile2.html?id=${post.id_autor}" class="profile-link" onclick="event.stopPropagation();">
             <div class="post-header">
-                <img src="../assets/user-default.svg" alt="Perfil" class="avatar">
+                <img src="${avatarUrl}" alt="Perfil" class="avatar">
                 <div class="user-info">
                     <strong class="username">${post.nome_usuario || 'Usuário Anônimo'}</strong>
                     <span class="time">${timeAgo}</span>

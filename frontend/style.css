@@ -1671,7 +1671,6 @@ main > svg {
     gap: 25px; 
 }
 
-/* Remove os marcadores (pontos) da lista de notificações */
 #notifications-list {
     list-style: none;
     padding: 0;
@@ -1679,6 +1678,29 @@ main > svg {
     flex-direction: column;
     gap: 20px;
     margin-bottom: 35px;
+}
+
+/* Remove os marcadores (pontos) da lista de notificações */
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  width: auto;
+  max-height: 300px;
+  overflow-y: auto; /* Permite a rolagem vertical quando o conteúdo excede a altura máxima */
+}
+
+.notification-list::-webkit-scrollbar {
+  width: 10px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: #f1eee4;
+  border-radius: 10px;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: #b5babd; /* Cor cinza mais clara para o scrollbar no fundo claro */
+  border-radius: 10px;
 }
 
 /* Estiliza o botão "Marcar todas como lidas" */

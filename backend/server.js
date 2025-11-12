@@ -827,7 +827,7 @@ app.post('/ia/conversas', authMiddleware, async (req, res) => {
   }
 });
 
-// ---------- CHAT COM IA (ATUALIZADO) ----------
+// ---------- CHAT COM IA (CORRIGIDO E ROBUSTO - Geração de Título Reintroduzida) ----------
 
 app.post('/ia/chat', authMiddleware, async (req, res) => {
     const { id_conversa, mensagem_usuario } = req.body;
@@ -835,6 +835,8 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
     if (!id_conversa || !mensagem_usuario) {
         return res.status(400).json({ error: 'ID da conversa e mensagem são obrigatórios.' });
     }
+
+    let novoTitulo = null; 
 
     try {
         // 1. Salvar a mensagem do usuário no banco de dados
@@ -861,8 +863,7 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             );
         });
         
-        // 3. Lógica para gerar e atualizar o título da conversa na primeira mensagem do USUÁRIO
-        let novoTitulo = null;
+        // 3. Lógica para gerar e atualizar o título da conversa na primeira mensagem do USUÁRIO (RESTAURADA)
         const userMessages = historico.filter(msg => msg.remetente === 'usuario');
         const isFirstUserMessage = userMessages.length === 1; 
 
@@ -871,7 +872,11 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             
             // Chamada da IA para gerar o título (generateContent simples)
             const titleResult = await model.generateContent(titlePrompt);
-            const tituloGerado = titleResult.text().trim().replace(/['"“”]/g, ''); 
+            
+            // Adicionada verificação de segurança antes de chamar .text()
+            const tituloGerado = (titleResult && typeof titleResult.text === 'function') 
+                               ? titleResult.text().trim().replace(/['"“”]/g, '') 
+                               : null; 
 
             // Atualiza o banco de dados
             if (tituloGerado) {
@@ -888,10 +893,13 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
                 });
             }
         }
+        // Fim da lógica de geração de título
 
         // 4. Formatar o histórico para a API do Gemini
         let chatHistory = [];
-        let messageToSend = mensagem_usuario;
+        
+        // MANTIDO: Adiciona um prompt de instrução de agente à mensagem do usuário
+        let messageToSend = `[INSTRUÇÃO DE AGENTE: Você deve responder como HealSync AI, um agente de suporte psicológico. Mantenha o tom empático e evite diagnósticos.] ${mensagem_usuario}`;
 
         if (historico.length > 2) {
             chatHistory = historico.slice(1, -1).map(msg => ({
@@ -910,7 +918,7 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
             },
         });
         
-        // 5. Enviar a mensagem atual do usuário para o modelo Gemini
+        // 5. Enviar a mensagem atual do usuário (agora com o prompt de reforço) para o modelo Gemini
         const result = await chat.sendMessage(messageToSend); 
         const respostaIA = result.response.text().trim(); // Chama .text()
 
@@ -931,7 +939,18 @@ app.post('/ia/chat', authMiddleware, async (req, res) => {
 
     } catch (error) {
         console.error('Erro na requisição da IA:', error);
-        res.status(500).json({ error: 'Erro ao processar a mensagem com a IA.' });
+
+        // Tratamento específico para erros da API do Google Gemini (Rate Limit/Cota)
+        if (error.name === 'GoogleGenerativeAIFetchError' || error.status === 429) {
+             // Retorna um erro 503 (Service Unavailable) para erros de rate limit/cota
+             return res.status(503).json({ 
+                 error: 'Serviço de IA temporariamente indisponível. Por favor, tente enviar sua mensagem novamente em alguns minutos.',
+                 details: error.message
+             });
+        }
+        
+        // Retorna o erro 500 para outros erros internos
+        res.status(500).json({ error: 'Erro interno no servidor ao processar a mensagem com a IA.' });
     }
 });
 

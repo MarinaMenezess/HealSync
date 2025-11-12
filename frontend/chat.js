@@ -53,18 +53,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (response.ok) {
                 const conversations = await response.json();
+                
+                // 1. SEMPRE renderiza a lista para mostrar novos títulos ou conversas
                 renderConversationList(conversations);
-                // Carrega a conversa mais recente por padrão, se nenhuma estiver ativa
+                
+                // 2. Decide se deve carregar MENSAGENS
                 if (conversations.length > 0 && !currentConversationId) {
+                    // Se não há conversa ativa, carrega as mensagens da conversa mais recente
                     loadConversationMessages(conversations[0].id_conversa);
-                } else if (currentConversationId) {
-                     // Se já houver uma conversa ativa, apenas atualiza a barra lateral (incluindo o título)
-                    // mas não recarrega as mensagens do chat.
-                    loadConversationMessages(currentConversationId, false); 
-                } else {
+                } else if (!currentConversationId) {
                     // Se não houver conversas, limpa a tela de mensagens
                     chatMessagesContainer.innerHTML = ''; 
                 }
+                // Se currentConversationId está definido, não faz nada, pois a renderização já foi feita acima
+                // e as mensagens ativas não precisam ser recarregadas.
+
             } else {
                 console.error('Erro ao carregar conversas:', response.statusText);
             }
@@ -105,14 +108,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadConversationMessages(id, shouldClear = true) {
         currentConversationId = id;
         
-        // Ativa a conversa na sidebar (sempre fazemos isso para atualizar o estado visual)
+        // Ativa a conversa na sidebar (sempre fazemos isso para atualizar o estado visual após clique ou load inicial)
         document.querySelectorAll('.conversation-item').forEach(item => item.classList.remove('active'));
         const activeItem = document.querySelector(`.conversation-item[data-id="${id}"]`); 
         if (activeItem) {
             activeItem.classList.add('active');
         }
 
-        // Se o shouldClear for false, significa que só queremos atualizar o estado da sidebar (por exemplo, após um novo título).
+        // Se for um carregamento de estado (shouldClear=false), apenas retorna após atualizar o estado visual
         if (!shouldClear) {
             return;
         }
@@ -165,19 +168,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 renderMessage('ia', data.resposta, new Date());
 
-                // NOVO: Verifica se a resposta contém um novo título gerado
+                // Verifica se a resposta contém um novo título gerado
                 if (data.novo_titulo) { 
                     console.log('Novo título recebido:', data.novo_titulo);
                     // Recarrega a lista para atualizar o título na sidebar
                     await loadConversations();
                 }
             } else {
+                // -- INÍCIO DA CORREÇÃO DE ERRO NO FRONTEND --
+                let errorMessage = 'Erro ao processar a resposta da IA. Por favor, **tente enviar sua mensagem novamente**.';
+                
+                // Tenta obter o texto de erro do corpo da resposta, se disponível
+                try {
+                    const errorData = await response.json();
+                    if (errorData && errorData.error) {
+                        // Se o backend retornar um erro específico, use-o
+                        errorMessage = errorData.error;
+                    }
+                } catch (e) {
+                    // Se não for JSON, usa o status da resposta
+                    errorMessage += ` (Status: ${response.statusText})`;
+                }
+                
                 console.error('Erro ao enviar mensagem:', response.statusText);
-                alert('Erro ao processar a resposta da IA.');
+                alert(errorMessage);
+                // -- FIM DA CORREÇÃO DE ERRO NO FRONTEND --
             }
         } catch (error) {
             console.error('Erro na requisição:', error);
-            alert('Erro de conexão com o servidor.');
+            // Mensagem de erro padrão para falha de conexão (sem resposta)
+            alert('Erro de conexão com o servidor. Verifique se o backend está ativo.');
         }
     }
 
@@ -225,9 +245,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 chatInput.focus(); 
             } else {
                 console.error('Erro ao iniciar nova conversa:', response.statusText);
+                alert('Erro ao iniciar nova conversa.'); // Adicionado alert simples para falha de resposta
             }
         } catch (error) {
             console.error('Erro na requisição:', error);
+            alert('Erro de conexão com o servidor ao iniciar conversa.'); // Adicionado alert simples para falha de conexão
         }
     });
 

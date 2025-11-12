@@ -65,20 +65,22 @@ function renderNotifications(notifications) {
 
     notifications.forEach(notif => {
         const item = document.createElement('li');
-        // MODIFICAÇÃO AQUI: Adiciona a classe 'notification-card' no LI e a classe de estado (unread/read)
+        // Adiciona a classe 'notification-card' no LI e a classe de estado (unread/read)
         item.classList.add('notification-card', notif.lida === 0 ? 'unread' : 'read');
 
         // Cria o link para o registro, se aplicável
         const link = notif.id_registro ? `href="register.html?id=${notif.id_registro}"` : 'href="#"';
 
-        // Estrutura ajustada para colocar o avatar e o conteúdo dentro do <a>
+        // Nova estrutura para melhor controle de layout com Flexbox
         item.innerHTML = `
             <a ${link} class="notification-link">
-                <p class="message">
-                    <img src="${notif.foto_perfil_url || '../assets/user-default.svg'}" alt="Perfil" class="avatar" style="width: 32px; height: 32px; border-radius: 50%; vertical-align: middle; margin-right: 10px;">
-                    ${formatNotificationContent(notif)}
-                </p>
-                <span class="time">${formatTimeAgo(notif.data_hora)}</span>
+                <img src="${notif.foto_perfil_url || '../assets/user-default.svg'}" alt="Perfil" class="notification-avatar">
+                <div class="notification-content-wrapper">
+                    <p class="message">
+                        ${formatNotificationContent(notif)}
+                    </p>
+                    <span class="time">${formatTimeAgo(notif.data_hora)}</span>
+                </div>
             </a>
         `;
         container.appendChild(item);

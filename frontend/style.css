@@ -1618,9 +1618,10 @@ main > svg {
   display: flex;
   flex-direction: column;
   width: auto;
+  max-height: 300px;
 }
 
-.notification-item {
+.notification-item   {
   display: flex;
   padding: 15px;
   text-decoration: none;
@@ -1628,6 +1629,7 @@ main > svg {
   border-bottom: 1px solid #e0e0e0;
   transition: background-color 0.3s;
   text-align: left;
+  width: 100%;
 }
 
 .notification-item:hover {
@@ -1650,7 +1652,6 @@ main > svg {
 
 /* --------------- ESTILIZAÇÃO PARA A PÁGINA NOTIFICATIONS.HTML --------------- */
 .notifications-main {
-    padding-top: 15vh;
     width: 100%;
     max-width: 700px;
 }
@@ -1667,7 +1668,38 @@ main > svg {
 .notifications-container {
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    /* Aumenta o espaçamento vertical entre os cards */
+    gap: 25px; 
+}
+
+/* Remove os marcadores (pontos) da lista de notificações */
+#notifications-list {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* Estiliza o botão "Marcar todas como lidas" */
+#mark-read-btn {
+    background-color: #8260d1; 
+    color: #f1eee4;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+#mark-read-btn:hover {
+    background-color: #9c4dcc;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
 }
 
 .notification-card {
@@ -1675,7 +1707,7 @@ main > svg {
     backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: 20px;
-    padding: 20px;
+    padding: 15px 20px; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     color: #3b3b3b;
     transition: transform 0.3s ease;
@@ -1692,17 +1724,48 @@ main > svg {
     border-color: #a0c9e8;
 }
 
-.notification-card p {
-    margin: 0;
-    font-size: 1rem;
-    margin-bottom: 5px;
+.notification-card .notification-link {
+    display: flex;
+    align-items: flex-start;
+    text-decoration: none;
+    color: inherit;
 }
 
-.notification-card span {
+.notification-card .notification-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 15px;
+    flex-shrink: 0;
+}
+
+.notification-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    justify-content: space-between;
+    min-width: 0; 
+}
+
+.notification-content-wrapper .message {
+    margin-bottom: 0; 
+    word-wrap: break-word;
+    color: #3b3b3b;
+    font-size: 1rem;
+}
+
+.notification-content-wrapper .time {
+    display: block; 
+    margin-top: 5px;
     font-size: 0.8rem;
     color: #a0a0a0;
+    text-align: right;
 }
 
+.notification-card a:hover {
+    color: #1a1a1a;
+}
 /* --------------- ESTILIZAÇÃO PARA A PÁGINA VIEW_REGISTER.HTML --------------- */
 
 .view-register-main {

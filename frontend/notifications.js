@@ -65,11 +65,18 @@ function renderNotifications(notifications) {
 
     notifications.forEach(notif => {
         const item = document.createElement('li');
+        
+        // Adiciona o ID da notificação para uso no event listener
+        item.dataset.notificationId = notif.id_notificacao; // Adiciona o ID da notificação
+        
         // Adiciona a classe 'notification-card' no LI e a classe de estado (unread/read)
         item.classList.add('notification-card', notif.lida === 0 ? 'unread' : 'read');
 
         // Cria o link para o registro, se aplicável
         const link = notif.id_registro ? `href="register.html?id=${notif.id_registro}"` : 'href="#"';
+
+        // Determina se deve incluir o indicador visual (a bolinha)
+        const unreadIndicator = notif.lida === 0 ? '<div class="unread-indicator-dot"></div>' : '';
 
         // Nova estrutura para melhor controle de layout com Flexbox
         item.innerHTML = `
@@ -81,6 +88,7 @@ function renderNotifications(notifications) {
                     </p>
                     <span class="time">${formatTimeAgo(notif.data_hora)}</span>
                 </div>
+                ${unreadIndicator}
             </a>
         `;
         container.appendChild(item);
@@ -136,6 +144,36 @@ async function markAllAsRead() {
     }
 }
 
+// Marca uma única notificação como lida
+async function markSingleAsRead(notificationId, listItemElement) {
+    const token = localStorage.getItem('jwt');
+    // Verifica se a notificação já está marcada como lida no DOM para evitar chamadas desnecessárias
+    if (!token || !notificationId || (listItemElement && listItemElement.classList.contains('read'))) return;
+
+    // Remove a classe 'unread' e adiciona 'read' imediatamente para melhor UX
+    if (listItemElement && listItemElement.classList.contains('unread')) {
+        listItemElement.classList.remove('unread');
+        listItemElement.classList.add('read');
+        const dot = listItemElement.querySelector('.unread-indicator-dot');
+        if(dot) dot.remove(); // Remove o indicador visual
+    }
+    
+    try {
+        // Supondo um endpoint para marcar uma única notificação: PUT /notifications/:id/mark-read
+        const response = await fetch(`${BACKEND_URL}/notifications/${notificationId}/mark-read`, {
+            method: 'PUT',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!response.ok) {
+             console.error('Falha ao marcar notificação como lida no backend:', response.status);
+             // Manteremos o log de erro.
+        }
+    } catch (error) {
+        console.error('Erro de rede ao marcar notificação como lida:', error);
+    }
+}
+
 
 // =========================================================================
 // INICIALIZAÇÃO E EVENT LISTENERS
@@ -151,19 +189,21 @@ document.addEventListener('DOMContentLoaded', () => {
         markReadBtn.addEventListener('click', markAllAsRead);
     }
     
-    // 3. Adiciona evento para marcar como lida ao CLICAR em um link de notificação
+    // 3. Adiciona evento para marcar como lida ao CLICAR em um item de notificação
     document.getElementById('notifications-list').addEventListener('click', (e) => {
         let target = e.target;
-        // Navega até o elemento <li> ou <a> que contém o link da notificação
-        while (target && target.tagName !== 'LI' && target.id !== 'notifications-list') {
-            if (target.tagName === 'A' && target.classList.contains('notification-link')) {
-                // Se o link for unread, marca como lida e permite a navegação.
-                if (target.closest('.notification-card.unread')) { 
-                   // markAllAsRead(); // Comentado para evitar múltiplas chamadas, a navegação já funciona.
-                }
-                return; // Permite o evento de navegação padrão
-            }
-            target = target.parentNode;
+        // Navega até o elemento <li> que contém o card da notificação e o ID
+        const listItem = target.closest('.notification-card');
+        
+        if (listItem && listItem.classList.contains('unread')) {
+             const notificationId = listItem.dataset.notificationId;
+             if (notificationId) {
+                // Marca a notificação como lida (assíncrono, não bloqueia a navegação)
+                markSingleAsRead(notificationId, listItem); 
+             }
         }
+        
+        // A navegação real é manipulada pelo elemento <a>, que o browser 
+        // trata após o evento de clique.
     });
 });

@@ -1763,6 +1763,23 @@ main > svg {
     flex-shrink: 0;
 }
 
+/* Altera o link para ser o ponto de referência para o posicionamento absoluto da bolinha */
+.notification-card .notification-link {
+    position: relative; /* Garante que o ponto seja posicionado em relação ao link */
+}
+
+/* Estilo para o ponto/bolinha de notificação não lida */
+.notification-card.unread .unread-indicator-dot {
+    position: absolute;
+    top: 5px; /* Posição no canto superior direito */
+    right: 5px;
+    width: 10px; /* Tamanho da bolinha */
+    height: 10px;
+    background-color: #dc3545; /* Cor vermelha para destaque de não lida */
+    border-radius: 50%;
+    z-index: 10;
+}
+
 .notification-content-wrapper {
     display: flex;
     flex-direction: column;

@@ -84,23 +84,28 @@ async function loadPsychologistProfile() {
 
         if (response.ok && data.is_psicologo === 1) {
             // Preenche os dados do perfil, usando checagem de null antes de manipular o DOM
-            const profileName = document.getElementById('profile-name');
+            // =========================================================================
+            // CORREÇÃO: Uso dos IDs corretos do psy-profile.html (psy-*)
+            // =========================================================================
+            const profileName = document.getElementById('psy-name'); // CORRIGIDO
             if (profileName) profileName.textContent = data.nome;
 
-            const profileSpecialty = document.getElementById('profile-specialty');
+            const profileSpecialty = document.getElementById('psy-specialty'); // CORRIGIDO
             if (profileSpecialty) profileSpecialty.textContent = data.especialidade || 'Não especificado';
 
-            const profileBio = document.getElementById('profile-bio');
+            const profileBio = document.getElementById('psy-bio-text'); // CORRIGIDO
             if (profileBio) profileBio.textContent = data.bio || 'Sem descrição biográfica.';
 
-            const profileContact = document.getElementById('profile-contact');
+            const profileContact = document.getElementById('psy-contact'); // CORRIGIDO
             if (profileContact) profileContact.textContent = data.contato || 'N/A';
 
+            // Este elemento pode não existir no HTML, mas mantemos o código com verificação de null.
             const profileCfp = document.getElementById('profile-cfp');
             if (profileCfp) profileCfp.textContent = data.cfp || 'N/A';
             
             // Lógica de avaliação
             const ratingValue = data.avaliacao || 0;
+            // Este elemento pode não existir no HTML, mas mantemos o código com verificação de null.
             const profileRating = document.getElementById('profile-rating');
             if (profileRating) profileRating.innerHTML = renderRatingStars(ratingValue) + ` (${ratingValue})`;
             
@@ -111,7 +116,8 @@ async function loadPsychologistProfile() {
             }
 
             // Lógica de Avaliação (Botão fixo)
-            const rateBtn = document.getElementById('rate-psychologist-btn');
+            // CORRIGIDO: O botão no HTML é 'rate-button'.
+            const rateBtn = document.getElementById('rate-button');
             if (rateBtn) {
                  rateBtn.style.display = 'block'; // Mostra o botão
                  rateBtn.onclick = () => {
@@ -122,7 +128,8 @@ async function loadPsychologistProfile() {
 
 
             // Atualiza a foto de perfil
-            const avatarImg = document.getElementById('profile-avatar');
+            // CORRIGIDO: Uso do ID correto do psy-profile.html (psy-avatar)
+            const avatarImg = document.getElementById('psy-avatar');
             if (avatarImg) {
                 avatarImg.src = data.foto_perfil_url || '../assets/user-default.svg';
             }

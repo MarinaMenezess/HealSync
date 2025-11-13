@@ -76,6 +76,11 @@
                 <p id="rejection-reason-p" style="color: #dc3545; display: none;"><strong>Motivo da Recusa:</strong> <span id="rejection-reason"></span></p>
             </div>
             
+            <div id="evaluation-section" class="evaluation-section" style="display: none; text-align: center; margin-top: 20px;">
+                <button id="rate-professional-btn" class="save-button start-btn" style="background-color: #f1eee4; color: #7873f5; border: 2px solid #7873f5; padding: 10px 20px; font-size: 1em; width: auto;">
+                    Avaliar Profissional
+                </button>
+            </div>
             <div id="notes-section" class="notes-section">
                 <div class="consultation-header">
                     <h2>Registro da Sessão</h2>
@@ -95,7 +100,36 @@
     </div>
   </main>
   
-  <script src="script.js"></script>
+  
+  <div id="evaluation-modal" class="modal-overlay" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);">
+    <div class="modal-content" style="background-color: #333; margin: 15% auto; padding: 20px; border-radius: 10px; width: 80%; max-width: 500px; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19); color: #f1eee4;">
+        <span class="close-btn" id="close-modal-btn" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        <h2 style="color: #7873f5; margin-bottom: 10px;">Avaliar <span id="modal-psy-name"></span></h2>
+        <p style="margin-bottom: 20px; font-size: 0.9em;">Sua opinião é importante para o HealSync e para outros pacientes.</p>
+        
+        <div id="rating-stars" style="font-size: 2.5em; margin: 15px 0; text-align: center; cursor: pointer;">
+            <span class="star" data-rating="1" style="color: #555;">★</span>
+            <span class="star" data-rating="2" style="color: #555;">★</span>
+            <span class="star" data-rating="3" style="color: #555;">★</span>
+            <span class="star" data-rating="4" style="color: #555;">★</span>
+            <span class="star" data-rating="5" style="color: #555;">★</span>
+        </div>
+        
+        <form id="evaluation-form">
+            <input type="hidden" id="modal-consultation-id">
+            <input type="hidden" id="modal-psychologist-id">
+            <input type="hidden" id="modal-rating-value" value="0">
+            
+            <textarea id="modal-comment" placeholder="Deixe um comentário sobre o seu atendimento (máx. 500 caracteres)..." rows="4" maxlength="500" required style="width: 100%; padding: 10px; margin-top: 15px; border-radius: 8px; border: 1px solid #7873f5; resize: vertical; background-color: #444; color: #f1eee4;"></textarea>
+            
+            <button type="submit" id="submit-evaluation-btn" class="save-button start-btn" style="width: 100%; margin-top: 20px; background-color: #7873f5; border: none; color: white;">
+                Enviar Avaliação
+            </button>
+        </form>
+        <p id="evaluation-message" style="color: #7873f5; margin-top: 10px; text-align: center; display: none;"></p>
+    </div>
+</div>
+<script src="script.js"></script>
   <script src="consulta.js"></script> 
 </body>
 </html>

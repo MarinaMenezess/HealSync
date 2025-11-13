@@ -8,6 +8,14 @@ const TIMER_KEY = 'consultationTimer_';
 let currentConsultationId = null; 
 let currentSessionNoteId = null; // ID da anotação da sessão atual (se existir)
 
+// URL do Backend (Assumido globalmente)
+
+// Função para lidar com a avaliação do profissional (visível apenas para o paciente)
+function handleRateProfessional(consultationId, psychologistName, psychologistId) {
+    showEvaluationModal(consultationId, psychologistName, psychologistId);
+}
+
+
 // Função auxiliar para obter parâmetros da URL
 function getQueryParams() {
     const params = {};
@@ -496,6 +504,150 @@ async function loadPatientHistoryNotes(patientId) {
 
 
 // =================================================================
+// LÓGICA DO MODAL DE AVALIAÇÃO
+// =================================================================
+
+function setupStarRating() {
+    const stars = document.querySelectorAll('#rating-stars .star');
+    const ratingInput = document.getElementById('modal-rating-value');
+    
+    stars.forEach(star => {
+        star.addEventListener('click', function() {
+            const rating = parseInt(this.getAttribute('data-rating'));
+            ratingInput.value = rating;
+            
+            stars.forEach((s, index) => {
+                s.style.color = index < rating ? '#f39c12' : '#555';
+            });
+        });
+        
+        star.addEventListener('mouseover', function() {
+            const rating = parseInt(this.getAttribute('data-rating'));
+            stars.forEach((s, index) => {
+                s.style.color = index < rating ? '#f39c12' : '#555';
+            });
+        });
+        
+        star.addEventListener('mouseout', function() {
+            const currentRating = parseInt(ratingInput.value);
+            stars.forEach((s, index) => {
+                s.style.color = index < currentRating ? '#f39c12' : '#555';
+            });
+        });
+    });
+}
+
+function showEvaluationModal(consultationId, psychologistName, psychologistId) {
+    const modal = document.getElementById('evaluation-modal');
+    document.getElementById('modal-psy-name').textContent = psychologistName;
+    document.getElementById('modal-consultation-id').value = consultationId;
+    document.getElementById('modal-psychologist-id').value = psychologistId;
+    document.getElementById('modal-rating-value').value = '0';
+    document.getElementById('modal-comment').value = '';
+    document.getElementById('evaluation-message').style.display = 'none';
+    document.getElementById('submit-evaluation-btn').disabled = false;
+    
+    // Reseta visualmente as estrelas
+    document.querySelectorAll('#rating-stars .star').forEach(star => {
+        star.style.color = '#555';
+    });
+    
+    modal.style.display = 'block';
+}
+
+function closeEvaluationModal() {
+    document.getElementById('evaluation-modal').style.display = 'none';
+}
+
+async function submitEvaluation(event) {
+    event.preventDefault();
+    
+    const token = localStorage.getItem('jwt');
+    const consultationId = document.getElementById('modal-consultation-id').value;
+    const psychologistId = document.getElementById('modal-psychologist-id').value;
+    const rating = parseInt(document.getElementById('modal-rating-value').value);
+    const comment = document.getElementById('modal-comment').value.trim();
+    const submitBtn = document.getElementById('submit-evaluation-btn');
+    const message = document.getElementById('evaluation-message');
+
+    if (rating === 0) {
+        message.textContent = 'Por favor, selecione uma nota de 1 a 5 estrelas.';
+        message.style.display = 'block';
+        return;
+    }
+
+    if (!comment) {
+        message.textContent = 'Por favor, deixe um comentário para a avaliação.';
+        message.style.display = 'block';
+        return;
+    }
+    
+    submitBtn.textContent = 'Enviando...';
+    submitBtn.disabled = true;
+    message.style.display = 'none';
+
+    // CORREÇÃO CRÍTICA: O endpoint correto no backend é /ratings, não /avaliacoes.
+    try {
+        const response = await fetch(`${BACKEND_URL}/ratings`, { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ 
+                // O backend espera o ID da consulta para verificar se ela foi concluída.
+                id_consulta: consultationId, 
+                id_psicologo: psychologistId,
+                nota: rating, 
+                justificativa: comment // O backend usa 'justificativa' para o comentário
+            })
+        });
+
+        // O erro de sintaxe ocorre aqui se a resposta for 404 (HTML) e for lida como JSON.
+        // A correção da URL acima deve resolver o 404, e o bloco catch abaixo lida com a falha na leitura.
+        const result = await response.json();
+
+        if (response.ok) {
+            message.textContent = 'Avaliação enviada com sucesso! Obrigado!';
+            message.style.color = '#28a745'; 
+            message.style.display = 'block';
+            
+            document.getElementById('evaluation-section').style.display = 'none';
+            
+            setTimeout(closeEvaluationModal, 2000); 
+
+        } else {
+            message.textContent = `Falha ao enviar avaliação: ${result.error || response.statusText}`;
+            message.style.color = '#dc3545';
+            message.style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Erro de rede ao submeter avaliação:', error);
+        message.textContent = 'Erro ao conectar ao servidor ou processar resposta. Verifique a URL do backend.';
+        message.style.color = '#dc3545';
+        message.style.display = 'block';
+    } finally {
+        submitBtn.textContent = 'Enviar Avaliação';
+        submitBtn.disabled = false;
+    }
+}
+
+function initializeEvaluationModalListeners() {
+    setupStarRating();
+    document.getElementById('close-modal-btn').addEventListener('click', closeEvaluationModal);
+    document.getElementById('evaluation-form').addEventListener('submit', submitEvaluation);
+    
+    // Fecha o modal ao clicar fora dele
+    window.addEventListener('click', (event) => {
+        const modal = document.getElementById('evaluation-modal');
+        if (event.target === modal) {
+            closeEvaluationModal();
+        }
+    });
+}
+
+
+// =================================================================
 // LÓGICA DE CARREGAMENTO DE DETALHES DA CONSULTA
 // =================================================================
 
@@ -506,7 +658,7 @@ function renderPendingActions(consultaId) {
     // Cria o container para os botões de ação pendente
     const actionContainer = document.createElement('div');
     actionContainer.id = 'pending-actions-container';
-    actionContainer.className = 'stopwatch-container'; // Reutilizando a classe de estilo para botões grandes
+    actionContainer.className = 'stopwatch-container'; 
 
     actionContainer.innerHTML = `
         <p style="color: #f1eee4; font-weight: 600;">Aguardando sua ação para iniciar a sessão.</p>
@@ -581,7 +733,12 @@ async function loadConsultationDetails(consultaId) {
     const consultationContent = document.getElementById('consultation-content');
     const notesSection = document.getElementById('notes-section');
     const stopwatchContainer = document.getElementById('stopwatch-container');
+    const evaluationSection = document.getElementById('evaluation-section'); 
     
+    // Ocultar elementos padrão
+    if (evaluationSection) evaluationSection.style.display = 'none';
+    notesSection.style.display = 'none';
+    stopwatchContainer.style.display = 'none'; 
     const durationP = document.getElementById('consultation-duration-p');
     durationP.style.display = 'none'; 
 
@@ -596,19 +753,21 @@ async function loadConsultationDetails(consultaId) {
         return;
     }
     
-    // Obter o perfil do usuário logado (armazenado em login.js)
+    // Obter o perfil do usuário logado de forma robusta
     try {
         const userJson = localStorage.getItem('user');
         if (userJson) {
             const user = JSON.parse(userJson);
-            isPsychologist = user.is_psicologo;
+            // Define explicitamente isPsychologist como boolean
+            isPsychologist = !!user.is_psicologo; 
+        } else {
+             isPsychologist = false;
         }
     } catch(e) {
         console.error("Erro ao ler perfil do usuário:", e);
+        isPsychologist = false; 
     }
     
-    notesSection.style.display = 'none';
-    stopwatchContainer.style.display = 'none'; 
     // Remove o container de ações pendentes se ele existir
     const existingPendingActions = document.getElementById('pending-actions-container');
     if (existingPendingActions) existingPendingActions.remove();
@@ -643,14 +802,23 @@ async function loadConsultationDetails(consultaId) {
             statusBadge.textContent = statusDisplay;
             statusBadge.className = `status-badge ${statusClass}`;
             
-            // Lógica de Duração
+            // Variáveis auxiliares
+            const isConfirmed = details.status === 'confirmada';
+            
+            // **EXTRAÇÃO E VALIDAÇÃO ROBUSTA DE id_psicologo**
+            // Se o campo principal falhar (undefined/null), tenta o nome alternativo e então null
+            const psychologistId = details.id_psicologo 
+                                   || details.psicologo_id // Tenta o nome no formato snake_case
+                                   || null; 
+            const isValidPsychologistId = !!psychologistId; 
+
+            // Lógica de Duração e Recusa
             const durationMs = details.duracao_ms;
-            if (details.status === 'confirmada' && durationMs && durationMs > 0) {
+            if (isConfirmed && durationMs && durationMs > 0) {
                  document.getElementById('consultation-duration').textContent = formatTime(durationMs);
                  durationP.style.display = 'block';
             }
             
-            // Lógica de recusa
             const rejectionP = document.getElementById('rejection-reason-p');
             if (details.status === 'recusada' && details.motivo_recusa) {
                 document.getElementById('rejection-reason').textContent = details.motivo_recusa;
@@ -661,40 +829,53 @@ async function loadConsultationDetails(consultaId) {
             
             consultationContent.style.display = 'block';
 
-            // 3. Lógica de UI CONDICIONAL (Psicólogo)
+            
+            // 3. Lógica de UI CONDICIONAL
+            
+            // --- Lógica para Psicólogo ---
             if (isPsychologist && details.id_paciente) {
                 currentPatientId = details.id_paciente;
                 const isPending = details.status === 'pendente';
                 const isScheduled = details.status === 'aceita';
-                const isFinished = details.status === 'confirmada';
-
+                
                 if (isPending) {
-                    // Estado Pendente: Mostra botões de Ação
                     renderPendingActions(currentConsultationId);
-                    notesSection.style.display = 'none';
-                } else if (isScheduled || isFinished) {
-                    // Estado Aceito/Confirmado: Mostra Cronômetro e Anotações
+                } else if (isScheduled || isConfirmed) {
                     notesSection.style.display = 'block';
                     
-                    // 3.1 Gerenciamento da Anotação de Sessão e Histórico
                     await loadSessionNote(currentConsultationId);
                     await loadPatientHistoryNotes(currentPatientId);
 
-                    // 3.2 Cronômetro: Apenas se NÃO estiver confirmada
-                    if (!isFinished) {
+                    if (isScheduled) {
                          stopwatchContainer.style.display = 'flex'; 
                          initializeStopwatchListeners(consultaId);
-                    } else {
-                         stopwatchContainer.style.display = 'none';
-                         notesSection.style.display = 'block'; // Garante que as anotações sejam vistas
+                    } 
+                } 
+            } 
+            // --- Lógica para Paciente ---
+            else if (!isPsychologist) { 
+                // Garante que as seções do psicólogo estão sempre ocultas para o paciente
+                notesSection.style.display = 'none';
+                stopwatchContainer.style.display = 'none';
+                
+                if (isConfirmed && isValidPsychologistId) { 
+                    // Condição para exibir o botão de avaliação
+                    
+                    if (evaluationSection) {
+                        evaluationSection.style.display = 'block';
+                        
+                        const rateBtn = document.getElementById('rate-professional-btn');
+                        const newRateBtn = rateBtn.cloneNode(true);
+                        rateBtn.replaceWith(newRateBtn);
+                        
+                        newRateBtn.addEventListener('click', () => {
+                            // Passa o ID do psicólogo obtido dos detalhes da consulta
+                            handleRateProfessional(details.id_solicitacao, details.nome_psicologo, psychologistId); 
+                        });
                     }
-                } else {
-                     // Caso Recusada: Não mostra cronômetro nem notas
-                     stopwatchContainer.style.display = 'none';
-                     notesSection.style.display = 'none';
-                }
-
+                } 
             }
+
 
         } else {
             console.error('Erro ao carregar detalhes da consulta:', details.error);
@@ -719,6 +900,9 @@ async function loadConsultationDetails(consultaId) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const params = getQueryParams();
+    
+    // Inicializa listeners do modal
+    initializeEvaluationModalListeners(); 
     
     // CORREÇÃO FINAL: Lê o parâmetro 'id' que é enviado pelo notifications.js
     const consultaId = params.id; 

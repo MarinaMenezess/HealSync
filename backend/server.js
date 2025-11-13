@@ -1244,6 +1244,7 @@ app.put('/consultas/:id/session-note', authMiddleware, (req, res) => {
 
 // =========================================================================
 // ROTA GENÉRICA 1 (GET): ROTA PARA OBTER DETALHES DE UMA CONSULTA ESPECÍFICA
+// **CORRIGIDA**: Adicionado sc.id_psicologo na seleção.
 // =========================================================================
 app.get('/consultas/:id', authMiddleware, (req, res) => {
     const consultaId = parseInt(req.params.id, 10);
@@ -1265,6 +1266,7 @@ app.get('/consultas/:id', authMiddleware, (req, res) => {
             sc.motivo_recusa,
             sc.status,
             sc.duracao_ms,
+            sc.id_psicologo, 
             u_paciente.id_usuario AS id_paciente,
             u_paciente.nome AS nome_paciente,
             u_psicologo.nome AS nome_psicologo

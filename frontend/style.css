@@ -545,6 +545,11 @@ textarea:focus {
   background-color: #8260d1;
 }
 
+.edit-register{
+  border-radius: 15px;
+  padding: 5px 10px;
+}
+
 /* --------------- CSS do Gooey Menu (Adaptado) ------------------- */
 body{
   background:#8260d1;
@@ -1354,13 +1359,27 @@ main > svg {
   padding: 20px 30px 20px; 
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   width: 100%;
-  max-width: 30%;
+  width: 45vw;
   max-height: 100%;
   text-align: center;
   display: flex;
   flex-direction: column;
   gap: 15px;
   align-items: center;
+}
+
+.profile-about-card h3{
+  font-size: 25px;
+}
+
+.review-author, .review-text{
+  display: flex;
+  justify-content: flex-start;
+}
+
+.review-rating-date{
+  display: flex;
+  justify-content: space-between;
 }
 
 #profile-view{
@@ -1450,13 +1469,13 @@ main > svg {
     background-color: #8260d1;
 }
 
-.logout-btn, .cancel-edit-btn, .report-btn, .back-button {
+.logout-btn, .cancel-edit-btn, .report-btn, .back-button, .edit-register {
     background-color: transparent;
     border: 2px solid #f1eee4;
     color: #f1eee4;
 }
 
-.logout-btn:hover, .cancel-edit-btn:hover, .report-btn:hover, .back-button:hover {
+.logout-btn:hover, .cancel-edit-btn:hover, .report-btn:hover, .back-button:hover, .edit-register:hover {
     background-color: #f1eee4;
     color: #3b3b3b;
 }
@@ -1563,6 +1582,12 @@ main > svg {
 
 .send-message-btn:hover {
     background-color: #c4c4c4;
+}
+
+.review-item{
+  display: flex;
+  flex-direction: column;
+  width: 35vw;
 }
 
 /* Estilização para o Dropdown de Notificações */

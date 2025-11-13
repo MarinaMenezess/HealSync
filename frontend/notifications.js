@@ -1,7 +1,6 @@
 // ARQUIVO: frontend/notifications.js (LÓGICA DE LISTAGEM DE NOTIFICAÇÕES)
 
 // Assumindo que BACKEND_URL está definido em um script global ou aqui.
-const BACKEND_URL = 'http://localhost:3000'; // Define a URL base para as requisições
 
 // Helper function (Reutilizada de outros scripts frontend)
 function formatTimeAgo(dateString) {

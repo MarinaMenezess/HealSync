@@ -1,4 +1,4 @@
-// ARQUIVO: frontend/agenda.js (COMPLETO E CORRIGIDO)
+// ARQUIVO: frontend/agenda.js (COMPLETO E FINAL)
 
 document.addEventListener('DOMContentLoaded', function() {
     var calendarEl = document.getElementById('calendar');
@@ -8,14 +8,13 @@ document.addEventListener('DOMContentLoaded', function() {
     var viewModalContainer = document.getElementById('view-appointment-modal-container'); 
     
     var eventDateInput = document.getElementById('event-date');
-    // MODIFICADO: Seleciona o novo campo textarea
     var eventMotivationTextarea = document.getElementById('event-motivation');
     var eventTimeInput = document.getElementById('event-time');
     var doctorSelect = document.getElementById('doctor-select'); 
     var createBtnModal = document.getElementById('create-btn-modal');
     var closeBtns = document.querySelectorAll('#modal-container .modal-footer button, #modal-container .modal-header button'); 
   
-    // Seletores do Modal de Visualização (usado pelo perfil 'paciente' ou default)
+    // Seletores do Modal de Visualização
     var viewTitle = document.getElementById('view-title');
     var viewDate = document.getElementById('view-date');
     var viewTime = document.getElementById('view-time');
@@ -25,14 +24,17 @@ document.addEventListener('DOMContentLoaded', function() {
     var closeBtnViewModal = document.getElementById('close-btn-view-modal');
   
     
-    // CORREÇÃO: Garante que o modal de visualização esteja fechado no início
+    // Garante que o modal de visualização esteja fechado no início
     if (viewModalContainer) {
         viewModalContainer.classList.remove('active');
         viewModalContainer.style.display = 'none'; 
     }
   
+    const BACKEND_URL = 'http://localhost:3000'; // URL do Backend
+    
+
     // =========================================================================
-    // FUNÇÃO AUXILIAR: Obtém o perfil do usuário
+    // FUNÇÕES AUXILIARES: Obtém perfil, parâmetros, formata data/hora
     // =========================================================================
     function getUserRole() {
         const userJson = localStorage.getItem('user');
@@ -53,11 +55,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const params = new URLSearchParams(window.location.search);
         return {
             psyId: params.get('psyId'),
-            psyName: params.get('psyName') ? decodeURIComponent(params.get('psyName')) : null
+            psyName: params.get('psyName') ? decodeURIComponent(params.get('psyName')) : null,
+            openModal: params.get('openModal') === 'true'
         };
     }
   
-    // Função auxiliar para formatar a data de hoje como YYYY-MM-DD
     function getTodayDateString() {
         const today = new Date();
         const year = today.getFullYear();
@@ -66,60 +68,106 @@ document.addEventListener('DOMContentLoaded', function() {
         return `${year}-${month}-${day}`;
     }
   
-    // Função auxiliar para formatar a hora de uma string de data completa
     function formatEventTime(dateString) {
         if (!dateString) return '';
         const date = new Date(dateString);
         return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
     
-    // 2. Lógica para pré-preencher o modal de AGENDAMENTO
-    function prefillModal(psyId, psyName) {
-        let shouldOpenModal = false;
+    // =========================================================================
+    // FUNÇÃO PRINCIPAL: Buscar psicólogos e preencher/pré-selecionar o select
+    // =========================================================================
+    async function fetchPsychologistsAndPopulateSelect() {
+        const params = getUrlParams();
+        
+        if (!doctorSelect) return;
+
+        try {
+            // 1. Faz a requisição para obter a lista de psicólogos
+            const response = await fetch(`${BACKEND_URL}/psychologists`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' },
+            });
+
+            if (response.ok) {
+                const psychologists = await response.json();
+                
+                // 2. Limpa o select e adiciona o placeholder inicial
+                doctorSelect.innerHTML = '<option value="">Selecione um profissional</option>';
+
+                // 3. Adiciona todos os psicólogos ao select
+                if (psychologists.length > 0) {
+                    psychologists.forEach(psy => {
+                        const option = document.createElement('option');
+                        option.value = psy.id_usuario;
+                        option.textContent = psy.nome;
+                        doctorSelect.appendChild(option);
+                    });
+                } else {
+                    console.warn('Nenhum psicólogo ativo encontrado no banco de dados.');
+                    doctorSelect.innerHTML += '<option value="" disabled>Nenhum profissional disponível</option>';
+                }
+                
+                // 4. Aplica a lógica de pré-preenchimento e abertura do modal
+                prefillModal(params.psyId, params.psyName, params.openModal);
+                
+            } else {
+                const result = await response.json();
+                console.error('Erro ao buscar psicólogos:', result.error);
+                doctorSelect.innerHTML = '<option value="">Erro ao carregar lista de psicólogos</option>';
+            }
+
+        } catch (error) {
+            console.error('Erro de rede ao buscar psicólogos:', error);
+            doctorSelect.innerHTML = '<option value="">Erro de conexão com o servidor</option>';
+        }
+    }
+  
+    // 2. Lógica para pré-preencher e abrir o modal
+    function prefillModal(psyId, psyName, openModal) {
+        let isPreSelected = false;
         
         if (eventDateInput) {
              eventDateInput.removeAttribute('readonly');
         }
         
-        if (psyId && psyName) {
-            const option = document.createElement('option');
-            option.value = psyId;
-            option.textContent = psyName;
-            option.selected = true;
-            
-            if (doctorSelect) {
-                doctorSelect.innerHTML = '';
-                doctorSelect.appendChild(option);
+        // 1. Tenta pré-selecionar o profissional
+        if (psyId && doctorSelect) {
+            for (let i = 0; i < doctorSelect.options.length; i++) {
+                // Compara o valor do ID (value), garantindo que o valor seja o ID do psicólogo
+                if (doctorSelect.options[i].value == psyId) {
+                    doctorSelect.options[i].selected = true;
+                    isPreSelected = true;
+                    break;
+                }
             }
-            
-            // REMOVIDA A PRÉ-DEFINIÇÃO DO TÍTULO/MOTIVAÇÃO NO FRONTEND
-            
-            shouldOpenModal = true;
-  
+        }
+        
+        // 2. Se o parâmetro 'openModal=true' estiver presente E o profissional foi pré-selecionado (ou já estava na lista)
+        if (openModal && isPreSelected) {
+            // Limpa os parâmetros de agendamento da URL após usá-los
             const url = new URL(window.location);
             url.searchParams.delete('psyId');
             url.searchParams.delete('psyName');
+            url.searchParams.delete('openModal');
             window.history.replaceState({}, '', url);
-  
-        } else if (doctorSelect) {
-             doctorSelect.innerHTML = '<option value="">Selecione um profissional</option>';
-        }
-  
-        if (shouldOpenModal) {
+
             if (eventDateInput) {
                 eventDateInput.value = getTodayDateString(); 
             }
             if (modalContainer) {
                 modalContainer.classList.add('active'); 
             }
+            if (eventMotivationTextarea) {
+                 eventMotivationTextarea.focus();
+            }
         }
     }
     
     // =========================================================================
-    // Função para buscar eventos do backend
+    // Função para buscar eventos do backend (FullCalendar)
     // =========================================================================
     async function fetchAppointments(info, successCallback, failureCallback) {
-        const BACKEND_URL = 'http://localhost:3000';
         const token = localStorage.getItem('jwt'); 
   
         if (!token) {
@@ -143,13 +191,11 @@ document.addEventListener('DOMContentLoaded', function() {
             } else {
                 const result = await response.json();
                 console.error('Erro ao buscar eventos:', result.error);
-                alert('Falha ao carregar eventos: ' + result.error);
                 if (failureCallback) failureCallback();
             }
   
         } catch (error) {
             console.error('Erro de rede ao buscar eventos:', error);
-            alert('Erro de conexão com o servidor ao carregar eventos.');
             if (failureCallback) failureCallback();
         }
     }
@@ -177,11 +223,12 @@ document.addEventListener('DOMContentLoaded', function() {
             modalContainer.classList.add('active');
         }
         
+        // Garante que o select não esteja vazio se o usuário clicar na data
         if (doctorSelect.options.length === 0 || doctorSelect.options[0].value === '') {
-             doctorSelect.innerHTML = '<option value="">Selecione um profissional</option>';
+             // Chama a função para tentar recarregar a lista caso esteja vazia
+             fetchPsychologistsAndPopulateSelect();
         }
         
-        // Foca no novo campo de motivação
         if (eventMotivationTextarea) {
             eventMotivationTextarea.focus();
         }
@@ -265,20 +312,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   
   
-    // 6. Lógica de agendamento (MODIFICADA para usar motivation)
+    // 6. Lógica de agendamento
     if (createBtnModal) {
         createBtnModal.addEventListener('click', async function() {
-          // MODIFICADO: Pega o valor da textarea e usa 'motivation'
           var motivation = eventMotivationTextarea.value;
           var date = eventDateInput.value;
           var time = eventTimeInput.value;
           var selectedPsyId = doctorSelect.value;
-          var selectedPsyName = doctorSelect.options[doctorSelect.selectedIndex].text;
+          // O nome do psicólogo é opcional, mas útil para logs/mensagens
+          var selectedPsyName = doctorSelect.options[doctorSelect.selectedIndex].text; 
   
-          // MODIFICADO: Validação usa 'motivation'
           if (motivation && date && time && selectedPsyId) {
             
-            const BACKEND_URL = 'http://localhost:3000'; 
             const token = localStorage.getItem('jwt');
   
             if (!token) {
@@ -286,7 +331,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
   
             const appointmentData = {
-                // IMPORTANTE: O backend espera o campo 'titulo', que agora contém a motivação
                 titulo: motivation,
                 data: date,
                 hora: time,
@@ -335,7 +379,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   
   
-    // 7. Lógica para fechar o modal de AGENDAMENTO (mantida)
+    // 7. Lógica para fechar o modal de AGENDAMENTO
     closeBtns.forEach(btn => {
       btn.addEventListener('click', function() {
         if (modalContainer) {
@@ -352,7 +396,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // 8. Executa a função de pré-preenchimento na inicialização da página
-    const params = getUrlParams();
-    prefillModal(params.psyId, params.psyName);
+    // 8. Inicialização: Carregar psicólogos e, em seguida, pré-preencher o modal
+    fetchPsychologistsAndPopulateSelect();
 });

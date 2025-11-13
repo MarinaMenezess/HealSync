@@ -94,7 +94,13 @@ async function loadPsychologistProfile() {
             
             // Configurações de botões
             if (scheduleBtn) {
-                 scheduleBtn.onclick = () => window.location.href = `agenda.html?psychologistId=${psychologistId}`;
+                const psyName = profileData.nome || 'Profissional';
+                
+                scheduleBtn.onclick = () => {
+                    // ATUALIZAÇÃO: Redirecionamento com psyId, psyName E openModal=true
+                    // para que agenda.js abra o modal de agendamento automaticamente.
+                    window.location.href = `./agenda.html?psyId=${psychologistId}&psyName=${encodeURIComponent(psyName)}&openModal=true`;
+                };
             }
             if (rateBtn) {
                  rateBtn.style.display = 'block'; 
@@ -352,6 +358,8 @@ async function handleRatingSubmit(e, closeModal) {
              // Fechar modal mesmo em caso de erro 409 para permitir recarregar a página
              closeModal();
              window.location.reload(); 
+        } else if (response.status === 403) {
+            alert(`Falha ao enviar avaliação: ${result.error}`);
         } else {
             alert(`Falha ao enviar avaliação: ${result.error || response.statusText}`);
             console.error('Erro ao enviar avaliação:', result.error);

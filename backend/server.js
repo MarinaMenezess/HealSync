@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (FINAL COM ROTA DE AVALIAÇÃO E ROTA DE BUSCA DE REVIEWS)
+// ARQUIVO: backend/server.js (FINAL COM REGRAS DE AVALIAÇÃO E ROTA DE BUSCA DE REVIEWS)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -2014,6 +2014,7 @@ app.delete('/pacientes/:id', authMiddleware, (req, res) => {
 
 // =========================================================================
 // ROTA PARA CADASTRAR NOVA AVALIAÇÃO DE PSICÓLOGO (POST /ratings)
+// AGORA COM REGRAS DE AVALIAÇÃO ÚNICA E CONSULTA CONCLUÍDA
 // =========================================================================
 app.post('/ratings', authMiddleware, async (req, res) => {
     const { id_psicologo, nota, justificativa } = req.body;
@@ -2028,7 +2029,40 @@ app.post('/ratings', authMiddleware, async (req, res) => {
     }
 
     try {
-        // 1. Inserir a nova avaliação na tabela avaliacao_psicologo (ASSUMIR QUE FOI CRIADA)
+        // NOVO CHECK 1: Verificar se o paciente tem pelo menos uma consulta concluída com este psicólogo.
+        const [consultationResults] = await new Promise((resolve, reject) => {
+            connection.query(
+                "SELECT COUNT(*) AS count FROM solicitacao_consulta WHERE id_paciente = ? AND id_psicologo = ? AND status = 'confirmada'",
+                [id_paciente, id_psicologo],
+                (err, results) => {
+                    if (err) return reject(err);
+                    resolve([results]);
+                }
+            );
+        });
+
+        if (consultationResults[0].count === 0) {
+            return res.status(403).json({ error: 'Você só pode avaliar um psicólogo após ter uma consulta concluída com ele.' });
+        }
+        
+        // NOVO CHECK 2: Verificar se o paciente já avaliou este psicólogo (avaliação única).
+        const [duplicateCheckResults] = await new Promise((resolve, reject) => {
+            connection.query(
+                'SELECT COUNT(*) AS count FROM avaliacao_psicologo WHERE id_paciente = ? AND id_psicologo = ?',
+                [id_paciente, id_psicologo],
+                (err, results) => {
+                    if (err) return reject(err);
+                    resolve([results]);
+                }
+            );
+        });
+
+        if (duplicateCheckResults[0].count > 0) {
+            return res.status(409).json({ error: 'Você já enviou uma avaliação para este psicólogo.' });
+        }
+
+
+        // 3. Inserir a nova avaliação na tabela avaliacao_psicologo
         await new Promise((resolve, reject) => {
             connection.query(
                 'INSERT INTO avaliacao_psicologo (id_psicologo, id_paciente, nota, justificativa) VALUES (?, ?, ?, ?)',
@@ -2040,7 +2074,7 @@ app.post('/ratings', authMiddleware, async (req, res) => {
             );
         });
 
-        // 2. Calcular a nova média e atualizar a coluna 'avaliacao' na tabela 'usuario'
+        // 4. Calcular a nova média e atualizar a coluna 'avaliacao' na tabela 'usuario'
         const [avgResults] = await new Promise((resolve, reject) => {
             connection.query(
                 'SELECT AVG(nota) AS nova_media FROM avaliacao_psicologo WHERE id_psicologo = ?',
@@ -2069,12 +2103,12 @@ app.post('/ratings', authMiddleware, async (req, res) => {
 
     } catch (error) {
         console.error('Erro ao registrar avaliação:', error);
-        res.status(500).json({ error: 'Erro interno ao registrar a avaliação. Verifique se a tabela avaliacao_psicologo existe.' });
+        res.status(500).json({ error: 'Erro interno ao registrar a avaliação.' });
     }
 });
 
 // =========================================================================
-// ROTA PARA OBTER AVALIAÇÕES DE UM PSICÓLOGO (GET /ratings/:id_psicologo) - NOVO!
+// ROTA PARA OBTER AVALIAÇÕES DE UM PSICÓLOGO (GET /ratings/:id_psicologo)
 // =========================================================================
 app.get('/ratings/:id_psicologo', async (req, res) => {
     const id_psicologo = parseInt(req.params.id_psicologo, 10);

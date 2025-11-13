@@ -10,7 +10,7 @@ nome VARCHAR(45) NOT NULL,
 email VARCHAR(45) NOT NULL UNIQUE,
 data_nascimento DATE,
 genero enum('feminino','masculino','indefinido'),
-cidade VARCHAR(45) NULL;
+cidade VARCHAR(45) NULL,
 is_psicologo boolean,
 especialidade VARCHAR(45),
 contato VARCHAR(255),
@@ -128,7 +128,5 @@ CREATE TABLE avaliacao_psicologo (
 );
 
 -- COMANDOS AUXILIARES: DROP DATABASE e UPDATE MANTIDOS
-DROP DATABASE healsyncdb;
-SELECT * FROM solicitacao_consulta;
 INSERT INTO usuario (nome, email, firebase_uid, is_psicologo, cfp, cpf, contato, especialidade) VALUES ('psicologo', 'psicologo@gmail.com', 'aSsX8eDAZ6QaVf4r8FjL0x1WQ8G3', true, '561234', '04631588063', '997755386', 'TCC e EMDR');
 INSERT INTO usuario (nome, email, firebase_uid, data_nascimento, genero) VALUES ('teste', 'teste@gmail.com', 'NUKQm3Bj7caoZ8mQBz1L7E36Ns12', '2007-07-27', 'feminino');

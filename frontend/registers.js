@@ -120,7 +120,7 @@ function renderRegisterCard(register) {
 
         actionButtonsHTML = `
             ${publishButton}
-            <button class="publish-btn" onclick="event.stopPropagation(); alert('Editar Registro ID: ${register.id_registro}')">
+            <button class="edit-register" onclick="event.stopPropagation(); alert('Editar Registro ID: ${register.id_registro}')">
                 Editar
             </button>
         `;

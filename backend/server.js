@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (FINAL COM TODAS AS CORREÇÕES E CONTAGEM)
+// ARQUIVO: backend/server.js (FINAL COM ROTA DE AVALIAÇÃO)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -121,9 +121,28 @@ function getPostAuthorId(id_registro) {
             'SELECT id_usuario FROM registro_progresso WHERE id_registro = ?',
             [id_registro],
             (err, results) => {
-                if (err) return reject(err);
+                if (err) return reject(err); // Rejects on DB error
                 if (results.length === 0) return resolve(null);
                 resolve(results[0].id_usuario);
+            }
+        );
+    });
+}
+
+/**
+ * Busca o nome do usuário pelo ID.
+ * @param {number} userId - ID do usuário.
+ * @returns {Promise<string>} Nome do usuário ou um nome padrão se não for encontrado.
+ */
+function getUserNameById(userId) {
+    return new Promise((resolve, reject) => {
+        connection.query(
+            'SELECT nome FROM usuario WHERE id_usuario = ?',
+            [userId],
+            (err, results) => {
+                if (err) return reject(err); // Rejects on DB error
+                if (results.length === 0) return resolve('O profissional');
+                resolve(results[0].nome);
             }
         );
     });
@@ -138,10 +157,11 @@ function insertNotification(id_usuario_destino, id_registro, id_usuario_origem, 
         if (id_usuario_destino === id_usuario_origem) return resolve(null); 
         
         connection.query(
+            // Nota: id_registro é usado para posts sociais. Para consultas, será o id_solicitacao.
             'INSERT INTO notificacao (id_usuario_destino, id_registro, id_usuario_origem, tipo, conteudo, data_hora) VALUES (?, ?, ?, ?, ?, NOW())',
             [id_usuario_destino, id_registro, id_usuario_origem, tipo, conteudo],
             (err, result) => {
-                if (err) return reject(err);
+                if (err) return reject(err); // Rejects on DB error
                 resolve(result.insertId);
             }
         );
@@ -445,14 +465,9 @@ app.get('/users/:id', (req, res) => {
         
         // Se for uma requisição interna (feita por profile.js), permitimos o retorno completo.
         // Se for para a página de psicólogo, mantemos a restrição.
-        // Assumimos que o frontend de perfil (profile.js) busca o perfil por ID_USUARIO logado.
-        
-        // Se não for psicólogo, ou se a requisição for para um perfil de psicólogo (aqui não há distinção
-        // de rota entre perfil próprio e perfil de outro psicólogo, o frontend deve lidar com o uso da rota).
         
         // Removendo campos sensíveis/privados que não devem ser expostos para terceiros (mantendo para o próprio usuário)
         // Para a rota de perfil (que o usuário usa para ver o próprio perfil), retornamos a maioria dos dados.
-        // O `profile.js` usa o retorno desta rota para atualizar o localStorage e a UI.
         
         // Adicionando uma biografia fictícia (assumindo que o campo 'bio' não existe no schema) para uso externo
         user.bio = 'Profissional com vasta experiência na área de saúde mental. Dedicado a fornecer suporte e orientação para o desenvolvimento pessoal e emocional.'; 
@@ -549,7 +564,6 @@ app.put('/users/profile', authMiddleware, (req, res) => {
         [nome, cleanContato, cleanDataNascimento, cleanGenero, userId],
         (err, result) => {
             if (err) {
-                // Loga o erro específico para ajudar na depuração
                 console.error('Erro ao atualizar dados gerais do perfil:', err.message);
                 return res.status(500).json({ error: 'Erro ao atualizar o perfil no banco de dados.' });
             }
@@ -980,14 +994,36 @@ app.post('/api/agenda/agendar', authMiddleware, (req, res) => {
     connection.query(
         'INSERT INTO solicitacao_consulta (id_paciente, id_psicologo, data_solicitada, status, motivo) VALUES (?, ?, ?, ?, ?)',
         [id_paciente, id_psicologo, dataHoraConsulta, 'pendente', titulo],
-        (err, result) => {
+        async (err, result) => {
             if (err) {
                 console.error('Erro ao registrar a solicitação de agendamento:', err.message);
                 return res.status(500).json({ error: 'Erro ao salvar solicitação no banco de dados. Verifique a estrutura da tabela solicitacao_consulta.' });
             }
+
+            const insertId = result.insertId; // ID da Solicitação de Consulta
+            
+            // Lógica de Notificação para o Psicólogo
+            try {
+                 const nome_paciente = await getUserNameById(id_paciente);
+                 await insertNotification(
+                     id_psicologo, // id_psicologo (destino)
+                     insertId, // ID da Solicitação
+                     id_paciente, // id_paciente (origem)
+                     'nova_consulta', // Novo tipo
+                     `Você tem uma nova solicitação de consulta de ${nome_paciente}!`
+                 );
+            } catch (e) {
+                 // Log de erro para a falha de notificação
+                 console.error('\n======================================================');
+                 console.error('ERRO FATAL: Falha ao inserir notificação de nova consulta.');
+                 console.error('CAUSA PROVÁVEL: O ENUM do campo "tipo" na tabela "notificacao" NÃO foi atualizado para "nova_consulta".');
+                 console.error('Mensagem de Erro do DB:', e.message);
+                 console.error('======================================================\n');
+            }
+            
             res.status(201).json({ 
                 mensagem: 'Solicitação de agendamento enviada com sucesso.', 
-                insertId: result.insertId 
+                insertId: insertId 
             });
         }
     );
@@ -1030,7 +1066,7 @@ app.get('/api/agenda/eventos', authMiddleware, (req, res) => {
             const titlePrefix = is_psicologo ? `(C) ${row.nome_paciente}: ` : `(P) ${row.nome_psicologo}: `;
             
             return {
-                id: row.id_solicitacao,
+                id: row.id_solicitacao, // ID da Solicitação/Consulta
                 title: titlePrefix + row.titulo_motivo, 
                 start: row.data_solicitada, 
                 extendedProps: {
@@ -1255,7 +1291,7 @@ app.get('/consultas/:id', authMiddleware, (req, res) => {
 });
 
 // Rota para psicólogo responder a uma solicitação (PUT /consultas/:id)
-app.put('/consultas/:id', authMiddleware, (req, res) => {
+app.put('/consultas/:id', authMiddleware, async (req, res) => {
   // Apenas psicólogos podem responder
   if (!req.is_psicologo) {
     return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem responder às solicitações.' });
@@ -1266,11 +1302,38 @@ app.put('/consultas/:id', authMiddleware, (req, res) => {
   if (!['aceita', 'recusada'].includes(status)) {
     return res.status(400).json({ error: 'Status inválido.' });
   }
-  // Validação para obrigar o motivo quando o status for 'recusada'
   if (status === 'recusada' && (!motivo_recusa || motivo_recusa.trim() === '')) {
     return res.status(400).json({ error: 'O motivo da recusa é obrigatório.' });
   }
 
+  // 1. Buscar o ID do paciente e o nome do psicólogo (para notificação) antes da atualização
+  let id_paciente_destino = null;
+  let nome_psicologo = null;
+  try {
+      const [solicitationResults] = await new Promise((resolve, reject) => {
+          connection.query(
+              'SELECT id_paciente FROM solicitacao_consulta WHERE id_solicitacao = ?',
+              [id],
+              (err, res) => {
+                  if (err) return reject(err);
+                  resolve([res]);
+              }
+          );
+      });
+      
+      if (solicitationResults.length > 0) {
+          id_paciente_destino = solicitationResults[0].id_paciente;
+          // Busca o nome do psicólogo logado (origem da notificação)
+          nome_psicologo = await getUserNameById(req.userId); 
+      } else {
+          return res.status(404).json({ mensagem: 'Solicitação não encontrada.' });
+      }
+  } catch (e) {
+      console.error('Erro ao buscar dados para notificação:', e.message);
+      return res.status(500).json({ error: 'Erro interno ao buscar solicitação para notificação.' });
+  }
+  
+  // 2. Realizar a atualização
   let query = 'UPDATE solicitacao_consulta SET status = ?';
   let params = [status];
 
@@ -1284,39 +1347,83 @@ app.put('/consultas/:id', authMiddleware, (req, res) => {
   query += ' WHERE id_solicitacao = ? AND id_psicologo = ?';
   params.push(id, req.userId);
 
-  connection.query(query, params, (err, result) => {
-    if (err) return res.status(500).json({ error: err.message });
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ mensagem: 'Solicitação não encontrada ou você não tem permissão.' });
-    }
-    res.json({ mensagem: `Solicitação ${status} com sucesso.` });
-  });
+  try {
+      const updateResult = await new Promise((resolve, reject) => {
+          connection.query(query, params, (err, result) => {
+              if (err) return reject(err);
+              resolve(result);
+          });
+      });
+
+      if (updateResult.affectedRows === 0) {
+        return res.status(404).json({ mensagem: 'Solicitação não encontrada ou você não tem permissão.' });
+      }
+
+      // 3. Lógica de Notificação para o Paciente (Apenas se houve sucesso na atualização)
+      let notif_type = null;
+      let notif_content = null;
+
+      if (status === 'aceita') {
+          notif_type = 'consulta_aceita';
+          notif_content = `Sua solicitação de consulta foi ACEITA pelo(a) ${nome_psicologo}!`;
+      } else if (status === 'recusada') {
+          notif_type = 'consulta_recusada';
+          notif_content = `Sua solicitação foi recusada pelo(a) ${nome_psicologo}.`;
+      }
+
+      if (notif_type) {
+          try {
+               await insertNotification(
+                   id_paciente_destino, // Destino: Paciente
+                   parseInt(id, 10), // ID da Solicitação
+                   req.userId, // Origem: Psicólogo
+                   notif_type,
+                   notif_content
+               );
+          } catch (e) {
+              console.error('\n======================================================');
+              console.error('ERRO FATAL: Falha ao inserir notificação de resposta à consulta.');
+              console.error('CAUSA PROVÁVEL: O ENUM do campo "tipo" na tabela "notificacao" NÃO foi atualizado para "consulta_aceita" ou "consulta_recusada".');
+              console.error('Mensagem de Erro do DB:', e.message);
+              console.error('======================================================\n');
+          }
+      }
+      
+      res.json({ mensagem: `Solicitação ${status} com sucesso.` });
+
+  } catch (err) {
+      console.error('Erro ao processar PUT /consultas/:id:', err.message);
+      return res.status(500).json({ error: err.message });
+  }
 });
+// =========================================================================
 
 // =========================================================================
 // ROTA PARA ATUALIZAR A DURAÇÃO DA CONSULTA (PUT /consultas/:id/duracao)
+// **MODIFICADA para incluir notificação de avaliação.**
 // =========================================================================
 app.put('/consultas/:id/duracao', authMiddleware, (req, res) => {
     const consultaId = parseInt(req.params.id, 10);
     const userId = req.userId;
-    const { duracao_ms } = req.body;
 
     if (!req.is_psicologo) {
         return res.status(403).json({ error: 'Acesso negado. Apenas psicólogos podem registrar a duração da consulta.' });
     }
 
+    const { duracao_ms } = req.body;
+
     if (isNaN(consultaId) || !duracao_ms || typeof duracao_ms !== 'number' || duracao_ms < 0) {
         return res.status(400).json({ error: 'ID da consulta ou duração (em ms) inválido.' });
     }
 
-    // A atualização define o status como 'confirmada' (requer que 'confirmada' esteja no ENUM do DB)
+    // A atualização define o status como 'confirmada'
     const query = `
         UPDATE solicitacao_consulta 
         SET duracao_ms = ?, status = 'confirmada'
         WHERE id_solicitacao = ? AND id_psicologo = ? AND status IN ('aceita', 'confirmada')
     `;
 
-    connection.query(query, [duracao_ms, consultaId, userId], (err, result) => {
+    connection.query(query, [duracao_ms, consultaId, userId], async (err, result) => {
         if (err) {
             console.error('Erro ao registrar duração da consulta:', err.message);
             return res.status(500).json({ error: 'Erro interno ao salvar duração.' });
@@ -1325,6 +1432,42 @@ app.put('/consultas/:id/duracao', authMiddleware, (req, res) => {
         if (result.affectedRows === 0) {
             return res.status(404).json({ mensagem: 'Consulta não encontrada, não agendada ou você não é o psicólogo responsável.' });
         }
+
+        // --- NOVO: Lógica de Notificação de Avaliação (Disparada após FINALIZAÇÃO) ---
+        try {
+            // 1. Buscar o ID do paciente
+            const [solicitationResults] = await new Promise((resolve, reject) => {
+                connection.query(
+                    'SELECT id_paciente, id_psicologo FROM solicitacao_consulta WHERE id_solicitacao = ?',
+                    [consultaId],
+                    (err, res) => {
+                        if (err) return reject(err);
+                        resolve([res]);
+                    }
+                );
+            });
+
+            if (solicitationResults.length > 0) {
+                const id_paciente_destino = solicitationResults[0].id_paciente;
+                const id_psicologo_origem = solicitationResults[0].id_psicologo;
+                
+                await insertNotification(
+                    id_paciente_destino, // Destino: Paciente
+                    consultaId, // ID da Consulta
+                    id_psicologo_origem, // Origem: Psicólogo
+                    'avaliacao_pendente', // NOVO TIPO
+                    'Sua consulta foi finalizada! Gostaríamos de saber sua avaliação sobre o profissional.'
+                );
+            }
+        } catch (e) {
+             // Log de erro para a falha de notificação
+             console.error('\n======================================================');
+             console.error('ERRO FATAL: Falha ao inserir notificação de avaliação pendente.');
+             console.error('CAUSA PROVÁVEL: O ENUM do campo "tipo" na tabela "notificacao" NÃO foi atualizado para "avaliacao_pendente".');
+             console.error('Mensagem de Erro do DB:', e.message);
+             console.error('======================================================\n');
+        }
+        // --- FIM Lógica de Notificação ---
 
         res.json({ mensagem: 'Duração da consulta salva e status atualizado para confirmada.', duracao_ms });
     });
@@ -1790,7 +1933,7 @@ app.get('/notifications', authMiddleware, (req, res) => {
 });
 
 // =========================================================================
-// ROTA: MARCA NOTIFICAÇÕES COMO LIDAS
+// ROTA: MARCA NOTIFICAÇÕES COMO LIDAS (TODAS)
 // =========================================================================
 app.put('/notifications/mark-read', authMiddleware, (req, res) => {
     const userId = req.userId;
@@ -1805,6 +1948,32 @@ app.put('/notifications/mark-read', authMiddleware, (req, res) => {
         res.json({ mensagem: `${result.affectedRows} notificações marcadas como lidas.` });
     });
 });
+
+// =========================================================================
+// NOVO: ROTA PARA MARCAR NOTIFICAÇÃO INDIVIDUAL COMO LIDA (PUT /notifications/:id/mark-read)
+// =========================================================================
+app.put('/notifications/:id/mark-read', authMiddleware, (req, res) => {
+    const notificationId = parseInt(req.params.id, 10);
+    const userId = req.userId;
+
+    if (isNaN(notificationId)) {
+        return res.status(400).json({ error: 'ID de notificação inválido.' });
+    }
+
+    const query = 'UPDATE notificacao SET lida = TRUE WHERE id_notificacao = ? AND id_usuario_destino = ?';
+
+    connection.query(query, [notificationId, userId], (err, result) => {
+        if (err) {
+            console.error('Erro ao marcar notificação individual como lida:', err.message);
+            return res.status(500).json({ error: 'Erro interno ao atualizar a notificação.' });
+        }
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ mensagem: 'Notificação não encontrada ou não pertence ao usuário.' });
+        }
+        res.json({ mensagem: 'Notificação marcada como lida com sucesso.' });
+    });
+});
+
 
 // ---------- ANOTAÇÕES DE PACIENTE (MANTIDAS para anotações GERAIS/antigas) ----------
 
@@ -1842,6 +2011,68 @@ app.delete('/pacientes/:id', authMiddleware, (req, res) => {
     }
   );
 });
+
+// =========================================================================
+// ROTA PARA CADASTRAR NOVA AVALIAÇÃO DE PSICÓLOGO (POST /ratings)
+// =========================================================================
+app.post('/ratings', authMiddleware, async (req, res) => {
+    const { id_psicologo, nota, justificativa } = req.body;
+    const id_paciente = req.userId;
+
+    if (!id_psicologo || !nota || nota < 1 || nota > 5) {
+        return res.status(400).json({ error: 'ID do psicólogo e nota (1-5) são obrigatórios.' });
+    }
+    
+    if (req.is_psicologo) {
+        return res.status(403).json({ error: 'Psicólogos não podem se auto-avaliar ou avaliar outros profissionais.' });
+    }
+
+    try {
+        // 1. Inserir a nova avaliação na tabela avaliacao_psicologo (ASSUMIR QUE FOI CRIADA)
+        await new Promise((resolve, reject) => {
+            connection.query(
+                'INSERT INTO avaliacao_psicologo (id_psicologo, id_paciente, nota, justificativa) VALUES (?, ?, ?, ?)',
+                [id_psicologo, id_paciente, nota, justificativa],
+                (err, result) => {
+                    if (err) return reject(err);
+                    resolve(result);
+                }
+            );
+        });
+
+        // 2. Calcular a nova média e atualizar a coluna 'avaliacao' na tabela 'usuario'
+        const [avgResults] = await new Promise((resolve, reject) => {
+            connection.query(
+                'SELECT AVG(nota) AS nova_media FROM avaliacao_psicologo WHERE id_psicologo = ?',
+                [id_psicologo],
+                (err, results) => {
+                    if (err) return reject(err);
+                    resolve([results]);
+                }
+            );
+        });
+        
+        const novaMedia = avgResults[0].nova_media ? parseFloat(avgResults[0].nova_media).toFixed(2) : 0;
+        
+        await new Promise((resolve, reject) => {
+            connection.query(
+                'UPDATE usuario SET avaliacao = ? WHERE id_usuario = ?',
+                [novaMedia, id_psicologo],
+                (err, result) => {
+                    if (err) return reject(err);
+                    resolve(result);
+                }
+            );
+        });
+
+        res.status(201).json({ mensagem: 'Avaliação registrada com sucesso.', nova_media: novaMedia });
+
+    } catch (error) {
+        console.error('Erro ao registrar avaliação:', error);
+        res.status(500).json({ error: 'Erro interno ao registrar a avaliação. Verifique se a tabela avaliacao_psicologo existe.' });
+    }
+});
+
 
 // ---------- START SERVER ----------
 const PORT = 3000;

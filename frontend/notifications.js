@@ -1,6 +1,7 @@
 // ARQUIVO: frontend/notifications.js (LÓGICA DE LISTAGEM DE NOTIFICAÇÕES)
 
 // Assumindo que BACKEND_URL está definido em um script global ou aqui.
+const BACKEND_URL = 'http://localhost:3000'; // Define a URL base para as requisições
 
 // Helper function (Reutilizada de outros scripts frontend)
 function formatTimeAgo(dateString) {
@@ -35,9 +36,13 @@ function formatNotificationContent(notification) {
         case 'curtida':
             return `<strong>${userDisplay}</strong> curtiu o seu post.`;
         case 'comentario':
-            // O backend envia 'novo comentário no seu post!' no campo 'conteudo'
             return `<strong>${userDisplay}</strong> deixou um ${conteudo}`;
-        // Adicione outros tipos conforme necessário
+        case 'nova_consulta':
+        case 'consulta_aceita':
+        case 'consulta_recusada':
+            return conteudo;
+        case 'avaliacao_pendente': // NOVO TIPO
+            return conteudo; // Ex: "Sua consulta foi finalizada! Gostaríamos de saber sua avaliação sobre o profissional."
         default:
             return `${userDisplay}: ${conteudo}`;
     }
@@ -72,8 +77,22 @@ function renderNotifications(notifications) {
         // Adiciona a classe 'notification-card' no LI e a classe de estado (unread/read)
         item.classList.add('notification-card', notif.lida === 0 ? 'unread' : 'read');
 
-        // Cria o link para o registro, se aplicável
-        const link = notif.id_registro ? `href="register.html?id=${notif.id_registro}"` : 'href="#"';
+        // --- Lógica de Link para Consultas/Avaliação ---
+        let linkPath = '#'; 
+        
+        const consultaTypes = ['nova_consulta', 'consulta_aceita', 'consulta_recusada', 'avaliacao_pendente'];
+        const isConsultaRelatedNotif = consultaTypes.includes(notif.tipo);
+
+        if (isConsultaRelatedNotif && notif.id_registro) {
+            // CORRIGIDO: Redireciona todas as notificações relacionadas à consulta para a página de detalhes.
+            linkPath = `consulta.html?id=${notif.id_registro}`;
+        } else if (notif.id_registro) {
+            // Notificação social (curtida/comentário)
+            linkPath = `register.html?id=${notif.id_registro}`; 
+        }
+        
+        const link = `href="${linkPath}"`;
+        // --- FIM Lógica de Link ---
 
         // Determina se deve incluir o indicador visual (a bolinha)
         const unreadIndicator = notif.lida === 0 ? '<div class="unread-indicator-dot"></div>' : '';
@@ -159,7 +178,7 @@ async function markSingleAsRead(notificationId, listItemElement) {
     }
     
     try {
-        // Supondo um endpoint para marcar uma única notificação: PUT /notifications/:id/mark-read
+        // Usa o endpoint de marcação individual (adicionado no backend)
         const response = await fetch(`${BACKEND_URL}/notifications/${notificationId}/mark-read`, {
             method: 'PUT',
             headers: { 'Authorization': `Bearer ${token}` }

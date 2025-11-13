@@ -72,7 +72,7 @@ function renderConsultationCard(consultation) {
     const isClickable = (consultation.status === 'aceita' || consultation.status === 'confirmada');
     
     if (isClickable) {
-        card.setAttribute('href', `consulta.html?consultaId=${consultation.id_solicitacao}`);
+        card.setAttribute('href', `consulta.html?id=${consultation.id_solicitacao}`);
         card.classList.add('history-card'); 
     } else {
         // Se não for clicável, usa a div ou adiciona uma classe para desabilitar o estilo de link

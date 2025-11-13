@@ -1,4 +1,3 @@
-const BACKEND_URL = 'http://localhost:3000';
 let currentPatientId = null; 
 let isPsychologist = false; 
 
@@ -283,9 +282,9 @@ function renderSessionNote(content, noteId) {
                 <h4>Anotação da Sessão (Última Edição: ${formattedDate.split(' - ')[0]})</h4>
                 <button id="edit-session-note-btn" class="save-button edit-btn">
                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
-                        <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.121z"/>
-                        <path fill-rule="evenodd" d="M1.5 13.5A.5.5 0 0 0 2 14v1a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-11z"/>
-                    </svg> Editar
+                         <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.121z"/>
+                         <path fill-rule="evenodd" d="M1.5 13.5A.5.5 0 0 0 2 14v1a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-11z"/>
+                     </svg> Editar
                 </button>
             </div>
             <p>${content}</p>
@@ -418,7 +417,8 @@ function renderHistoryNoteCard(note) {
         
         clickHandler = (e) => {
             e.preventDefault();
-            window.location.href = `./consulta.html?consultaId=${note.id_consulta}`;
+            // CORREÇÃO: Usa 'id' para ser consistente com a inicialização da página (params.id)
+            window.location.href = `./consulta.html?id=${note.id_consulta}`; 
         };
         
     } else {
@@ -685,12 +685,13 @@ async function loadConsultationDetails(consultaId) {
                          stopwatchContainer.style.display = 'flex'; 
                          initializeStopwatchListeners(consultaId);
                     } else {
-                        stopwatchContainer.style.display = 'none';
+                         stopwatchContainer.style.display = 'none';
+                         notesSection.style.display = 'block'; // Garante que as anotações sejam vistas
                     }
                 } else {
                      // Caso Recusada: Não mostra cronômetro nem notas
-                    stopwatchContainer.style.display = 'none';
-                    notesSection.style.display = 'none';
+                     stopwatchContainer.style.display = 'none';
+                     notesSection.style.display = 'none';
                 }
 
             }
@@ -718,7 +719,9 @@ async function loadConsultationDetails(consultaId) {
 
 document.addEventListener('DOMContentLoaded', () => {
     const params = getQueryParams();
-    const consultaId = params.consultaId;
+    
+    // CORREÇÃO FINAL: Lê o parâmetro 'id' que é enviado pelo notifications.js
+    const consultaId = params.id; 
 
     if (consultaId) {
         loadConsultationDetails(consultaId);

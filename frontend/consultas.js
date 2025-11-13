@@ -1,5 +1,4 @@
 let currentRequestId = null;
-const BACKEND_URL = 'http://localhost:3000';
 
 // Função auxiliar para formatar a data (DD/MM - HH:MM)
 function formatDate(dateString) {
@@ -142,8 +141,8 @@ async function loadPendingRequests() {
                 const patientName = request.nome_paciente || 'Paciente Desconhecido';
                 const requestTitle = request.motivo || 'Sem Motivo'; // Usando 'motivo' conforme o backend atualizado
 
-                // Link para a página de consulta com o ID da solicitação
-                const consultationLink = `consulta.html?consultaId=${request.id_solicitacao}`;
+                // CORRIGIDO: Link para a página de consulta usando o parâmetro 'id'
+                const consultationLink = `consulta.html?id=${request.id_solicitacao}`;
 
                 requestCard.innerHTML = `
                     <a href="${consultationLink}" class="request-link">

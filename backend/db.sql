@@ -100,16 +100,31 @@ FOREIGN KEY (id_usuario) REFERENCES usuario(id_usuario) ON DELETE CASCADE
 -- Adicionado ao seu arquivo db.sql
 CREATE TABLE notificacao (
     id_notificacao INT AUTO_INCREMENT PRIMARY KEY,
-    id_usuario_destino INT NOT NULL, -- O usuário que deve receber a notificação (autor do post)
-    id_registro INT NOT NULL,        -- O post que recebeu a curtida/comentário
-    id_usuario_origem INT,           -- O usuário que curtiu/comentou
-    tipo ENUM('curtida', 'comentario') NOT NULL,
-    conteudo VARCHAR(255) NOT NULL,  -- Mensagem da notificação (Ex: "curtiu seu post")
+    id_usuario_destino INT NOT NULL, -- O usuário que deve receber a notificação
+    id_registro INT,                -- MANTIDA, mas sem FK. Armazena o ID do post OU o ID da solicitacao_consulta.
+    id_usuario_origem INT,            -- O usuário que iniciou o evento
+    tipo ENUM('curtida', 'comentario', 'nova_consulta', 'consulta_aceita', 'consulta_recusada', 'avaliacao_pendente') NOT NULL,
+    conteudo VARCHAR(255) NOT NULL,
     data_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
     lida BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (id_usuario_destino) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_registro) REFERENCES registro_progresso(id_registro) ON DELETE CASCADE,
+    -- FK REMOVIDA: FOREIGN KEY (id_registro) REFERENCES registro_progresso(id_registro) ON DELETE CASCADE,
     FOREIGN KEY (id_usuario_origem) REFERENCES usuario(id_usuario) ON DELETE SET NULL
+);
+
+-- Crie esta tabela se ela não existir
+CREATE TABLE avaliacao_psicologo (
+    id_avaliacao INT AUTO_INCREMENT PRIMARY KEY,
+    id_psicologo INT NOT NULL,
+    id_paciente INT NOT NULL,
+    nota INT NOT NULL, -- Valor de 1 a 5
+    justificativa TEXT,
+    data_avaliacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_psicologo) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_paciente) REFERENCES usuario(id_usuario) ON DELETE CASCADE,
+    -- Garante que um paciente avalia o mesmo psicólogo apenas uma vez (ou controle via código na aplicação)
+    UNIQUE KEY unique_rating (id_psicologo, id_paciente) 
 );
 
 -- COMANDOS AUXILIARES: DROP DATABASE e UPDATE MANTIDOS

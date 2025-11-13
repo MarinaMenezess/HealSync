@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
   
           if (userRole === 'psicologo' && consultaId) {
               // SE PSICÓLOGO: Redireciona para a página de registro de consulta
-              window.location.href = `consulta.html?consultaId=${consultaId}`;
+              window.location.href = `consulta.html?id=${consultaId}`;
           } else {
               // SE PACIENTE ou default: Abre o modal de visualização (comportamento original)
               

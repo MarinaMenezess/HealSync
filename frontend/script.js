@@ -1,4 +1,4 @@
-// ARQUIVO: frontend/script.js (FINAL COM NOTIFICAÇÕES E AVATAR GLOBAL)
+// ARQUIVO: frontend/script.js (CORRIGIDO)
 
 const BACKEND_URL = 'http://localhost:3000'; 
 const DEFAULT_AVATAR_URL = '../assets/user-default.svg'; 
@@ -311,35 +311,54 @@ async function loadNotifications() {
             }
 
             const menuContent = notifications.map(n => {
-                const postLink = `./register.html?id=${n.id_registro}`;
-                const time = formatTimeAgo(n.data_hora);
+                const consultaTypes = ['nova_consulta', 'consulta_aceita', 'consulta_recusada', 'avaliacao_pendente'];
+                const isConsultaRelatedNotif = consultaTypes.includes(n.tipo);
                 
-                const senderName = n.nome_origem || 'Usuário Deletado';
+                let linkPath = '#';
                 let message = '';
+                let senderName = n.nome_origem || 'Usuário Deletado';
 
-                if (n.tipo === 'comentario') {
-                   message = `comentou no seu post!`;
-                } else if (n.tipo === 'curtida') {
-                   message = `curtiu o seu post!`;
+                // Lógica para definir o Link de Redirecionamento e o Conteúdo da Mensagem
+                if (isConsultaRelatedNotif && n.id_registro) {
+                    // CORREÇÃO APLICADA: Redireciona todas as notificações relacionadas à consulta para a página de detalhes.
+                    linkPath = `./consulta.html?id=${n.id_registro}`;
+                    message = n.conteudo; 
+                    senderName = ''; 
+                } else if (n.id_registro) {
+                    // Notificação Social (curtida/comentário)
+                    linkPath = `./register.html?id=${n.id_registro}`;
+                    if (n.tipo === 'comentario') {
+                       message = `comentou no seu post!`;
+                    } else if (n.tipo === 'curtida') {
+                       message = `curtiu o seu post!`;
+                    } else {
+                       message = n.conteudo; 
+                    }
                 } else {
-                   message = n.conteudo; 
+                    message = n.conteudo; // Outras notificações
                 }
 
+                const time = formatTimeAgo(n.data_hora);
                 const avatarUrl = n.foto_perfil_url || DEFAULT_AVATAR_URL;
+                
+                // Formata o nome e a mensagem
+                const displayMessage = isConsultaRelatedNotif 
+                    ? message 
+                    : `<strong>${senderName}</strong> ${message}`;
 
 
                 return `
-                    <a href="${postLink}" class="notification-item" onclick="event.stopPropagation(); window.location.href='${postLink}';">
+                    <a href="${linkPath}" class="notification-item" onclick="event.stopPropagation(); window.location.href='${linkPath}';">
                         <img src="${avatarUrl}" alt="Avatar" class="notification-avatar">
                         <div class="notification-content">
-                            <span class="notification-message"><strong>${senderName}</strong> ${message}</span>
+                            <span class="notification-message">${displayMessage}</span>
                             <span class="notification-time">${time}</span>
                         </div>
                     </a>
                 `;
             }).join('');
             
-            // Adiciona o cabeçalho e a lista de notificações
+            // 3. Adiciona o conteúdo ao wrapper, mantendo o botão "Ver todas"
             notificationList.innerHTML = menuContent;
 
 
@@ -436,7 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Se o menu está sendo FECHADO
                 // Garante que a badge desapareça/seja zerada (se a marcação como lida foi bem-sucedida)
                 const notificationBadge = document.getElementById('notification-badge');
-                if (notificationBadge) notificationBadge.style.display = 'none';
+                if (notificationBadge) notificationBadge.style.cssText = ''; // Remove o style para sumir
             }
         }
 

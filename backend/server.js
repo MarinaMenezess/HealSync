@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (FINAL COM ROTA DE AVALIAÇÃO)
+// ARQUIVO: backend/server.js (FINAL COM ROTA DE AVALIAÇÃO E ROTA DE BUSCA DE REVIEWS)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -2070,6 +2070,45 @@ app.post('/ratings', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('Erro ao registrar avaliação:', error);
         res.status(500).json({ error: 'Erro interno ao registrar a avaliação. Verifique se a tabela avaliacao_psicologo existe.' });
+    }
+});
+
+// =========================================================================
+// ROTA PARA OBTER AVALIAÇÕES DE UM PSICÓLOGO (GET /ratings/:id_psicologo) - NOVO!
+// =========================================================================
+app.get('/ratings/:id_psicologo', async (req, res) => {
+    const id_psicologo = parseInt(req.params.id_psicologo, 10);
+    
+    if (isNaN(id_psicologo)) {
+        return res.status(400).json({ error: 'ID do psicólogo inválido.' });
+    }
+
+    try {
+        const query = `
+            SELECT 
+                ap.nota, 
+                ap.justificativa, 
+                ap.data_avaliacao, 
+                u.nome AS nome_paciente
+            FROM avaliacao_psicologo ap
+            JOIN usuario u ON ap.id_paciente = u.id_usuario
+            WHERE ap.id_psicologo = ?
+            ORDER BY ap.data_avaliacao DESC
+        `;
+        
+        const results = await new Promise((resolve, reject) => {
+            connection.query(query, [id_psicologo], (err, results) => {
+                if (err) return reject(err);
+                resolve(results);
+            });
+        });
+        
+        // Retorna um array de avaliações (pode ser vazio)
+        res.json(results);
+        
+    } catch (error) {
+        console.error('Erro ao buscar avaliações:', error);
+        res.status(500).json({ error: 'Erro interno ao buscar avaliações.' });
     }
 });
 

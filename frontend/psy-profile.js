@@ -1,4 +1,7 @@
-// ARQUIVO: frontend/psy-profile.js (FINAL COM MODAL DE AVALIAÇÃO E CHECAGENS DE NULL)
+// ARQUIVO: frontend/psy-profile.js (FINAL COM MODAL DE AVALIAÇÃO E LÓGICA DE EXIBIÇÃO DE REVIEWS)
+
+// Certifique-se que o BACKEND_URL está definido em script.js ou aqui
+// const BACKEND_URL = 'http://localhost:3000'; // Exemplo, deve estar em um arquivo global (script.js)
 
 // Função auxiliar para formatar a data de nascimento
 function formatBirthDate(dateString) {
@@ -7,7 +10,7 @@ function formatBirthDate(dateString) {
     return date.toLocaleDateString('pt-BR');
 }
 
-// Função para calcular a idade
+// Função para calcular a idade (mantida, mas não usada nesta página específica)
 function calculateAge(dateString) {
     if (!dateString) return 'N/A';
     const birthDate = new Date(dateString);
@@ -24,13 +27,16 @@ function calculateAge(dateString) {
 function renderRatingStars(rating) {
     const fullStar = '&#9733;';
     const emptyStar = '&#9734;';
-    const roundedRating = Math.round(rating);
+    // Arredonda para o inteiro mais próximo para preencher a estrela
+    const roundedRating = Math.round(rating); 
     let stars = '';
     
     for (let i = 1; i <= 5; i++) {
         if (i <= roundedRating) {
+            // Assumindo a classe 'star-filled' para estrelas preenchidas para estilização (cor amarela)
             stars += `<span class="star-filled">${fullStar}</span>`;
         } else {
+            // Assumindo a classe 'star-empty' para estrelas vazias (cor cinza)
             stars += `<span class="star-empty">${emptyStar}</span>`;
         }
     }
@@ -44,120 +50,134 @@ async function loadPsychologistProfile() {
     const psychologistId = params.get('id');
     const token = localStorage.getItem('jwt');
     
-    // Obter elementos com checagem de null para evitar o TypeError
-    const loadingMessage = document.getElementById('loading-message');
-    const errorMessage = document.getElementById('error-message');
-    const profileContainer = document.getElementById('psychologist-profile-container');
+    // Obter elementos para manipulação
+    const profileName = document.getElementById('psy-name');
+    const profileSpecialty = document.getElementById('psy-specialty');
+    const profileBio = document.getElementById('psy-bio-text');
+    const profileContact = document.getElementById('psy-contact');
+    const avatarImg = document.getElementById('psy-avatar');
+    const rateBtn = document.getElementById('rate-button');
+    const scheduleBtn = document.getElementById('schedule-button'); 
+    
+    // Novos elementos para avaliação
+    const reviewsContent = document.getElementById('reviews-content');
+    const avgRatingElement = document.getElementById('psy-avg-rating-stars');
+    const totalReviewsCount = document.getElementById('total-reviews-count');
+    const noReviewsMessage = document.getElementById('no-reviews-message');
 
-    // Aplica estilo apenas se o elemento existir
-    if (loadingMessage) loadingMessage.style.display = 'block';
-    if (errorMessage) errorMessage.style.display = 'none';
-    if (profileContainer) profileContainer.style.display = 'none';
-
-    if (!psychologistId) {
-        if (errorMessage) {
-            errorMessage.textContent = 'ID do psicólogo não fornecido na URL.';
-            errorMessage.style.display = 'block';
-        }
-        if (loadingMessage) loadingMessage.style.display = 'none';
-        return;
-    }
-
-    if (!token) {
-        if (errorMessage) {
-            errorMessage.textContent = 'Você precisa estar logado para ver este perfil.';
-            errorMessage.style.display = 'block';
-        }
-        if (loadingMessage) loadingMessage.style.display = 'none';
+    if (!psychologistId || !token) {
+        if (profileName) profileName.textContent = 'Erro: ID ou Token ausente.';
         return;
     }
 
     try {
-        const response = await fetch(`${BACKEND_URL}/users/${psychologistId}`, {
+        // -------------------------------------------------------------------------
+        // 1. FETCH: Obter dados do perfil (inclui a nota média)
+        // -------------------------------------------------------------------------
+        const profileResponse = await fetch(`${BACKEND_URL}/users/${psychologistId}`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`
             }
         });
 
-        const data = await response.json();
+        const profileData = await profileResponse.json();
 
-        if (response.ok && data.is_psicologo === 1) {
-            // Preenche os dados do perfil, usando checagem de null antes de manipular o DOM
-            // =========================================================================
-            // CORREÇÃO: Uso dos IDs corretos do psy-profile.html (psy-*)
-            // =========================================================================
-            const profileName = document.getElementById('psy-name'); // CORRIGIDO
-            if (profileName) profileName.textContent = data.nome;
-
-            const profileSpecialty = document.getElementById('psy-specialty'); // CORRIGIDO
-            if (profileSpecialty) profileSpecialty.textContent = data.especialidade || 'Não especificado';
-
-            const profileBio = document.getElementById('psy-bio-text'); // CORRIGIDO
-            if (profileBio) profileBio.textContent = data.bio || 'Sem descrição biográfica.';
-
-            const profileContact = document.getElementById('psy-contact'); // CORRIGIDO
-            if (profileContact) profileContact.textContent = data.contato || 'N/A';
-
-            // Este elemento pode não existir no HTML, mas mantemos o código com verificação de null.
-            const profileCfp = document.getElementById('profile-cfp');
-            if (profileCfp) profileCfp.textContent = data.cfp || 'N/A';
+        if (profileResponse.ok && profileData.is_psicologo === 1) {
             
-            // Lógica de avaliação
-            const ratingValue = data.avaliacao || 0;
-            // Este elemento pode não existir no HTML, mas mantemos o código com verificação de null.
-            const profileRating = document.getElementById('profile-rating');
-            if (profileRating) profileRating.innerHTML = renderRatingStars(ratingValue) + ` (${ratingValue})`;
+            // Preenche os dados básicos
+            if (profileName) profileName.textContent = profileData.nome || 'Nome não disponível';
+            if (profileSpecialty) profileSpecialty.textContent = profileData.especialidade || 'Não especificado';
+            if (profileBio) profileBio.textContent = profileData.bio || 'Sem descrição biográfica.';
+            if (profileContact) profileContact.textContent = profileData.contato || 'N/A';
+            if (avatarImg) avatarImg.src = profileData.foto_perfil_url || '../assets/user-default.svg';
             
-            // Lógica de agendamento (Botão Flutuante)
-            const scheduleBtn = document.getElementById('schedule-consultation-btn');
+            // Configurações de botões
             if (scheduleBtn) {
                  scheduleBtn.onclick = () => window.location.href = `agenda.html?psychologistId=${psychologistId}`;
             }
-
-            // Lógica de Avaliação (Botão fixo)
-            // CORRIGIDO: O botão no HTML é 'rate-button'.
-            const rateBtn = document.getElementById('rate-button');
             if (rateBtn) {
-                 rateBtn.style.display = 'block'; // Mostra o botão
+                 rateBtn.style.display = 'block'; 
                  rateBtn.onclick = () => {
-                     // Chama o modal
-                     createRatingModal(psychologistId, data.nome);
+                     createRatingModal(psychologistId, profileData.nome);
                  };
             }
-
-
-            // Atualiza a foto de perfil
-            // CORRIGIDO: Uso do ID correto do psy-profile.html (psy-avatar)
-            const avatarImg = document.getElementById('psy-avatar');
-            if (avatarImg) {
-                avatarImg.src = data.foto_perfil_url || '../assets/user-default.svg';
-            }
             
-            if (profileContainer) profileContainer.style.display = 'block';
+            // -------------------------------------------------------------------------
+            // 2. FETCH: Obter avaliações detalhadas (Nova Rota)
+            // -------------------------------------------------------------------------
+            const reviewsResponse = await fetch(`${BACKEND_URL}/ratings/${psychologistId}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const reviewsData = await reviewsResponse.json();
 
-        } else if (data.is_psicologo !== 1) {
-             if (errorMessage) {
-                 errorMessage.textContent = 'Este perfil não é de um psicólogo ativo.';
-                 errorMessage.style.display = 'block';
-             }
-        } else {
-            console.error('Erro ao carregar perfil:', data.error);
-            if (errorMessage) {
-                errorMessage.textContent = `Erro ao carregar perfil: ${data.error || response.statusText}`;
-                errorMessage.style.display = 'block';
+            // -------------------------------------------------------------------------
+            // 3. EXIBIÇÃO DA NOTA MÉDIA E LISTA DE REVIEWS
+            // -------------------------------------------------------------------------
+
+            // 3.1 Exibir a nota média (já disponível em profileData.avaliacao)
+            const avgRatingValue = profileData.avaliacao || 0;
+            
+            if (avgRatingElement) {
+                // toFixed(1) para garantir uma casa decimal (ex: 4.0)
+                avgRatingElement.innerHTML = renderRatingStars(avgRatingValue) + ` ${parseFloat(avgRatingValue).toFixed(1)}`;
             }
+
+            if (reviewsResponse.ok && Array.isArray(reviewsData) && reviewsData.length > 0) {
+                // a. Atualizar a contagem total de avaliações
+                const reviewCount = reviewsData.length;
+                if (totalReviewsCount) {
+                    totalReviewsCount.textContent = `(${reviewCount} Avaliaç${reviewCount === 1 ? 'ão' : 'ões'})`;
+                }
+                
+                // b. Ocultar a mensagem de "Nenhuma avaliação" e renderizar a lista
+                if (reviewsContent) {
+                    if (noReviewsMessage) noReviewsMessage.style.display = 'none';
+
+                    reviewsData.forEach(review => {
+                        const reviewElement = document.createElement('div');
+                        reviewElement.classList.add('review-item');
+                        
+                        const starsHtml = renderRatingStars(review.nota);
+                        const reviewDate = review.data_avaliacao ? new Date(review.data_avaliacao).toLocaleDateString('pt-BR') : '';
+                        
+                        reviewElement.innerHTML = `
+                            <div class="review-header">
+                                <p class="review-author"><strong>${review.nome_paciente || 'Usuário Anônimo'}</strong></p>
+                                <div class="review-rating-date">
+                                    <span class="review-stars">${starsHtml}</span>
+                                    <span class="review-date">${reviewDate}</span>
+                                </div>
+                            </div>
+                            <p class="review-text">${review.justificativa || 'O paciente não deixou um comentário.'}</p>
+                            <hr style="border-top: 1px solid #ccc; margin-top: 10px; margin-bottom: 10px;"/>
+                        `;
+                        reviewsContent.appendChild(reviewElement);
+                    });
+                }
+
+            } else {
+                // Se não houver avaliações
+                if (totalReviewsCount) totalReviewsCount.textContent = '(0 Avaliações)';
+                if (noReviewsMessage) noReviewsMessage.style.display = 'block';
+            }
+
+        } else if (profileData.is_psicologo !== 1) {
+             if (profileName) profileName.textContent = 'Perfil não encontrado ou não é um psicólogo.';
+        } else {
+            console.error('Erro ao carregar perfil:', profileData.error);
+             if (profileName) profileName.textContent = 'Erro ao carregar perfil.';
         }
 
     } catch (error) {
-        console.error('Erro de rede:', error);
-        if (errorMessage) {
-            errorMessage.textContent = 'Erro de conexão com o servidor ao buscar perfil.';
-            errorMessage.style.display = 'block';
-        }
-
+        console.error('Erro de rede ou ao buscar dados:', error);
+         if (profileName) profileName.textContent = 'Erro de conexão com o servidor.';
     } finally {
-        if (loadingMessage) loadingMessage.style.display = 'none';
+        // Lógica de finalização, se houver.
     }
 }
 
@@ -234,7 +254,12 @@ function createRatingModal(psychologistId, psychName) {
     const cancelBtn = document.getElementById('cancel-rating-btn');
     const form = document.getElementById('rating-form');
     
-    const closeModal = () => document.body.removeChild(modalContainer);
+    const closeModal = () => {
+        // Remove o estilo temporário do header que lida com o hover
+        const starStyle = document.querySelector('style');
+        if (starStyle) document.head.removeChild(starStyle);
+        document.body.removeChild(modalContainer);
+    };
 
     closeBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
@@ -245,6 +270,7 @@ function createRatingModal(psychologistId, psychName) {
     form.addEventListener('submit', (e) => handleRatingSubmit(e, closeModal));
 
     // Estilo Hover (Para ser mais visível, definindo cores)
+    // Adiciona o estilo dinâmico ao head para as estrelas
     const starStyle = document.createElement('style');
     starStyle.textContent = `
         #rating-modal .star-rating .star {
@@ -319,10 +345,13 @@ async function handleRatingSubmit(e, closeModal) {
         if (response.ok) {
             alert(`Avaliação enviada com sucesso! Nova média: ${result.nova_media}`);
             closeModal();
-            // Recarregar a página para mostrar a nova avaliação
+            // Recarregar a página para mostrar a nova avaliação e a nova média
             window.location.reload(); 
         } else if (response.status === 409) {
              alert(`Você já avaliou este profissional. Erro: ${result.error}`);
+             // Fechar modal mesmo em caso de erro 409 para permitir recarregar a página
+             closeModal();
+             window.location.reload(); 
         } else {
             alert(`Falha ao enviar avaliação: ${result.error || response.statusText}`);
             console.error('Erro ao enviar avaliação:', result.error);

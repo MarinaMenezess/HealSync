@@ -62,6 +62,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('profile-name-display').textContent = data.nome;
                 document.getElementById('user-posts-title-display').textContent = `Registros de ${data.nome}`;
                 document.getElementById('profile-email-display').textContent = 'Informação privada'; 
+                
+                // NOVO: Atualiza a foto de perfil
+                const avatarImg = document.getElementById('profile-avatar-display');
+                if (data.foto_perfil_url) {
+                    avatarImg.src = data.foto_perfil_url;
+                } else {
+                    // Mantém ou redefine para o padrão, se a URL for null
+                    avatarImg.src = '../assets/user-default.svg'; 
+                }
              }
         })
         .catch(error => {

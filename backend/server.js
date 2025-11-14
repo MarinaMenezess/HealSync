@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (FINAL COM REGRAS DE AVALIAÇÃO E ROTA DE BUSCA DE REVIEWS)
+// ARQUIVO: backend/server.js (FINAL COM CORREÇÕES PARA profile2.js)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -473,6 +473,66 @@ app.get('/users/:id', (req, res) => {
         user.bio = 'Profissional com vasta experiência na área de saúde mental. Dedicado a fornecer suporte e orientação para o desenvolvimento pessoal e emocional.'; 
 
         res.json(user);
+    });
+});
+
+// =========================================================================
+// NOVO ROTA: OBTÉM INFORMAÇÕES BÁSICAS DO PERFIL POR ID (Para profile2.js)
+// Rota: GET /profile-data/:id - ROTA ADICIONADA PARA CORRIGIR O ERRO 404
+// =========================================================================
+app.get('/profile-data/:id', authMiddleware, (req, res) => {
+    const userId = req.params.id;
+
+    // Busca apenas o nome. O frontend espera 'nome' para o display.
+    const query = 'SELECT id_usuario, nome FROM usuario WHERE id_usuario = ?';
+
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar profile-data:', err.message);
+            // O frontend espera erro se !response.ok, o que inclui 500
+            return res.status(500).json({ error: 'Erro no servidor ao buscar profile-data.' });
+        }
+        
+        if (results.length === 0) {
+            // O frontend espera erro se !response.ok, o que inclui 404
+            return res.status(404).json({ error: 'Perfil não encontrado.' });
+        }
+        
+        // Retorna o objeto com 'nome' (o suficiente para profile2.js carregar)
+        res.json(results[0]);
+    });
+});
+// =========================================================================
+
+// =========================================================================
+// NOVO ROTA: CARREGA POSTS PÚBLICOS DE UM USUÁRIO ESPECÍFICO (Para profile2.js)
+// Rota: GET /users/:userId/public-posts - ROTA ADICIONADA PARA CORRIGIR O ERRO 404
+// =========================================================================
+app.get('/users/:userId/public-posts', (req, res) => {
+    // 1. Obtém e valida o ID do usuário (userId) do parâmetro da URL
+    const userId = parseInt(req.params.userId, 10);
+
+    if (isNaN(userId)) {
+        return res.status(400).json({ error: 'ID do usuário inválido.' });
+    }
+
+    // 2. Consulta o banco de dados, buscando apenas posts públicos do usuário específico
+    const query = `
+        SELECT id_registro, data, emocao, descricao
+        FROM registro_progresso
+        WHERE id_usuario = ? AND is_public = 1
+        ORDER BY data DESC
+    `;
+
+    connection.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Erro ao buscar posts públicos do usuário:', err.message);
+            // Retorna um erro 500 em caso de falha no servidor/DB
+            return res.status(500).json({ error: 'Erro interno ao buscar posts do usuário.' });
+        }
+        
+        // 3. Retorna os posts encontrados (pode ser um array vazio [])
+        res.json(results); 
     });
 });
 // =========================================================================

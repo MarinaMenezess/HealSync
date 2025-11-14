@@ -67,12 +67,15 @@ function renderPost(post) {
     const timeAgo = formatTimeAgo(post.data);
     const emotionTitle = post.emocao ? post.emocao.toUpperCase() : 'REGISTRO';
     
+    // NOVO: Determina a URL da foto de perfil do autor.
+    const avatarUrl = post.foto_perfil_url || '../assets/user-default.svg';
+    
     // Conteúdo da postagem completa
     postContainer.innerHTML = `
         <div class="post-header-wrapper">
             <a href="profile2.html?id=${post.id_autor}" class="profile-link">
                 <div class="post-header">
-                    <img src="../assets/user-default.svg" alt="Perfil" class="avatar">
+                    <img src="${avatarUrl}" alt="Perfil" class="avatar">
                     <div class="user-info">
                         <strong class="username">${post.nome_usuario || 'Usuário Anônimo'}</strong>
                         <span class="time">${timeAgo}</span>
@@ -103,10 +106,12 @@ function renderComments(comments) {
         commentDiv.classList.add('coment-card');
         
         const timeAgo = formatTimeAgo(comment.data_hora);
+        // NOVO: Determina a URL da foto de perfil do comentarista.
+        const avatarUrl = comment.foto_perfil_url || '../assets/user-default.svg';
 
         commentDiv.innerHTML = `
             <div class="post-header">
-              <img src="../assets/user-default.svg" alt="Perfil" class="avatar">
+              <img src="${avatarUrl}" alt="Perfil" class="avatar">
               <div class="user-info">
                 <strong class="username">${comment.nome_usuario || 'Usuário Anônimo'}</strong>
                 <span class="time">${timeAgo}</span>

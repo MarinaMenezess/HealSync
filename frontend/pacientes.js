@@ -1,5 +1,4 @@
 // Constantes e funções auxiliares que podem ser necessárias (mantendo a originalidade do código)
-const BACKEND_URL = 'http://localhost:3000';
 
 // Função auxiliar para formatar a data (DD/MM - HH:MM)
 // Esta função pode não ser usada nesta tela, mas é mantida por segurança se o backend mudar.

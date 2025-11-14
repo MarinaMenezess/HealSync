@@ -1,4 +1,4 @@
-// ARQUIVO: backend/server.js (FINAL COM CORREÇÕES PARA profile2.js)
+// ARQUIVO: backend/server.js (Com foto_perfil_url em /posts/:id e /posts/:id/comentarios)
 const express = require('express');
 const connection = require('./db_config');
 const bodyParser = require("body-parser");
@@ -362,6 +362,7 @@ app.get('/posts', (req, res) => {
 
 // =========================================================================
 // ROTA PARA OBTER DETALHES DE UM POST ESPECÍFICO (GET /posts/:id)
+// ALTERADA PARA INCLUIR foto_perfil_url
 // =========================================================================
 app.get('/posts/:id', (req, res) => {
     const postId = parseInt(req.params.id, 10); // Adicionada conversão para INT
@@ -369,9 +370,9 @@ app.get('/posts/:id', (req, res) => {
         return res.status(400).json({ error: 'ID de registro inválido.' });
     }
     
-    // A query une registro_progresso e usuário para obter o nome do autor.
+    // ALTERAÇÃO AQUI: Incluindo u.foto_perfil_url para o frontend.
     const query = `
-        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, rp.id_usuario AS id_autor, u.nome AS nome_usuario
+        SELECT rp.id_registro, rp.data, rp.emocao, rp.descricao, rp.id_usuario AS id_autor, u.nome AS nome_usuario, u.foto_perfil_url
         FROM registro_progresso rp
         JOIN usuario u ON rp.id_usuario = u.id_usuario
         WHERE rp.id_registro = ? AND rp.is_public = 1
@@ -393,20 +394,21 @@ app.get('/posts/:id', (req, res) => {
 
 // =========================================================================
 // ROTA PARA OBTER COMENTÁRIOS DE UM POST (GET /posts/:id/comentarios)
-// **CORRIGIDA** para funcionar com a tag [Profissional].
+// ALTERADA PARA INCLUIR foto_perfil_url
 // =========================================================================
 app.get('/posts/:id/comentarios', (req, res) => {
     const postId = parseInt(req.params.id, 10); 
     if (isNaN(postId)) {
          return res.status(400).json({ error: 'ID de registro inválido.' });
     }
-    // Query SQL sem comentários de JavaScript
+    // ALTERAÇÃO AQUI: Incluindo u.foto_perfil_url para o frontend.
     const query = `
         SELECT 
             c.conteudo, 
             c.data_hora, 
             u.nome AS nome_usuario,
-            u.is_psicologo 
+            u.is_psicologo,
+            u.foto_perfil_url 
         FROM comentario c
         JOIN usuario u ON c.id_usuario = u.id_usuario
         WHERE c.id_registro = ?
@@ -429,11 +431,12 @@ app.get('/posts/:id/comentarios', (req, res) => {
                 nome_display += ' [Profissional]';
             }
             
-            // Retorna apenas os campos necessários para o frontend, incluindo o nome formatado
+            // Retorna apenas os campos necessários para o frontend, incluindo o nome formatado e a URL da foto
             return {
                 conteudo: comment.conteudo,
                 data_hora: comment.data_hora,
-                nome_usuario: nome_display
+                nome_usuario: nome_display,
+                foto_perfil_url: comment.foto_perfil_url // NOVO: URL da foto
             };
         });
 
@@ -478,27 +481,25 @@ app.get('/users/:id', (req, res) => {
 
 // =========================================================================
 // NOVO ROTA: OBTÉM INFORMAÇÕES BÁSICAS DO PERFIL POR ID (Para profile2.js)
-// Rota: GET /profile-data/:id - ROTA ADICIONADA PARA CORRIGIR O ERRO 404
+// Rota: GET /profile-data/:id - ROTA ADICIONADA E CORRIGIDA
 // =========================================================================
 app.get('/profile-data/:id', authMiddleware, (req, res) => {
     const userId = req.params.id;
 
-    // Busca apenas o nome. O frontend espera 'nome' para o display.
-    const query = 'SELECT id_usuario, nome FROM usuario WHERE id_usuario = ?';
+    // Alteração para incluir 'foto_perfil_url'
+    const query = 'SELECT id_usuario, nome, foto_perfil_url FROM usuario WHERE id_usuario = ?';
 
     connection.query(query, [userId], (err, results) => {
         if (err) {
             console.error('Erro ao buscar profile-data:', err.message);
-            // O frontend espera erro se !response.ok, o que inclui 500
             return res.status(500).json({ error: 'Erro no servidor ao buscar profile-data.' });
         }
         
         if (results.length === 0) {
-            // O frontend espera erro se !response.ok, o que inclui 404
             return res.status(404).json({ error: 'Perfil não encontrado.' });
         }
         
-        // Retorna o objeto com 'nome' (o suficiente para profile2.js carregar)
+        // Retorna o objeto com 'nome' e 'foto_perfil_url'
         res.json(results[0]);
     });
 });
@@ -506,7 +507,7 @@ app.get('/profile-data/:id', authMiddleware, (req, res) => {
 
 // =========================================================================
 // NOVO ROTA: CARREGA POSTS PÚBLICOS DE UM USUÁRIO ESPECÍFICO (Para profile2.js)
-// Rota: GET /users/:userId/public-posts - ROTA ADICIONADA PARA CORRIGIR O ERRO 404
+// Rota: GET /users/:userId/public-posts - ROTA ADICIONADA
 // =========================================================================
 app.get('/users/:userId/public-posts', (req, res) => {
     // 1. Obtém e valida o ID do usuário (userId) do parâmetro da URL
